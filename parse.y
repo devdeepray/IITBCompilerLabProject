@@ -1,36 +1,37 @@
+
 %scanner Scanner.h
 %scanner-token-function d_scanner.lex()
 
-%token DEFAULT WHITESPACE FP_CONST INT_CONST VOID INT FLOAT FOR WHILE IF ELSE RETURN IDENTIFIER LEFT_PAREN RIGHT_PAREN LEFT_BOX
-%token RIGHT_BOX LEFT_CURLY RIGHT_CURLY COMMA DOT SEMICOLON ASSIGNMENT
-%token EQUAL_TO NEQ_TO LT_OP GT_OP LEQ_OP GEQ_OP INCREMENT STRING_LITERAL
-%token EXCLAMATION MINUS PLUS MULT DIV MOD AMPERSAND LOGICAL_AND VERT_BAR LOGICAL_OR XOR
+%token FP_CONST INT_CONST VOID INT FLOAT FOR WHILE IF ELSE RETURN IDENTIFIER
+%token LEQ_OP GEQ_OP INCREMENT STRING_LITERAL
+%token LOGICAL_AND LOGICAL_OR EQUAL_TO NEQ_TO
 
 %%
 
 translation_unit:
-	function_definition {std::cout << "t_unit_"<<$1<<" -> func_def_"<<$2<<";"<< std::endl;}
+	function_definition {$$=$1; std::cout << "t_unit_"<<$1<<" -> func_def_"<<$1<<";"<< std::endl;}
 	| translation_unit function_definition
-	 { std::cout << "t_unit_"<<$1<<" -> t_unit_"<<$2<<";"<< std::endl;
-	std::cout << "t_unit_"<<$1<<" -> func_def_"<<$3<<";"<< std::endl;}
+	{ std::cout << "t_unit_"<<$1+$2<<" -> t_unit_"<<$1<<";"<< std::endl;
+	std::cout << "t_unit_"<<$1+$2<<" -> func_def_"<<$2<<";"<< std::endl;}
 	;
 
 function_definition:
 	type_specifier fun_declarator compound_statement
-	{std::cout << "func_def_"<<$1<<" -> type_spec_"<<$2<<";"<< std::endl;
-	std::cout << "func_def_"<<$1<<" -> fun_decl_"<<$3<<";"<< std::endl;
-	std::cout << "func_def_"<<$1<<" -> comp_stat_"<<$4<<";"<< std::endl;}
+	{$$=$1+$2+$3;
+	std::cout << "func_def_"<<$1+$2+$3<<" -> type_spec_"<<$1<<";"<< std::endl;
+	std::cout << "func_def_"<<$1+$2+$3<<" -> fun_decl_"<<$2<<";"<< std::endl;
+	std::cout << "func_def_"<<$1+$2+$3<<" -> comp_stat_"<<$3<<";"<< std::endl;}
 	;
 
 type_specifier:
-	VOID
-	| INT
-	| FLOAT
+	VOID {$$=$1;}
+	| INT {$$=$1;}
+	| FLOAT {$$=$1;}
 	;
 
 fun_declarator
-	: IDENTIFIER '(' parameter_list ')'
-	| IDENTIFIER '(' ')'
+	: IDENTIFIER '(' parameter_list ')' {$$=$1+$2;}
+	| IDENTIFIER '(' ')' {$$=$1;}
 	;
 
 parameter_list
@@ -136,7 +137,7 @@ primary_expression
 	;
 
 l_expression
-        : IDENTIFIER
+        : IDENTIFIER {std::cout << $$ << std::endl;}
         | l_expression '[' expression ']' 
         ;
 expression_list
