@@ -9,21 +9,43 @@
 
 %%
 
+
+
 translation_unit:
-	function_definition {makeGraph("tran_unit",1);}
-	| translation_unit function_definition  {makeGraph("tran_unit",2);}
+	function_definition 
+	{
+		makeGraph("tran_unit",1);
+	}
+	| translation_unit function_definition  
+	{
+		makeGraph("tran_unit",2);
+	}
 	
 	;
 
 function_definition:
-	type_specifier fun_declarator compound_statement {makeGraph("func_def",3);}
-	
+	type_specifier fun_declarator compound_statement 
+	{
+		makeGraph("func_def",3);
+	}
 	;
 
 type_specifier:
-	VOID {addTerm("void");makeGraph("type_spec",1);}
-	| INT {addTerm("int");makeGraph("type_spec",1);}
-	| FLOAT {addTerm("float");makeGraph("type_spec",1);}
+	VOID 
+	{
+		addTerm("void");
+		makeGraph("type_spec",1);
+	}
+	| INT 
+	{
+		addTerm("int");
+		makeGraph("type_spec",1);
+	}
+	| FLOAT 
+	{
+		addTerm("float");
+		makeGraph("type_spec",1);
+	}
 	;
 
 fun_declarator
@@ -47,7 +69,10 @@ fun_declarator
 	;
 
 parameter_list
-	: parameter_declaration { makeGraph("param_list",1); }
+	: parameter_declaration 
+	{ 
+		makeGraph("param_list",1); 
+	}
 	| parameter_list ',' parameter_declaration
 	{
 		std::string param = shiftReduceStack.top();
@@ -59,21 +84,50 @@ parameter_list
 	;
 
 parameter_declaration
-	: type_specifier declarator {makeGraph("param_decl",2);}
+	: type_specifier declarator 
+	{
+		makeGraph("param_decl",2);
+	}
 	;
 
+
 declarator
-	: IDENTIFIER { addTerm("identifier"); makeGraph("declarator",1);}
-	| declarator '[' constant_expression ']' 
+	: IDENTIFIER 
+	{ 
+		addTerm("identifier"); 
+		makeGraph("declarator",1);
+	}
+	| declarator '[' constant_expression ']'
+	{
+		std::string const_expr = shiftReduceStack.top();
+		shiftReduceStack.pop();
+		addTerm("left_box");
+		shiftReduceStack.push(const_expr);
+		addTerm("right_box");
+		makeGraph("declarator", 4);
+	}
 	;
 
 constant_expression
-        : INT_CONST { addTerm("int_const"); makeGraph("const_expr",1);}
-        | FP_CONST{ addTerm("fp_const"); makeGraph("const_expr",1);}
+        : INT_CONST 
+				{ 
+					addTerm("int_const");
+					makeGraph("const_expr",1);
+				}
+        | FP_CONST
+				{ 
+					addTerm("fp_const");
+					makeGraph("const_expr",1);
+				}
         ;
 
 compound_statement
-	: '{' '}' { addTerm("left_curly"); addTerm("right_curly");makeGraph("comp_stmt",2);}
+	: '{' '}' 
+	{ 
+		addTerm("left_curly"); 
+		addTerm("right_curly");
+		makeGraph("comp_stmt",2);
+	}
 	| '{' statement_list '}'
 	{
 		std::string param = shiftReduceStack.top();
@@ -83,7 +137,7 @@ compound_statement
 		addTerm("right_curly");
 		makeGraph("comp_stmt",3);
 	}
-        | '{' declaration_list statement_list '}'
+  | '{' declaration_list statement_list '}'
 	{
 		
 		std::string param = shiftReduceStack.top();
@@ -99,16 +153,34 @@ compound_statement
 	;
 
 statement_list
-	: statement {makeGraph("stmt_list",1);}
-	| statement_list statement {makeGraph("stmt_list",2);}
+	: statement 
+	{
+		makeGraph("stmt_list",1);
+	}
+	| statement_list statement 
+	{
+		makeGraph("stmt_list",2);
+	}
 	;
 
 statement
-        : compound_statement {makeGraph("stmt",1);}
-	| selection_statement {makeGraph("stmt",1);}
-	| iteration_statement {makeGraph("stmt",1);}
-	| assignment_statement {makeGraph("stmt",1);}
-        | RETURN expression ';'	
+ 	: compound_statement 
+	{
+		makeGraph("stmt",1);
+	}
+	| selection_statement 
+	{
+		makeGraph("stmt",1);
+	}
+	| iteration_statement 
+	{
+		makeGraph("stmt",1);
+	}
+	| assignment_statement 
+	{
+		makeGraph("stmt",1);
+	}
+	| RETURN expression ';'	
 	{
 		std::string param = shiftReduceStack.top();
 		shiftReduceStack.pop();
@@ -120,7 +192,11 @@ statement
 	;
 
 assignment_statement
-	: assignment ';' {addTerm("semi_colon");makeGraph("assi_stmt",2);}
+	: assignment ';' 
+	{
+		addTerm("semi_colon");
+		makeGraph("assi_stmt",2);
+	}
 	;
 
 assignment
@@ -136,7 +212,10 @@ assignment
 	;
 
 expression
-	: logical_and_expression {makeGraph("expression",1);}
+	: logical_and_expression 
+	{
+		makeGraph("expression",1);
+	}
 	| expression LOGICAL_OR logical_and_expression
 	{
 		std::string param = shiftReduceStack.top();
@@ -148,7 +227,10 @@ expression
 	;
 
 logical_and_expression
-	: equality_expression {makeGraph("logic_and_expr",1);}
+	: equality_expression 
+	{
+		makeGraph("logic_and_expr",1);
+	}
 	| logical_and_expression LOGICAL_AND equality_expression
 	{
 		std::string param = shiftReduceStack.top();
@@ -160,7 +242,10 @@ logical_and_expression
 	;
 
 equality_expression
-	: relational_expression {makeGraph("equal_expr",1);}
+	: relational_expression 
+	{
+		makeGraph("equal_expr",1);
+	}
 	| equality_expression EQUAL_TO relational_expression
 	{
 		std::string param = shiftReduceStack.top();
@@ -179,7 +264,10 @@ equality_expression
 	}
 	;
 relational_expression
-	: additive_expression {makeGraph("rel_expr",1);}
+	: additive_expression 
+	{
+		makeGraph("rel_expr",1);
+	}
 	| relational_expression '<' additive_expression
 	{
 		std::string param = shiftReduceStack.top();
@@ -215,7 +303,10 @@ relational_expression
 	;
 
 additive_expression
-	: multiplicative_expression {makeGraph("add_expr",1);}
+	: multiplicative_expression 
+	{
+		makeGraph("add_expr",1);
+	}
 	| additive_expression '+' multiplicative_expression
 	{
 		std::string param = shiftReduceStack.top();
@@ -235,7 +326,10 @@ additive_expression
 	;
 
 multiplicative_expression
-	: unary_expression {makeGraph("mul_expr",1);}
+	: unary_expression 
+	{
+		makeGraph("mul_expr",1);
+	}
 	| multiplicative_expression '*' unary_expression
 	{
 		std::string param = shiftReduceStack.top();
@@ -254,13 +348,28 @@ multiplicative_expression
 	}
 	;
 unary_expression
-	: postfix_expression {makeGraph("unary_expr",1);}
-	| unary_operator postfix_expression {makeGraph("unary_expr",2);}
+	: postfix_expression 
+	{
+		makeGraph("unary_expr",1);
+	}
+	| unary_operator postfix_expression 
+	{
+		makeGraph("unary_expr",2);
+	}
 	;
 
 postfix_expression
-	: primary_expression {makeGraph("post_expr",1);}
-	| IDENTIFIER '(' ')' {addTerm("identifier");addTerm("left_paran");addTerm("right_paran");makeGraph("post_expr",3);}
+	: primary_expression 
+	{
+		makeGraph("post_expr",1);
+	}
+	| IDENTIFIER '(' ')' 
+	{
+		addTerm("identifier");
+		addTerm("left_paran");
+		addTerm("right_paran");
+		makeGraph("post_expr",3);
+	}
 	| IDENTIFIER '(' expression_list ')'
 	{
 		std::string param = shiftReduceStack.top();
@@ -271,14 +380,31 @@ postfix_expression
 		addTerm("right_paran");
 		makeGraph("post_expr",4);
 	}
-	| l_expression INCREMENT {addTerm("increment");makeGraph("post_expr",2);}
+	| l_expression INCREMENT 
+	{
+		addTerm("increment");
+		makeGraph("post_expr",2);
+	}
 	;
 
 primary_expression
-	: l_expression {makeGraph("prim_expr",1);}
-	| INT_CONST {addTerm("int_const");makeGraph("prim_expr",1);}
-	| FP_CONST {addTerm("fp_const");makeGraph("prim_expr",1);}
-        | STRING_LITERAL {addTerm("string");makeGraph("prim_expr",1);}
+	: l_expression 
+	{
+		makeGraph("prim_expr",1);
+	}
+	| INT_CONST 
+	{
+		addTerm("int_const");
+		makeGraph("prim_expr",1);
+	}
+	| FP_CONST 
+	{
+		addTerm("fp_const");makeGraph("prim_expr",1);
+	}
+	| STRING_LITERAL 
+	{
+		addTerm("string");makeGraph("prim_expr",1);
+	}
 	| '(' expression ')'
 	{
 		std::string param = shiftReduceStack.top();
@@ -291,8 +417,12 @@ primary_expression
 	;
 
 l_expression
-        : IDENTIFIER {addTerm("identifier");makeGraph("l_expr",1);}
-        | l_expression '[' expression ']'
+	: IDENTIFIER 
+	{
+		addTerm("identifier");
+		makeGraph("l_expr",1);
+	}
+	| l_expression '[' expression ']'
 	{
 		std::string param = shiftReduceStack.top();
 		shiftReduceStack.pop();
@@ -303,8 +433,11 @@ l_expression
 	} 
         ;
 expression_list
-        : expression {makeGraph("expr_list",1);}
-        | expression_list ',' expression
+	: expression 
+	{
+		makeGraph("expr_list",1);
+	}
+	| expression_list ',' expression
 	{
 		std::string param = shiftReduceStack.top();
 		shiftReduceStack.pop();
@@ -315,30 +448,99 @@ expression_list
 	;
 
 unary_operator
-        : '-'  {addTerm("minus");makeGraph("unary_op",1);}
-	| '!'  {addTerm("exclamation");makeGraph("unary_op",1);}
+	: '-'  
+	{
+		addTerm("minus");
+		makeGraph("unary_op",1);
+	}
+	| '!'  
+	{
+		addTerm("exclamation");
+		makeGraph("unary_op",1);
+	}
 	;
 
 selection_statement
-        : IF '(' expression ')' statement ELSE statement
+	: IF '(' expression ')' statement ELSE statement
+	{
+		std::string stat1 = shiftReduceStack.top();
+		shiftReduceStack.pop();
+		std::string stat2 = shiftReduceStack.top();
+		shiftReduceStack.pop();
+		std::string expr = shiftReduceStack.top();
+		shiftReduceStack.pop();
+		addTerm("if");
+		addTerm("left_paren");
+		addTerm(expr);
+		addTerm("right_paren");
+		addTerm(stat2);
+		addTerm("else");
+		addTerm(stat1);
+		makeGraph("sel_stat", 7);
+	}
 	;
 
 iteration_statement
 	: WHILE '(' expression ')' statement
+	{
+		std::string stat = shiftReduceStack.top();
+		shiftReduceStack.pop();
+		std::string expr = shiftReduceStack.top();
+		shiftReduceStack.pop();
+		addTerm("while");
+		addTerm("left_paren");
+		addTerm(expr);
+		addTerm("right_paren");
+		addTerm(stat);
+		makeGraph("iter_stat", 5);
+		
+	}
 	| FOR '(' assignment_statement expression ';' assignment ')' statement
+	{
+		std::string d1 = shiftReduceStack.top();
+		shiftReduceStack.pop();
+		std::string d2 = shiftReduceStack.top();
+		shiftReduceStack.pop();
+		std::string d3 = shiftReduceStack.top();
+		shiftReduceStack.pop();
+		std::string d4 = shiftReduceStack.top();
+		shiftReduceStack.pop();
+		addTerm("for");
+		addTerm("left_paren");
+		addTerm(d4);
+		addTerm(d3);
+		addTerm("semi_colon");
+		addTerm(d2);
+		addTerm("right_paren");
+		addTerm(d1);
+		makeGraph("iter_stat", 8);
+	}
 	;
 
 declaration_list
-	: declaration {makeGraph("declaration_list",1);}
-	| declaration_list declaration {makeGraph("declaration_list",2);}
+	: declaration 
+	{
+		makeGraph("declaration_list",1);
+	}
+	| declaration_list declaration 
+	{
+		makeGraph("declaration_list",2);
+	}
 	;
 
 declaration
-	: type_specifier declarator_list';'{addTerm("semi_colon");makeGraph("declaration",3);}
+	: type_specifier declarator_list';'
+	{
+		addTerm("semi_colon");
+		makeGraph("declaration",3);
+	}
 	;
 
 declarator_list
-	: declarator {makeGraph("declarator_list",1);}
+	: declarator 
+	{
+		makeGraph("declarator_list",1);
+	}
 	| declarator_list ',' declarator
 	{
 		std::string param = shiftReduceStack.top();

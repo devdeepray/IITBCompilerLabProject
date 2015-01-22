@@ -1,6 +1,14 @@
-int main ()
-{ 
-  float x; 
-  x=3;	
+int main()
+{
+	int x;
+	x = 1;
 }
-
+float looptest(float arg0, float arg1)
+{
+	float v;
+	v = 1;
+	for(v=0; v<10; v=v+1)
+	{
+		v = v+100;
+	}
+}
