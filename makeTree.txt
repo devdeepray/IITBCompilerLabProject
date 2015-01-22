@@ -1,0 +1,34 @@
+std::stack <std::string> shiftReduceStack;
+
+int count=0;
+int termCount=0;
+
+void makeGraph(std::string gamma,int popCount)
+{
+	count++;
+	std::string parent = gamma + std::to_string(count);
+		
+	std::stack <std::string> tempStack;
+	for( int i = 0 ; i < popCount ; i++)
+	{
+		std::string temp = shiftReduceStack.top();
+		tempStack.push(temp);
+		shiftReduceStack.pop();
+	}
+	for( int i = 0 ; i < popCount ; i++)
+	{
+		std::string temp = tempStack.top();
+		std::cout << parent << "->" << temp << ";" << std::endl;
+		tempStack.pop();
+	}
+	shiftReduceStack.push(parent);	
+	return;
+} 
+
+void addTerm( std::string termToken )
+{	
+	termCount++;
+	std::string node = termToken + std::to_string(termCount);
+	shiftReduceStack.push(node);
+	return;
+}	

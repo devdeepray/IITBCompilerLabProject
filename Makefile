@@ -1,6 +1,7 @@
 .PHONY: clean
 all:    lex.cc parse.cc main.cc Scanner.h Scannerbase.h Scanner.ih Parser.h Parserbase.h Parser.ih
 	g++   --std=c++0x lex.cc parse.cc main.cc;
+	
 
 lex.cc: lex.l Scanner.ih 
 	flexc++ lex.l; 
@@ -8,13 +9,24 @@ lex.cc: lex.l Scanner.ih
 
 parse.cc: parse.y Parser.ih Parser.h Parserbase.h
 	bisonc++  parse.y; 
-     
+	#cat makeTree.txt >> Parser.h
+	sed -i '/"Scanner.h"/a #include <stack>' Parser.h;     
+	sed -i '/d_scanner;/r makeTree.txt' Parser.h; 
+
+graph:  all
+	echo "digraph G{ordering=out;" >> graph.gv
+	./a.out < testCase >> graph.gv
+	echo "}" >> graph.gv
+	dot -Tps graph.gv -o graph.ps
+
 clean:
 	rm -f Scanner*
 	rm -f Parser*
 	rm -f a.out
 	rm -f lex.cc
 	rm -f parse.cc
+	rm -f graph.gv
+	rm -f graph.ps
 
 Parser.ih: parse.y
 Parser.h:  parse.y
