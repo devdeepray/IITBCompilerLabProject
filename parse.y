@@ -471,11 +471,11 @@ selection_statement
 		shiftReduceStack.pop();
 		addTerm("if");
 		addTerm("left_paren");
-		addTerm(expr);
+		shiftReduceStack.push(expr);
 		addTerm("right_paren");
-		addTerm(stat2);
+		shiftReduceStack.push(stat2);
 		addTerm("else");
-		addTerm(stat1);
+		shiftReduceStack.push(stat1);
 		makeGraph("sel_stat", 7);
 	}
 	;
@@ -489,9 +489,9 @@ iteration_statement
 		shiftReduceStack.pop();
 		addTerm("while");
 		addTerm("left_paren");
-		addTerm(expr);
+		shiftReduceStack.push(expr);
 		addTerm("right_paren");
-		addTerm(stat);
+		shiftReduceStack.push(stat);
 		makeGraph("iter_stat", 5);
 		
 	}
@@ -507,12 +507,12 @@ iteration_statement
 		shiftReduceStack.pop();
 		addTerm("for");
 		addTerm("left_paren");
-		addTerm(d4);
-		addTerm(d3);
+		shiftReduceStack.push(d4);
+		shiftReduceStack.push(d3);
 		addTerm("semi_colon");
-		addTerm(d2);
+		shiftReduceStack.push(d2);
 		addTerm("right_paren");
-		addTerm(d1);
+		shiftReduceStack.push(d1);
 		makeGraph("iter_stat", 8);
 	}
 	;
