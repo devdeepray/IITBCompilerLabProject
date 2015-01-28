@@ -9,8 +9,6 @@ lex.cc: lex.l Scanner.ih
 
 parse.cc: parse.y Parser.ih Parser.h Parserbase.h
 	bisonc++  parse.y; 
-	#cat makeTree.txt >> Parser.h
-	sed -i '/"Scanner.h"/a #include <stack>' Parser.h;     
 	sed -i '/d_scanner;/r makeTree.txt' Parser.h; 
 
 graph:

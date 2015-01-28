@@ -14,79 +14,112 @@
 translation_unit:
 	function_definition 
 	{
-		makeGraph("tran_unit",1);
+		$$=++nodeCount;
+		std::cout << $$ << " [label=\"translation_unit\"];" << std::endl;
+		std::cout << $$ << "->" << $1 <<";" << std::endl;
 	}
 	| translation_unit function_definition  
 	{
-		makeGraph("tran_unit",2);
-	}
-	
+		$$=++nodeCount;
+		std::cout << $$ << " [label=\"translation_unit\"];" << std::endl;
+		std::cout << $$ << "->" << $1 <<";" << std::endl;
+		std::cout << $$ << "->" << $2 <<";" << std::endl;
+	}	
 	;
 
 function_definition:
 	type_specifier fun_declarator compound_statement 
 	{
-		makeGraph("func_def",3);
+		$$=++nodeCount;
+		std::cout << $$ << " [label=\"function_definition\"];" << std::endl;
+		std::cout << $$ << "->" << $1 <<";" << std::endl;
+		std::cout << $$ << "->" << $2 <<";" << std::endl;
+		std::cout << $$ << "->" << $3 <<";" << std::endl;
 	}
 	;
 
 type_specifier:
 	VOID 
 	{
-		addTerm("void");
-		makeGraph("type_spec",1);
+		$$=++nodeCount;
+		std::cout << $$ << " [label=\"type_specifier\"];" << std::endl;
+		std::cout << ++nodeCount << " [label=\"void\"];" << std::endl;
+		std::cout << $$ << "->" << nodeCount <<";" << std::endl;
 	}
 	| INT 
 	{
-		addTerm("int");
-		makeGraph("type_spec",1);
+		$$=++nodeCount;
+		std::cout << $$ << " [label=\"type_specifier\"];" << std::endl;
+		std::cout << ++nodeCount << " [label=\"int\"];" << std::endl;
+		std::cout << $$ << "->" << nodeCount <<";" << std::endl;
 	}
 	| FLOAT 
 	{
-		addTerm("float");
-		makeGraph("type_spec",1);
+		$$=++nodeCount;
+		std::cout << $$ << " [label=\"type_specifier\"];" << std::endl;
+		std::cout << ++nodeCount << " [label=\"float\"];" << std::endl;
+		std::cout << $$ << "->" << nodeCount <<";" << std::endl;
 	}
 	;
 
 fun_declarator
 	: IDENTIFIER '(' parameter_list ')' 
 	{
-		std::string param = shiftReduceStack.top();
-		shiftReduceStack.pop();
-		addTerm("identifier");
-		addTerm("left_paren");
-		shiftReduceStack.push(param);
-		addTerm("right_paren");
-		makeGraph("fun_decl",4);	
+		$$=++nodeCount;
+		std::cout << $$ << " [label=\"fun_declarator\"];" << std::endl;
+		std::cout << ++nodeCount << " [label=\"identifier\"];" << std::endl;
+		std::cout << $$ << "->" << nodeCount <<";" << std::endl;
+
+		std::cout << ++nodeCount << " [label=\"(\"];" << std::endl;
+		std::cout << $$ << "->" << nodeCount <<";" << std::endl;
+
+		std::cout << $$ << "->" << $3 <<";" << std::endl;		
+		
+		std::cout << ++nodeCount << " [label=\")\"];" << std::endl;
+		std::cout << $$ << "->" << nodeCount <<";" << std::endl;	
 	}
 	| IDENTIFIER '(' ')' 
 	{
-		addTerm("identifier");
-		addTerm("left_paren");
-		addTerm("right_paren");
-		makeGraph("fun_decl",3);
+		$$=++nodeCount;
+		std::cout << $$ << " [label=\"fun_declarator\"];" << std::endl;
+		std::cout << ++nodeCount << " [label=\"identifier\"];" << std::endl;
+		std::cout << $$ << "->" << nodeCount <<";" << std::endl;
+
+		std::cout << ++nodeCount << " [label=\"(\"];" << std::endl;
+		std::cout << $$ << "->" << nodeCount <<";" << std::endl;		
+		
+		std::cout << ++nodeCount << " [label=\")\"];" << std::endl;
+		std::cout << $$ << "->" << nodeCount <<";" << std::endl;	
 	}
 	;
 
 parameter_list
 	: parameter_declaration 
 	{ 
-		makeGraph("param_list",1); 
+		$$=++nodeCount;
+		std::cout << $$ << " [label=\"parameter_list\"];" << std::endl;
+		std::cout << $$ << "->" << $1 <<";" << std::endl; 
 	}
 	| parameter_list ',' parameter_declaration
 	{
-		std::string param = shiftReduceStack.top();
-		shiftReduceStack.pop();
-		addTerm("comma");
-		shiftReduceStack.push(param);
-		makeGraph("param_list",3);
+		$$=++nodeCount;
+		std::cout << $$ << " [label=\"parameter_list\"];" << std::endl;
+		std::cout << $$ << "->" << $1 <<";" << std::endl;
+
+		std::cout << ++nodeCount << " [label=\",\"];" << std::endl;
+		std::cout << $$ << "->" << nodeCount <<";" << std::endl;		
+		
+		std::cout << $$ << "->" << $3 <<";" << std::endl;	
 	}
 	;
 
 parameter_declaration
 	: type_specifier declarator 
 	{
-		makeGraph("param_decl",2);
+		$$=++nodeCount;
+		std::cout << $$ << " [label=\"parameter_declaration\"];" << std::endl;
+		std::cout << $$ << "->" << $1 <<";" << std::endl;		
+		std::cout << $$ << "->" << $2 <<";" << std::endl;
 	}
 	;
 
@@ -94,108 +127,143 @@ parameter_declaration
 declarator
 	: IDENTIFIER 
 	{ 
-		addTerm("identifier"); 
-		makeGraph("declarator",1);
+		$$=++nodeCount;
+		std::cout << $$ << " [label=\"declarator\"];" << std::endl;
+		std::cout << ++nodeCount << " [label=\"identifier\"];" << std::endl;
+		std::cout << $$ << "->" << nodeCount <<";" << std::endl;
 	}
 	| declarator '[' constant_expression ']'
 	{
-		std::string const_expr = shiftReduceStack.top();
-		shiftReduceStack.pop();
-		addTerm("left_box");
-		shiftReduceStack.push(const_expr);
-		addTerm("right_box");
-		makeGraph("declarator", 4);
+		$$=++nodeCount;
+		std::cout << $$ << " [label=\"declarator\"];" << std::endl;
+
+		std::cout << $$ << "->" << $1 <<";" << std::endl;
+
+		std::cout << ++nodeCount << " [label=\"[\"];" << std::endl;
+		std::cout << $$ << "->" << nodeCount <<";" << std::endl;
+
+		std::cout << $$ << "->" << $3 <<";" << std::endl;		
+		
+		std::cout << ++nodeCount << " [label=\"]\"];" << std::endl;
+		std::cout << $$ << "->" << nodeCount <<";" << std::endl;
 	}
 	;
 
 constant_expression
         : INT_CONST 
-				{ 
-					addTerm("int_const");
-					makeGraph("const_expr",1);
-				}
+	{ 
+		$$=++nodeCount;
+		std::cout << $$ << " [label=\"constant_expression\"];" << std::endl;
+		std::cout << ++nodeCount << " [label=\"int_const\"];" << std::endl;
+		std::cout << $$ << "->" << nodeCount <<";" << std::endl;
+	}
         | FP_CONST
-				{ 
-					addTerm("fp_const");
-					makeGraph("const_expr",1);
-				}
+	{ 
+		$$=++nodeCount;
+		std::cout << $$ << " [label=\"constant_expression\"];" << std::endl;
+		std::cout << ++nodeCount << " [label=\"fp_const\"];" << std::endl;
+		std::cout << $$ << "->" << nodeCount <<";" << std::endl;
+	}
         ;
 
 compound_statement
 	: '{' '}' 
 	{ 
-		addTerm("left_curly"); 
-		addTerm("right_curly");
-		makeGraph("comp_stmt",2);
+		$$=++nodeCount;
+		std::cout << $$ << " [label=\"compound_statement\"];" << std::endl;
+		std::cout << ++nodeCount << " [label=\"{\"];" << std::endl;
+		std::cout << $$ << "->" << nodeCount <<";" << std::endl;
+		
+		std::cout << ++nodeCount << " [label=\"}\"];" << std::endl;
+		std::cout << $$ << "->" << nodeCount <<";" << std::endl;
 	}
 	| '{' statement_list '}'
 	{
-		std::string param = shiftReduceStack.top();
-		shiftReduceStack.pop();
-		addTerm("left_curly");
-		shiftReduceStack.push(param);
-		addTerm("right_curly");
-		makeGraph("comp_stmt",3);
+		$$=++nodeCount;
+		std::cout << $$ << " [label=\"compound_statement\"];" << std::endl;
+		std::cout << ++nodeCount << " [label=\"{\"];" << std::endl;
+		std::cout << $$ << "->" << nodeCount <<";" << std::endl;
+		std::cout << $$ << "->" << $2 <<";" << std::endl;
+		std::cout << ++nodeCount << " [label=\"}\"];" << std::endl;
+		std::cout << $$ << "->" << nodeCount <<";" << std::endl;
 	}
-  | '{' declaration_list statement_list '}'
+  	| '{' declaration_list statement_list '}'
 	{
 		
-		std::string param = shiftReduceStack.top();
-		shiftReduceStack.pop();
-		std::string param1 = shiftReduceStack.top();
-		shiftReduceStack.pop();
-		addTerm("left_curly");
-		shiftReduceStack.push(param1);
-		shiftReduceStack.push(param);
-		addTerm("right_curly");
-		makeGraph("comp_stmt",4);
+		$$=++nodeCount;
+		std::cout << $$ << " [label=\"compound_statement\"];" << std::endl;
+		std::cout << ++nodeCount << " [label=\"{\"];" << std::endl;
+		std::cout << $$ << "->" << nodeCount <<";" << std::endl;
+		std::cout << $$ << "->" << $2 <<";" << std::endl;
+		std::cout << $$ << "->" << $3 <<";" << std::endl;
+		std::cout << ++nodeCount << " [label=\"}\"];" << std::endl;
+		std::cout << $$ << "->" << nodeCount <<";" << std::endl;
 	}
 	;
 
 statement_list
 	: statement 
 	{
-		makeGraph("stmt_list",1);
+		$$=++nodeCount;
+		std::cout << $$ << " [label=\"statement_list\"];" << std::endl;
+		std::cout << $$ << "->" << $1 <<";" << std::endl; 
 	}
 	| statement_list statement 
 	{
-		makeGraph("stmt_list",2);
+		$$=++nodeCount;
+		std::cout << $$ << " [label=\"statement_list\"];" << std::endl;
+		std::cout << $$ << "->" << $1 <<";" << std::endl;
+		std::cout << $$ << "->" << $2 <<";" << std::endl;
 	}
 	;
 
 statement
  	: compound_statement 
 	{
-		makeGraph("stmt",1);
+		$$=++nodeCount;
+		std::cout << $$ << " [label=\"statement\"];" << std::endl;
+		std::cout << $$ << "->" << $1 <<";" << std::endl; 
 	}
 	| selection_statement 
 	{
-		makeGraph("stmt",1);
+		$$=++nodeCount;
+		std::cout << $$ << " [label=\"statement\"];" << std::endl;
+		std::cout << $$ << "->" << $1 <<";" << std::endl; 
 	}
 	| iteration_statement 
 	{
-		makeGraph("stmt",1);
+		$$=++nodeCount;
+		std::cout << $$ << " [label=\"statement\"];" << std::endl;
+		std::cout << $$ << "->" << $1 <<";" << std::endl; 
 	}
 	| assignment_statement 
 	{
-		makeGraph("stmt",1);
+		$$=++nodeCount;
+		std::cout << $$ << " [label=\"statement\"];" << std::endl;
+		std::cout << $$ << "->" << $1 <<";" << std::endl; 
 	}
 	| RETURN expression ';'	
 	{
-		std::string param = shiftReduceStack.top();
-		shiftReduceStack.pop();
-		addTerm("return");
-		shiftReduceStack.push(param);
-		addTerm("semi_colon");
-		makeGraph("stmt",3);
+		$$=++nodeCount;
+		std::cout << $$ << " [label=\"statement\"];" << std::endl;
+		std::cout << ++nodeCount << " [label=\"return\"];" << std::endl;
+		std::cout << $$ << "->" << nodeCount <<";" << std::endl;
+		std::cout << $$ << "->" << $2 <<";" << std::endl;
+		
+		std::cout << ++nodeCount << " [label=\";\"];" << std::endl;
+		std::cout << $$ << "->" << nodeCount <<";" << std::endl;
 	}
 	;
 
 assignment_statement
 	: assignment ';' 
 	{
-		addTerm("semi_colon");
-		makeGraph("assi_stmt",2);
+		$$=++nodeCount;
+		std::cout << $$ << " [label=\"assignment_statement\"];" << std::endl;
+		std::cout << $$ << "->" << $1 <<";" << std::endl;
+		
+		std::cout << ++nodeCount << " [label=\";\"];" << std::endl;
+		std::cout << $$ << "->" << nodeCount <<";" << std::endl;
 	}
 	;
 
@@ -203,350 +271,481 @@ assignment
 	:
 	|  l_expression '=' expression
 	{
-		std::string param = shiftReduceStack.top();
-		shiftReduceStack.pop();
-		addTerm("equal_to");
-		shiftReduceStack.push(param);
-		makeGraph("assi",3);
+		$$=++nodeCount;
+		std::cout << $$ << " [label=\"assignment\"];" << std::endl;
+		std::cout << $$ << "->" << $1 <<";" << std::endl;
+
+		std::cout << ++nodeCount << " [label=\"=\"];" << std::endl;
+		std::cout << $$ << "->" << nodeCount <<";" << std::endl;		
+		
+		std::cout << $$ << "->" << $3 <<";" << std::endl;
 	}
 	;
 
 expression
 	: logical_and_expression 
 	{
-		makeGraph("expression",1);
+		$$=++nodeCount;
+		std::cout << $$ << " [label=\"expression\"];" << std::endl;
+		std::cout << $$ << "->" << $1 <<";" << std::endl; 
 	}
 	| expression LOGICAL_OR logical_and_expression
 	{
-		std::string param = shiftReduceStack.top();
-		shiftReduceStack.pop();
-		addTerm("logical_or");
-		shiftReduceStack.push(param);
-		makeGraph("expression",3);
+		$$=++nodeCount;
+		std::cout << $$ << " [label=\"expression\"];" << std::endl;
+		std::cout << $$ << "->" << $1 <<";" << std::endl;
+
+		std::cout << ++nodeCount << " [label=\"logical_or\"];" << std::endl;
+		std::cout << $$ << "->" << nodeCount <<";" << std::endl;		
+		
+		std::cout << $$ << "->" << $3 <<";" << std::endl;
 	}
 	;
 
 logical_and_expression
 	: equality_expression 
 	{
-		makeGraph("logic_and_expr",1);
+		$$=++nodeCount;
+		std::cout << $$ << " [label=\"logical_and_expression\"];" << std::endl;
+		std::cout << $$ << "->" << $1 <<";" << std::endl;
 	}
 	| logical_and_expression LOGICAL_AND equality_expression
 	{
-		std::string param = shiftReduceStack.top();
-		shiftReduceStack.pop();
-		addTerm("logical_and");
-		shiftReduceStack.push(param);
-		makeGraph("logic_and_expr",3);
+		$$=++nodeCount;
+		std::cout << $$ << " [label=\"logical_and_expression\"];" << std::endl;
+		std::cout << $$ << "->" << $1 <<";" << std::endl;
+
+		std::cout << ++nodeCount << " [label=\"logical_and\"];" << std::endl;
+		std::cout << $$ << "->" << nodeCount <<";" << std::endl;		
+		
+		std::cout << $$ << "->" << $3 <<";" << std::endl;
 	}
 	;
 
 equality_expression
 	: relational_expression 
 	{
-		makeGraph("equal_expr",1);
+		$$=++nodeCount;
+		std::cout << $$ << " [label=\"equality_expression\"];" << std::endl;
+		std::cout << $$ << "->" << $1 <<";" << std::endl;
 	}
 	| equality_expression EQUAL_TO relational_expression
 	{
-		std::string param = shiftReduceStack.top();
-		shiftReduceStack.pop();
-		addTerm("equal_to");
-		shiftReduceStack.push(param);
-		makeGraph("equal_expr",3);
+		$$=++nodeCount;
+		std::cout << $$ << " [label=\"equality_expression\"];" << std::endl;
+		std::cout << $$ << "->" << $1 <<";" << std::endl;
+
+		std::cout << ++nodeCount << " [label=\"equal_to\"];" << std::endl;
+		std::cout << $$ << "->" << nodeCount <<";" << std::endl;		
+		
+		std::cout << $$ << "->" << $3 <<";" << std::endl;
 	}
 	| equality_expression NEQ_TO relational_expression
 	{
-		std::string param = shiftReduceStack.top();
-		shiftReduceStack.pop();
-		addTerm("nequal_to");
-		shiftReduceStack.push(param);
-		makeGraph("equal_expr",3);
+		$$=++nodeCount;
+		std::cout << $$ << " [label=\"equality_expression\"];" << std::endl;
+		std::cout << $$ << "->" << $1 <<";" << std::endl;
+
+		std::cout << ++nodeCount << " [label=\"neq_to\"];" << std::endl;
+		std::cout << $$ << "->" << nodeCount <<";" << std::endl;		
+		
+		std::cout << $$ << "->" << $3 <<";" << std::endl;
 	}
 	;
 relational_expression
 	: additive_expression 
 	{
-		makeGraph("rel_expr",1);
+		$$=++nodeCount;
+		std::cout << $$ << " [label=\"relational_expression\"];" << std::endl;
+		std::cout << $$ << "->" << $1 <<";" << std::endl;
 	}
 	| relational_expression '<' additive_expression
 	{
-		std::string param = shiftReduceStack.top();
-		shiftReduceStack.pop();
-		addTerm("less_than");
-		shiftReduceStack.push(param);
-		makeGraph("rel_expr",3);
+		$$=++nodeCount;
+		std::cout << $$ << " [label=\"relational_expression\"];" << std::endl;
+		std::cout << $$ << "->" << $1 <<";" << std::endl;
+
+		std::cout << ++nodeCount << " [label=\"<\"];" << std::endl;
+		std::cout << $$ << "->" << nodeCount <<";" << std::endl;		
+		
+		std::cout << $$ << "->" << $3 <<";" << std::endl;
 	}
 	| relational_expression '>' additive_expression
 	{
-		std::string param = shiftReduceStack.top();
-		shiftReduceStack.pop();
-		addTerm("greater_than");
-		shiftReduceStack.push(param);
-		makeGraph("rel_expr",3);
+		$$=++nodeCount;
+		std::cout << $$ << " [label=\"relational_expression\"];" << std::endl;
+		std::cout << $$ << "->" << $1 <<";" << std::endl;
+
+		std::cout << ++nodeCount << " [label=\">\"];" << std::endl;
+		std::cout << $$ << "->" << nodeCount <<";" << std::endl;		
+		
+		std::cout << $$ << "->" << $3 <<";" << std::endl;
 	}
 	| relational_expression LEQ_OP additive_expression
 	{
-		std::string param = shiftReduceStack.top();
-		shiftReduceStack.pop();
-		addTerm("le_to");
-		shiftReduceStack.push(param);
-		makeGraph("rel_expr",3);
+		$$=++nodeCount;
+		std::cout << $$ << " [label=\"relational_expression\"];" << std::endl;
+		std::cout << $$ << "->" << $1 <<";" << std::endl;
+
+		std::cout << ++nodeCount << " [label=\"leq_op\"];" << std::endl;
+		std::cout << $$ << "->" << nodeCount <<";" << std::endl;		
+		
+		std::cout << $$ << "->" << $3 <<";" << std::endl;
 	}
 	| relational_expression GEQ_OP additive_expression
 	{
-		std::string param = shiftReduceStack.top();
-		shiftReduceStack.pop();
-		addTerm("ge_to");
-		shiftReduceStack.push(param);
-		makeGraph("rel_expr",3);
+		$$=++nodeCount;
+		std::cout << $$ << " [label=\"relational_expression\"];" << std::endl;
+		std::cout << $$ << "->" << $1 <<";" << std::endl;
+
+		std::cout << ++nodeCount << " [label=\"geq_op\"];" << std::endl;
+		std::cout << $$ << "->" << nodeCount <<";" << std::endl;		
+		
+		std::cout << $$ << "->" << $3 <<";" << std::endl;
 	}
 	;
 
 additive_expression
 	: multiplicative_expression 
 	{
-		makeGraph("add_expr",1);
+		$$=++nodeCount;
+		std::cout << $$ << " [label=\"additive_expression\"];" << std::endl;
+		std::cout << $$ << "->" << $1 <<";" << std::endl;
 	}
 	| additive_expression '+' multiplicative_expression
 	{
-		std::string param = shiftReduceStack.top();
-		shiftReduceStack.pop();
-		addTerm("plus");
-		shiftReduceStack.push(param);
-		makeGraph("add_expr",3);
+		$$=++nodeCount;
+		std::cout << $$ << " [label=\"additive_expression\"];" << std::endl;
+		std::cout << $$ << "->" << $1 <<";" << std::endl;
+
+		std::cout << ++nodeCount << " [label=\"+\"];" << std::endl;
+		std::cout << $$ << "->" << nodeCount <<";" << std::endl;		
+		
+		std::cout << $$ << "->" << $3 <<";" << std::endl;
 	}
 	| additive_expression '-' multiplicative_expression
 	{
-		std::string param = shiftReduceStack.top();
-		shiftReduceStack.pop();
-		addTerm("minus");
-		shiftReduceStack.push(param);
-		makeGraph("add_expr",3);
+		$$=++nodeCount;
+		std::cout << $$ << " [label=\"additive_expression\"];" << std::endl;
+		std::cout << $$ << "->" << $1 <<";" << std::endl;
+
+		std::cout << ++nodeCount << " [label=\"-\"];" << std::endl;
+		std::cout << $$ << "->" << nodeCount <<";" << std::endl;		
+		
+		std::cout << $$ << "->" << $3 <<";" << std::endl;
 	}
 	;
 
 multiplicative_expression
 	: unary_expression 
 	{
-		makeGraph("mul_expr",1);
+		$$=++nodeCount;
+		std::cout << $$ << " [label=\"multiplicative_expression\"];" << std::endl;
+		std::cout << $$ << "->" << $1 <<";" << std::endl;
 	}
 	| multiplicative_expression '*' unary_expression
 	{
-		std::string param = shiftReduceStack.top();
-		shiftReduceStack.pop();
-		addTerm("mul");
-		shiftReduceStack.push(param);
-		makeGraph("mul_expr",3);
+		$$=++nodeCount;
+		std::cout << $$ << " [label=\"multiplicative_expression\"];" << std::endl;
+		std::cout << $$ << "->" << $1 <<";" << std::endl;
+
+		std::cout << ++nodeCount << " [label=\"*\"];" << std::endl;
+		std::cout << $$ << "->" << nodeCount <<";" << std::endl;		
+		
+		std::cout << $$ << "->" << $3 <<";" << std::endl;
 	}
 	| multiplicative_expression '/' unary_expression
 	{
-		std::string param = shiftReduceStack.top();
-		shiftReduceStack.pop();
-		addTerm("div");
-		shiftReduceStack.push(param);
-		makeGraph("mul_expr",3);
+		$$=++nodeCount;
+		std::cout << $$ << " [label=\"multiplicative_expression\"];" << std::endl;
+		std::cout << $$ << "->" << $1 <<";" << std::endl;
+
+		std::cout << ++nodeCount << " [label=\"/\"];" << std::endl;
+		std::cout << $$ << "->" << nodeCount <<";" << std::endl;		
+		
+		std::cout << $$ << "->" << $3 <<";" << std::endl;
 	}
 	;
 unary_expression
 	: postfix_expression 
 	{
-		makeGraph("unary_expr",1);
+		$$=++nodeCount;
+		std::cout << $$ << " [label=\"unary_expression\"];" << std::endl;
+		std::cout << $$ << "->" << $1 <<";" << std::endl;
 	}
 	| unary_operator postfix_expression 
 	{
-		makeGraph("unary_expr",2);
+		$$=++nodeCount;
+		std::cout << $$ << " [label=\"unary_expression\"];" << std::endl;
+		std::cout << $$ << "->" << $1 <<";" << std::endl;
+		std::cout << $$ << "->" << $2 <<";" << std::endl;
 	}
 	;
 
 postfix_expression
 	: primary_expression 
 	{
-		makeGraph("post_expr",1);
+		$$=++nodeCount;
+		std::cout << $$ << " [label=\"postfix_expression\"];" << std::endl;
+		std::cout << $$ << "->" << $1 <<";" << std::endl;
 	}
 	| IDENTIFIER '(' ')' 
 	{
-		addTerm("identifier");
-		addTerm("left_paran");
-		addTerm("right_paran");
-		makeGraph("post_expr",3);
+		$$=++nodeCount;
+		std::cout << $$ << " [label=\"postfix_expression\"];" << std::endl;
+		std::cout << ++nodeCount << " [label=\"identifier\"];" << std::endl;
+		std::cout << $$ << "->" << nodeCount <<";" << std::endl;
+
+		std::cout << ++nodeCount << " [label=\"(\"];" << std::endl;
+		std::cout << $$ << "->" << nodeCount <<";" << std::endl;		
+		
+		std::cout << ++nodeCount << " [label=\")\"];" << std::endl;
+		std::cout << $$ << "->" << nodeCount <<";" << std::endl;
 	}
 	| IDENTIFIER '(' expression_list ')'
 	{
-		std::string param = shiftReduceStack.top();
-		shiftReduceStack.pop();
-		addTerm("identifier");
-		addTerm("left_paran");
-		shiftReduceStack.push(param);
-		addTerm("right_paran");
-		makeGraph("post_expr",4);
+		$$=++nodeCount;
+		std::cout << $$ << " [label=\"postfix_expression\"];" << std::endl;
+		std::cout << ++nodeCount << " [label=\"identifier\"];" << std::endl;
+		std::cout << $$ << "->" << nodeCount <<";" << std::endl;
+
+		std::cout << ++nodeCount << " [label=\"(\"];" << std::endl;
+		std::cout << $$ << "->" << nodeCount <<";" << std::endl;		
+		std::cout << $$ << "->" << $3 <<";" << std::endl;
+		std::cout << ++nodeCount << " [label=\")\"];" << std::endl;
+		std::cout << $$ << "->" << nodeCount <<";" << std::endl;
 	}
 	| l_expression INCREMENT 
 	{
-		addTerm("increment");
-		makeGraph("post_expr",2);
+		$$=++nodeCount;
+		std::cout << $$ << " [label=\"postfix_expression\"];" << std::endl;
+		
+		std::cout << $$ << "->" << $1 <<";" << std::endl;
+
+		std::cout << ++nodeCount << " [label=\"increment\"];" << std::endl;
+		std::cout << $$ << "->" << nodeCount <<";" << std::endl;
 	}
 	;
 
 primary_expression
 	: l_expression 
 	{
-		makeGraph("prim_expr",1);
+		$$=++nodeCount;
+		std::cout << $$ << " [label=\"primary_expression\"];" << std::endl;
+		std::cout << $$ << "->" << $1 <<";" << std::endl;
 	}
 	| INT_CONST 
 	{
-		addTerm("int_const");
-		makeGraph("prim_expr",1);
+		$$=++nodeCount;
+		std::cout << $$ << " [label=\"primary_expression\"];" << std::endl;
+		std::cout << ++nodeCount << " [label=\"int_const\"];" << std::endl;
+		std::cout << $$ << "->" << nodeCount <<";" << std::endl;
 	}
 	| FP_CONST 
 	{
-		addTerm("fp_const");makeGraph("prim_expr",1);
+		$$=++nodeCount;
+		std::cout << $$ << " [label=\"primary_expression\"];" << std::endl;
+		std::cout << ++nodeCount << " [label=\"fp_const\"];" << std::endl;
+		std::cout << $$ << "->" << nodeCount <<";" << std::endl;
 	}
 	| STRING_LITERAL 
 	{
-		addTerm("string");makeGraph("prim_expr",1);
+		$$=++nodeCount;
+		std::cout << $$ << " [label=\"primary_expression\"];" << std::endl;
+		std::cout << ++nodeCount << " [label=\"string_literal\"];" << std::endl;
+		std::cout << $$ << "->" << nodeCount <<";" << std::endl;
 	}
 	| '(' expression ')'
 	{
-		std::string param = shiftReduceStack.top();
-		shiftReduceStack.pop();
-		addTerm("left_paran");
-		shiftReduceStack.push(param);
-		addTerm("right_paran");
-		makeGraph("prim_expr",3);
+		$$=++nodeCount;
+		std::cout << $$ << " [label=\"primary_expression\"];" << std::endl;
+		std::cout << ++nodeCount << " [label=\"(\"];" << std::endl;
+		std::cout << $$ << "->" << nodeCount <<";" << std::endl;
+		std::cout << $$ << "->" << $2 <<";" << std::endl;
+		std::cout << ++nodeCount << " [label=\")\"];" << std::endl;
+		std::cout << $$ << "->" << nodeCount <<";" << std::endl;
 	}
 	;
 
 l_expression
 	: IDENTIFIER 
 	{
-		addTerm("identifier");
-		makeGraph("l_expr",1);
+		$$=++nodeCount;
+		std::cout << $$ << " [label=\"l_expression\"];" << std::endl;
+		std::cout << ++nodeCount << " [label=\"identifier\"];" << std::endl;
+		std::cout << $$ << "->" << nodeCount <<";" << std::endl;
 	}
 	| l_expression '[' expression ']'
 	{
-		std::string param = shiftReduceStack.top();
-		shiftReduceStack.pop();
-		addTerm("left_box");
-		shiftReduceStack.push(param);
-		addTerm("right_box");
-		makeGraph("l_expr",3);
+		$$=++nodeCount;
+		std::cout << $$ << " [label=\"l_expression\"];" << std::endl;
+
+		std::cout << $$ << "->" << $1 <<";" << std::endl;
+
+		std::cout << ++nodeCount << " [label=\"[\"];" << std::endl;
+		std::cout << $$ << "->" << nodeCount <<";" << std::endl;
+
+		std::cout << $$ << "->" << $3 <<";" << std::endl;		
+		
+		std::cout << ++nodeCount << " [label=\"]\"];" << std::endl;
+		std::cout << $$ << "->" << nodeCount <<";" << std::endl;
 	} 
         ;
 expression_list
 	: expression 
 	{
-		makeGraph("expr_list",1);
+		$$=++nodeCount;
+		std::cout << $$ << " [label=\"expression_list\"];" << std::endl;
+		std::cout << $$ << "->" << $1 <<";" << std::endl;
 	}
 	| expression_list ',' expression
 	{
-		std::string param = shiftReduceStack.top();
-		shiftReduceStack.pop();
-		addTerm("comma");
-		shiftReduceStack.push(param);
-		makeGraph("expr_list",3);
+		$$=++nodeCount;
+		std::cout << $$ << " [label=\"expression_list\"];" << std::endl;
+		std::cout << $$ << "->" << $1 <<";" << std::endl;
+
+		std::cout << ++nodeCount << " [label=\",\"];" << std::endl;
+		std::cout << $$ << "->" << nodeCount <<";" << std::endl;		
+		
+		std::cout << $$ << "->" << $3 <<";" << std::endl;
 	} 
 	;
 
 unary_operator
 	: '-'  
 	{
-		addTerm("minus");
-		makeGraph("unary_op",1);
+		$$=++nodeCount;
+		std::cout << $$ << " [label=\"unary_operator\"];" << std::endl;
+		std::cout << ++nodeCount << " [label=\"-\"];" << std::endl;
+		std::cout << $$ << "->" << nodeCount <<";" << std::endl;
 	}
 	| '!'  
 	{
-		addTerm("exclamation");
-		makeGraph("unary_op",1);
+		$$=++nodeCount;
+		std::cout << $$ << " [label=\"unary_operator\"];" << std::endl;
+		std::cout << ++nodeCount << " [label=\"!\"];" << std::endl;
+		std::cout << $$ << "->" << nodeCount <<";" << std::endl;
 	}
 	;
 
 selection_statement
 	: IF '(' expression ')' statement ELSE statement
 	{
-		std::string stat1 = shiftReduceStack.top();
-		shiftReduceStack.pop();
-		std::string stat2 = shiftReduceStack.top();
-		shiftReduceStack.pop();
-		std::string expr = shiftReduceStack.top();
-		shiftReduceStack.pop();
-		addTerm("if");
-		addTerm("left_paren");
-		shiftReduceStack.push(expr);
-		addTerm("right_paren");
-		shiftReduceStack.push(stat2);
-		addTerm("else");
-		shiftReduceStack.push(stat1);
-		makeGraph("sel_stat", 7);
+		$$=++nodeCount;
+		std::cout << $$ << " [label=\"selection_statement\"];" << std::endl;
+
+		std::cout << ++nodeCount << " [label=\"IF\"];" << std::endl;
+		std::cout << $$ << "->" << nodeCount <<";" << std::endl;
+
+		std::cout << ++nodeCount << " [label=\"(\"];" << std::endl;
+		std::cout << $$ << "->" << nodeCount <<";" << std::endl;
+
+		std::cout << $$ << "->" << $3 <<";" << std::endl;
+
+		std::cout << ++nodeCount << " [label=\")\"];" << std::endl;
+		std::cout << $$ << "->" << nodeCount <<";" << std::endl;
+
+		std::cout << $$ << "->" << $5 <<";" << std::endl;
+
+		std::cout << ++nodeCount << " [label=\"else\"];" << std::endl;
+		std::cout << $$ << "->" << nodeCount <<";" << std::endl;
+
+		std::cout << $$ << "->" << $7 <<";" << std::endl;
 	}
 	;
 
 iteration_statement
 	: WHILE '(' expression ')' statement
 	{
-		std::string stat = shiftReduceStack.top();
-		shiftReduceStack.pop();
-		std::string expr = shiftReduceStack.top();
-		shiftReduceStack.pop();
-		addTerm("while");
-		addTerm("left_paren");
-		shiftReduceStack.push(expr);
-		addTerm("right_paren");
-		shiftReduceStack.push(stat);
-		makeGraph("iter_stat", 5);
+		$$=++nodeCount;
+		std::cout << $$ << " [label=\"iteration_statement\"];" << std::endl;
+
+		std::cout << ++nodeCount << " [label=\"while\"];" << std::endl;
+		std::cout << $$ << "->" << nodeCount <<";" << std::endl;
+
+		std::cout << ++nodeCount << " [label=\"(\"];" << std::endl;
+		std::cout << $$ << "->" << nodeCount <<";" << std::endl;
+
+		std::cout << $$ << "->" << $3 <<";" << std::endl;
+
+		std::cout << ++nodeCount << " [label=\")\"];" << std::endl;
+		std::cout << $$ << "->" << nodeCount <<";" << std::endl;
+
+		std::cout << $$ << "->" << $5 <<";" << std::endl;
 		
 	}
 	| FOR '(' assignment_statement expression ';' assignment ')' statement
 	{
-		std::string d1 = shiftReduceStack.top();
-		shiftReduceStack.pop();
-		std::string d2 = shiftReduceStack.top();
-		shiftReduceStack.pop();
-		std::string d3 = shiftReduceStack.top();
-		shiftReduceStack.pop();
-		std::string d4 = shiftReduceStack.top();
-		shiftReduceStack.pop();
-		addTerm("for");
-		addTerm("left_paren");
-		shiftReduceStack.push(d4);
-		shiftReduceStack.push(d3);
-		addTerm("semi_colon");
-		shiftReduceStack.push(d2);
-		addTerm("right_paren");
-		shiftReduceStack.push(d1);
-		makeGraph("iter_stat", 8);
+		$$=++nodeCount;
+		std::cout << $$ << " [label=\"iteration_statement\"];" << std::endl;
+
+		std::cout << ++nodeCount << " [label=\"for\"];" << std::endl;
+		std::cout << $$ << "->" << nodeCount <<";" << std::endl;
+
+		std::cout << ++nodeCount << " [label=\"(\"];" << std::endl;
+		std::cout << $$ << "->" << nodeCount <<";" << std::endl;
+
+		std::cout << $$ << "->" << $3 <<";" << std::endl;
+		std::cout << $$ << "->" << $4 <<";" << std::endl;		
+
+		std::cout << ++nodeCount << " [label=\";\"];" << std::endl;
+		std::cout << $$ << "->" << nodeCount <<";" << std::endl;
+
+		std::cout << $$ << "->" << $6 <<";" << std::endl;
+
+		std::cout << ++nodeCount << " [label=\")\"];" << std::endl;
+		std::cout << $$ << "->" << nodeCount <<";" << std::endl;
+
+		std::cout << $$ << "->" << $8 <<";" << std::endl;
 	}
 	;
 
 declaration_list
 	: declaration 
 	{
-		makeGraph("declaration_list",1);
+		$$=++nodeCount;
+		std::cout << $$ << " [label=\"declaration_list\"];" << std::endl;
+		std::cout << $$ << "->" << $1 <<";" << std::endl;
 	}
 	| declaration_list declaration 
 	{
-		makeGraph("declaration_list",2);
+		$$=++nodeCount;
+		std::cout << $$ << " [label=\"declaration_list\"];" << std::endl;
+		std::cout << $$ << "->" << $1 <<";" << std::endl;
+		std::cout << $$ << "->" << $2 <<";" << std::endl;
 	}
 	;
 
 declaration
 	: type_specifier declarator_list';'
 	{
-		addTerm("semi_colon");
-		makeGraph("declaration",3);
+		$$=++nodeCount;
+		std::cout << $$ << " [label=\"declaration\"];" << std::endl;
+		std::cout << $$ << "->" << $1 <<";" << std::endl;
+		std::cout << $$ << "->" << $2 <<";" << std::endl;
+		
+		std::cout << ++nodeCount << " [label=\";\"];" << std::endl;
+		std::cout << $$ << "->" << nodeCount <<";" << std::endl;
 	}
 	;
 
 declarator_list
 	: declarator 
 	{
-		makeGraph("declarator_list",1);
+		$$=++nodeCount;
+		std::cout << $$ << " [label=\"declarator_list\"];" << std::endl;
+		std::cout << $$ << "->" << $1 <<";" << std::endl;
 	}
 	| declarator_list ',' declarator
 	{
-		std::string param = shiftReduceStack.top();
-		shiftReduceStack.pop();
-		addTerm("comma");
-		shiftReduceStack.push(param);
-		makeGraph("declarator_list",3);
+		$$=++nodeCount;
+		std::cout << $$ << " [label=\"declarator_list\"];" << std::endl;
+		std::cout << $$ << "->" << $1 <<";" << std::endl;
+		
+		
+		std::cout << ++nodeCount << " [label=\",\"];" << std::endl;
+		std::cout << $$ << "->" << nodeCount <<";" << std::endl;
+
+		std::cout << $$ << "->" << $3 <<";" << std::endl;
 	}
 	;
