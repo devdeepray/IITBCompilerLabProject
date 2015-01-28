@@ -12,6 +12,7 @@ parse.cc: parse.y Parser.ih Parser.h Parserbase.h
 	sed -i '/d_scanner;/r makeTree.txt' Parser.h; 
 
 graph:
+	rm -f *graph
 	echo "digraph G{ordering=out;" >> graph.gv
 	./a.out < testCase >> graph.gv
 	echo "}" >> graph.gv
