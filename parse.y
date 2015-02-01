@@ -256,29 +256,27 @@ statement
 	;
 
 assignment_statement
-	: assignment ';' 
+	: ';'
 	{
-		$$=++nodeCount;
+		$$ = ++nodeCount;
 		std::cout << $$ << " [label=\"assignment_statement\"];" << std::endl;
-		std::cout << $$ << "->" << $1 <<";" << std::endl;
-		
 		std::cout << ++nodeCount << " [label=\";\"];" << std::endl;
-		std::cout << $$ << "->" << nodeCount <<";" << std::endl;
+		std::cout << $$ << "->"<< nodeCount << ";" << std::endl;
 	}
-	;
-
-assignment
-	:
-	|  l_expression '=' expression
+	| l_expression '=' expression ';'
 	{
-		$$=++nodeCount;
-		std::cout << $$ << " [label=\"assignment\"];" << std::endl;
-		std::cout << $$ << "->" << $1 <<";" << std::endl;
+		$$ = ++nodeCount;
+		std::cout << $$ << " [label=\"assignment_statement\"];" << std::endl;
+
+		std::cout << $$ << "->" << $1 << ";" << std::endl;
 
 		std::cout << ++nodeCount << " [label=\"=\"];" << std::endl;
-		std::cout << $$ << "->" << nodeCount <<";" << std::endl;		
-		
-		std::cout << $$ << "->" << $3 <<";" << std::endl;
+		std::cout << $$ << "->" << nodeCount << ";" << std::endl;
+
+		std::cout << $$ << "->" << $3 << ";" << std::endl;
+
+		std::cout << ++nodeCount << " [label=\";\"];" << std::endl;
+		std::cout << $$ << "->"<< nodeCount << ";" << std::endl;
 	}
 	;
 
@@ -534,6 +532,15 @@ primary_expression
 		std::cout << $$ << " [label=\"primary_expression\"];" << std::endl;
 		std::cout << $$ << "->" << $1 <<";" << std::endl;
 	}
+	| l_expression '=' expression
+	{
+		$$=++nodeCount;
+		std::cout << $$ << " [label=\"primary_expression\"];" << std::endl;
+		std::cout << $$ << "->" << $1 << ";" << std::endl;
+		std::cout << ++nodeCount << "[label=\"=\"];" << std::endl;
+		std::cout << $$ << "->" << nodeCount << ";" << std::endl;
+		std::cout << $$ << "->" << $3 << ";" << std::endl;
+	}
 	| INT_CONST 
 	{
 		$$=++nodeCount;
@@ -674,7 +681,7 @@ iteration_statement
 		std::cout << $$ << "->" << $5 <<";" << std::endl;
 		
 	}
-	| FOR '(' assignment_statement expression ';' assignment ')' statement
+	| FOR '(' expression ';' expression ';' expression ')' statement
 	{
 		$$=++nodeCount;
 		std::cout << $$ << " [label=\"iteration_statement\"];" << std::endl;
@@ -686,17 +693,21 @@ iteration_statement
 		std::cout << $$ << "->" << nodeCount <<";" << std::endl;
 
 		std::cout << $$ << "->" << $3 <<";" << std::endl;
-		std::cout << $$ << "->" << $4 <<";" << std::endl;		
 
 		std::cout << ++nodeCount << " [label=\";\"];" << std::endl;
 		std::cout << $$ << "->" << nodeCount <<";" << std::endl;
 
-		std::cout << $$ << "->" << $6 <<";" << std::endl;
+		std::cout << $$ << "->" << $5 <<";" << std::endl;		
+
+		std::cout << ++nodeCount << " [label=\";\"];" << std::endl;
+		std::cout << $$ << "->" << nodeCount <<";" << std::endl;
+
+		std::cout << $$ << "->" << $7 <<";" << std::endl;
 
 		std::cout << ++nodeCount << " [label=\")\"];" << std::endl;
 		std::cout << $$ << "->" << nodeCount <<";" << std::endl;
 
-		std::cout << $$ << "->" << $8 <<";" << std::endl;
+		std::cout << $$ << "->" << $9 <<";" << std::endl;
 	}
 	;
 
