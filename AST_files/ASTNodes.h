@@ -4,7 +4,7 @@
 enum typeExp {STMT, SEQ, EXP, ASS, RET, IF, FOR, WHILE, FLOAT};
 std::string typeLookup[] = {"STMT", "SEQ", "EXP", "ASS", "RET", "IF", "FOR", "WHILE", "FLOAT"};
 
-
+int tab_degree = 0;
 
 class abstract_astnode
 {
@@ -48,12 +48,14 @@ class Seq : public StmtAst
 		}
 		void print()
 		{
-			std::cout << typeLookup[astnode_type] << std::endl;
-			std::cout << "C1: {\n";
+			tab_degree++;
+
+			indent_print( typeLookup[astnode_type]+"\n" );
+			indent_print( "C1: {\n" );
 			c1->print();
-			std::cout << "}\nC2: {\n";
+			indent_print( "}\nC2: {\n" );
 			c2->print();
-			std::cout << "}\n";
+			indent_print( "}\n" );
 		}
 };
 
@@ -72,12 +74,12 @@ class Ass : public StmtAst
 		}
 		void print()
 		{
-			std::cout << typeLookup[astnode_type] << std::endl;
-			std::cout << "C1: {\n";
+			indent_print( typeLookup[astnode_type] +"\n" ); 
+			indent_print( "C1: {\n" );
 			c1->print();
-			std::cout << "}\nC2: {\n";
+			indent_print( "}\nC2: {\n" );
 			c2->print();
-			std::cout << "}\n";
+			indent_print( "}\n" );
 		}
 };
 
@@ -94,10 +96,11 @@ class Return : public StmtAst
 		}
 		void print()
 		{
-			std::cout << typeLookup[astnode_type] << std::endl;
-			std::cout << "C1: {\n";
+			indent_print( typeLookup[astnode_type] + "
+" );
+			indent_print( "C1: {\n" );
 			c1.print();
-			std::cout << "\n}\n";
+			indent_print( "\n}\n" );
 		}
 };
 
@@ -119,12 +122,15 @@ class If : public StmtAst
 		}
 		void print()
 		{
-			std::cout << typeLookup[astnode_type] << std::endl;
-			std::cout << "C1: {\n";
+			indent_print( typeLookup[astnode_type] + "
+" );
+			indent_print( "C1: {\n" );
 			c1->print();
-			std::cout << "}\nC2: {\n";
+			indent_print( "}\nC2: {\n" );
 			c2->print();
-			std::cout << "}\n";
+			indent_print( "}\nC3: {\n" );
+			c3->print();
+			indent_print( "}\n" );
 		}
 };
 
@@ -142,8 +148,9 @@ class FloatConst : public ExpAst
 		}
 		void print()
 		{
-			std::cout << typeLookup[astnode_type] << std::endl;
-			std::cout << "Value: " << val <<  std::endl;
+			indent_print( typeLookup[astnode_type] + "
+" );
+			indent_print( "Value: " << val <<  std::endl;
 		}
 };
 #endif
