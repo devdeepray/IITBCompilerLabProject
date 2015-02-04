@@ -37,22 +37,23 @@ class Seq : public StmtAst
 {
 	private:
 		typeExp astnode_type;
-		StmtAst* left_stmt;
-		StmtAst* right_stmt;
+		StmtAst* c1;
+		StmtAst* c2;
 	public:
-		Seq(StmtAst* _left_stmt, StmtAst* _right_stmt)
+		Seq(StmtAst* left_stmt, StmtAst* right_stmt)
 		{
 			astnode_type = SEQ;
-			left_stmt = _left_stmt;
-			right_stmt = _right_stmt;
+			c1 = left_stmt;
+			c2 = right_stmt;
 		}
 		void print()
 		{
 			std::cout << typeLookup[astnode_type] << std::endl;
-			std::cout << "Left child:" << std::endl;
-			left_stmt->print();
-			std::cout << "Right child:" << std::endl;
-			right_stmt->print();
+			std::cout << "C1: {\n";
+			c1->print();
+			std::cout << "}\nC2: {\n";
+			c2->print();
+			std::cout << "}\n";
 		}
 };
 
@@ -60,27 +61,45 @@ class Ass : public StmtAst
 {
 	private:
 		typeExp astnode_type;
-		ExpAst* left_stmt;
-		ExpAst* right_stmt;
+		ExpAst* c1;
+		ExpAst* c2;
 	public:
-		Ass(ExpAst* _left_stmt, ExpAst* _right_stmt)
+		Ass(ExpAst* left_stmt, ExpAst* right_stmt)
 		{
 			astnode_type = ASS;
-			left_stmt = _left_stmt;
-			right_stmt = _right_stmt;
+			c1 = left_stmt;
+			c2 = right_stmt;
 		}
 		void print()
 		{
 			std::cout << typeLookup[astnode_type] << std::endl;
-			std::cout << "Left child: {" << std::endl;
-			left_stmt->print();
-			std::cout << "}\nRight child: {" << std::endl;
-			right_stmt->print();
+			std::cout << "Left_child: {" << std::endl;
+			c1->print();
+			std::cout << "}\nRight_child: {" << std::endl;
+			c2->print();
 			std::cout << "}" << std::endl;
 		}
 };
 
-
+class Return : public StmtAst
+{
+	private:
+		typeExp astnode_type;
+		ExpAst* ret_exp;
+	public:
+		Ass(ExpAst* _ret_exp)
+		{
+			astnode_type = RET;
+			exp_ast = _exp_ast;
+		}
+		void print()
+		{
+			std::cout << typeLookup[astnode_type] << std::endl;
+			std::cout << "Child: {\n";
+			ret_exp.print();
+			std::cout << "
+		}
+};
 
 
 class FloatConst : public ExpAst
