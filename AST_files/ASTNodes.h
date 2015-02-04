@@ -56,6 +56,8 @@ class Seq : public StmtAst
 			indent_print( "}\nC2: {\n" );
 			c2->print();
 			indent_print( "}\n" );
+
+			tab_degree--;
 		}
 };
 
@@ -74,12 +76,15 @@ class Ass : public StmtAst
 		}
 		void print()
 		{
+			tab_degree++;
+
 			indent_print( typeLookup[astnode_type] +"\n" ); 
 			indent_print( "C1: {\n" );
 			c1->print();
 			indent_print( "}\nC2: {\n" );
 			c2->print();
 			indent_print( "}\n" );
+			tab_degree--;
 		}
 };
 
@@ -89,18 +94,20 @@ class Return : public StmtAst
 		typeExp astnode_type;
 		ExpAst* c1;
 	public:
-		Ass(ExpAst* ret_exp)
+		Return(ExpAst* ret_exp)
 		{
 			astnode_type = RET;
 			c1 = ret_exp;
 		}
 		void print()
 		{
-			indent_print( typeLookup[astnode_type] + "
-" );
+			tab_degree++;
+
+			indent_print( typeLookup[astnode_type] + "\n" );
 			indent_print( "C1: {\n" );
 			c1.print();
 			indent_print( "\n}\n" );
+			tab_degree--;
 		}
 };
 
@@ -113,17 +120,18 @@ class If : public StmtAst
 		StmtAst* c2;
 		StmtAst* c3;
 	public:
-		Ass(ExpAst* cond, StmtAst* if_stats, StmtAst* else_stats)
+		If(ExpAst* cond, StmtAst* if_stats, StmtAst* else_stats)
 		{
-			astnode_type = ASS;
+			astnode_type = IF;
 			c1 = cond;
 			c2 = if_stats;
 			c3 = else_stats;
 		}
 		void print()
 		{
-			indent_print( typeLookup[astnode_type] + "
-" );
+			tab_degree++;
+
+			indent_print( typeLookup[astnode_type] + "\n" );
 			indent_print( "C1: {\n" );
 			c1->print();
 			indent_print( "}\nC2: {\n" );
@@ -131,9 +139,74 @@ class If : public StmtAst
 			indent_print( "}\nC3: {\n" );
 			c3->print();
 			indent_print( "}\n" );
+			tab_degree--;
 		}
 };
 
+
+class For : public StmtAst
+{
+	private:
+		typeExp astnode_type;
+		ExpAst* c1;
+		ExpAst* c2;
+		ExpAst* c3;
+		StmtAst* c4;
+	public:
+		For(ExpAst* initialize, ExpAst* guard, ExpAst* update, StmtAst* forbody)
+		{
+			astnode_type = FOR;
+			c1 = initialize;
+			c2 = guard;
+			c3 = update;
+			c4 = forbody;
+		}
+		void print()
+		{
+			tab_degree++;
+
+
+			indent_print( typeLookup[astnode_type] + "\n" );
+			indent_print( "C1: {\n" );
+			c1->print();
+			indent_print( "}\nC2: {\n" );
+			c2->print();
+			indent_print( "}\nC3: {\n" );
+			c3->print();
+			indent_print( "}\nC4: {\n" );
+			c4->print();
+			indent_print( "}\n" );
+			tab_degree--;
+		}
+};
+
+class While : public StmtAst
+{
+	private:
+		typeExp astnode_type;
+		ExpAst* c1;
+		StmtAst* c2;
+	public:
+		While(ExpAst* guard, StmtAst* whilebody)
+		{
+			astnode_type = WHILE;
+			c1 = guard;
+			c2 = whilebody;
+		}
+		void print()
+		{
+			tab_degree++;
+
+
+			indent_print( typeLookup[astnode_type] + "\n" );
+			indent_print( "C1: {\n" );
+			c1->print();
+			indent_print( "}\nC2: {\n" );
+			c2->print();
+			indent_print( "}\n" );
+			tab_degree--;
+		}
+};
 
 class FloatConst : public ExpAst
 {
@@ -148,9 +221,11 @@ class FloatConst : public ExpAst
 		}
 		void print()
 		{
-			indent_print( typeLookup[astnode_type] + "
-" );
-			indent_print( "Value: " << val <<  std::endl;
+			tab_degree++;
+
+			indent_print( typeLookup[astnode_type] + "\n" );
+			indent_print( "Value: " + std::to_string(val) + "\n" ); 
+			tab_degree--;
 		}
 };
 #endif
