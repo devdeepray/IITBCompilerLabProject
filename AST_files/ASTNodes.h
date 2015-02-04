@@ -73,11 +73,11 @@ class Ass : public StmtAst
 		void print()
 		{
 			std::cout << typeLookup[astnode_type] << std::endl;
-			std::cout << "Left_child: {" << std::endl;
+			std::cout << "C1: {\n";
 			c1->print();
-			std::cout << "}\nRight_child: {" << std::endl;
+			std::cout << "}\nC2: {\n";
 			c2->print();
-			std::cout << "}" << std::endl;
+			std::cout << "}\n";
 		}
 };
 
@@ -85,19 +85,46 @@ class Return : public StmtAst
 {
 	private:
 		typeExp astnode_type;
-		ExpAst* ret_exp;
+		ExpAst* c1;
 	public:
-		Ass(ExpAst* _ret_exp)
+		Ass(ExpAst* ret_exp)
 		{
 			astnode_type = RET;
-			exp_ast = _exp_ast;
+			c1 = ret_exp;
 		}
 		void print()
 		{
 			std::cout << typeLookup[astnode_type] << std::endl;
-			std::cout << "Child: {\n";
-			ret_exp.print();
-			std::cout << "
+			std::cout << "C1: {\n";
+			c1.print();
+			std::cout << "\n}\n";
+		}
+};
+
+
+class If : public StmtAst
+{
+	private:
+		typeExp astnode_type;
+		ExpAst* c1;
+		StmtAst* c2;
+		StmtAst* c3;
+	public:
+		Ass(ExpAst* cond, StmtAst* if_stats, StmtAst* else_stats)
+		{
+			astnode_type = ASS;
+			c1 = cond;
+			c2 = if_stats;
+			c3 = else_stats;
+		}
+		void print()
+		{
+			std::cout << typeLookup[astnode_type] << std::endl;
+			std::cout << "C1: {\n";
+			c1->print();
+			std::cout << "}\nC2: {\n";
+			c2->print();
+			std::cout << "}\n";
 		}
 };
 
