@@ -14,7 +14,7 @@ parse.cc: parse.y Parser.ih Parser.h Parserbase.h
 graph:
 	rm -f *graph
 	echo "digraph G{ordering=out;" >> graph.gv
-	./a.out < testCase >> graph.gv
+	./a.out < TestCases/testCase >> graph.gv
 	echo "}" >> graph.gv
 	dot -Tps graph.gv -o graph.ps
 
