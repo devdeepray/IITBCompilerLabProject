@@ -8,9 +8,9 @@ integer-constant ([1-9][0-9]*)|(0[bB][01]*)|(0[0-7]*)|(0[xX][0-9a-fA-F]*)
 identifier [_a-zA-Z][_a-zA-Z0-9]*
 
 %%
-{floating-point-constant} {/*std::cout << "FP_CONST" << std::endl;*/return Parser::FP_CONST;}
+{floating-point-constant} {Parser::d_val__ = std::string(matched()); return Parser::FP_CONST;}
 
-{integer-constant} {/*std::cout << "INT_CONST" << std::endl;*/return Parser::INT_CONST;}
+{integer-constant} {Parser::d_val__ = std::string(matched()); return Parser::INT_CONST;}
 
 void {/*std::cout << "VOID" << std::endl;*/return Parser::VOID;}
 int {/*std::cout << "INT" << std::endl;*/return Parser::INT;}
@@ -21,7 +21,7 @@ if { /*std::cout << "IF" << std::endl;*/return Parser::IF;}
 else { /*std::cout << "ELSE" << std::endl;*/return Parser::ELSE;}
 return { /*std::cout << "RETURN" << std::endl;*/return Parser::RETURN;}
 
-{identifier} { /*std::cout << "IDENTIFIER" << std::endl;*/return Parser::IDENTIFIER;}
+{identifier} { Parser::d_val__ = std::string(matched()); return Parser::IDENTIFIER;}
 
 [ \t\n]+ {/* Can ignore whitespace*/ /* /*std::cout << "WHITESPACE" << std::endl;return WHITESPACE;*/}
 \( { /*std::cout << "LEFT_PAREN" << std::endl;*/return '(';}

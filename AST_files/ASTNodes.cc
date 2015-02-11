@@ -32,7 +32,7 @@ void indent_print(std::string s)
 		void Empty::print()
 		{
 			tab_degree++;
-			indent_print( typeLookup[astnode_type]+"\n" );
+			indent_print( "(Empty)" );
 			tab_degree--;
 		}
 
@@ -46,13 +46,14 @@ void indent_print(std::string s)
 		void Block::print()
 		{
 			tab_degree++;
-			indent_print( typeLookup[astnode_type]+"\n" );
+			indent_print( "(Block [" );
 			for(auto it = clist.begin(); it != clist.end(); ++it)
 			{
-				indent_print( "C {\n" );
+				cout << "\n" ;
 				(*it)->print();
-				indent_print( "}\n" );
+				
 			}
+			cout << "])\n" ;
 
 			tab_degree--;
 		}
@@ -73,12 +74,11 @@ void indent_print(std::string s)
 		{
 			tab_degree++;
 
-			indent_print( typeLookup[astnode_type] +"\n" ); 
-			indent_print( "C1: {\n" );
+			indent_print( "(Assign_exp \n" ); 
 			c1->print();
-			indent_print( "}\nC2: {\n" );
+			indent_print( "\n" );
 			c2->print();
-			indent_print( "}\n" );
+			cout << "))" ;
 			tab_degree--;
 		}
 
@@ -93,10 +93,9 @@ void indent_print(std::string s)
 		{
 			tab_degree++;
 
-			indent_print( typeLookup[astnode_type] + "\n" );
-			indent_print( "C1: {\n" );
+			indent_print( "(Return\n" );
 			c1->print();
-			indent_print( "\n}\n" );
+			cout << ")" ;
 			tab_degree--;
 		}
 
@@ -114,14 +113,13 @@ void indent_print(std::string s)
 		{
 			tab_degree++;
 
-			indent_print( typeLookup[astnode_type] + "\n" );
-			indent_print( "C1: {\n" );
+			indent_print( "(If\n" );
 			c1->print();
-			indent_print( "}\nC2: {\n" );
+			indent_print( "\n" );
 			c2->print();
-			indent_print( "}\nC3: {\n" );
+			indent_print( "\n" );
 			c3->print();
-			indent_print( "}\n" );
+			cout << ")";
 			tab_degree--;
 		}
 
@@ -141,16 +139,15 @@ void indent_print(std::string s)
 			tab_degree++;
 
 
-			indent_print( typeLookup[astnode_type] + "\n" );
-			indent_print( "C1: {\n" );
+			indent_print( "(For\n" );
 			c1->print();
-			indent_print( "}\nC2: {\n" );
+			indent_print( "\n" );
 			c2->print();
-			indent_print( "}\nC3: {\n" );
+			indent_print( "\n" );
 			c3->print();
-			indent_print( "}\nC4: {\n" );
+			indent_print( "\n" );
 			c4->print();
-			indent_print( "}\n" );
+			cout << ")";
 			tab_degree--;
 		}
 
@@ -167,12 +164,11 @@ void indent_print(std::string s)
 			tab_degree++;
 
 
-			indent_print( typeLookup[astnode_type] + "\n" );
-			indent_print( "C1: {\n" );
+			indent_print( "(While\n" );
 			c1->print();
-			indent_print( "}\nC2: {\n" );
+			indent_print( "\n" );
 			c2->print();
-			indent_print( "}\n" );
+			cout << ")" ;
 			tab_degree--;
 		}
 
@@ -186,8 +182,8 @@ void indent_print(std::string s)
 		{
 			tab_degree++;
 
-			indent_print( typeLookup[astnode_type] + "\n" );
-			indent_print( "Value: " + std::to_string(val) + "\n" ); 
+			indent_print( "(FloatConst " );
+			cout << val << ")" ;
 			tab_degree--;
 		}
 
@@ -202,13 +198,12 @@ void indent_print(std::string s)
 		void BinaryOp::print()
 		{
 			tab_degree++;
-			indent_print(typeLookup[astnode_type]+"\n");
-			indent_print("C1: {\n");
+			indent_print("(");
+			cout << opLookup[op] << "\n";
 			c1->print();
-			indent_print("}\n");
-			indent_print("C2: {\n");
+			indent_print("\n");
 			c2->print();
-			indent_print("}\n");
+			cout << ")" ;
 			tab_degree--;
 		}
 
@@ -222,10 +217,10 @@ void indent_print(std::string s)
 		void UnaryOp::print()
 		{
 			tab_degree++;
-			indent_print(typeLookup[astnode_type]+"\n");
-			indent_print("C1: {\n");
+			indent_print("(");
+			cout << opLookup[op] << "\n";
 			c1->print();
-			indent_print("}\n");
+			cout << ")";
 			tab_degree--;
 		}
 
@@ -242,13 +237,14 @@ void indent_print(std::string s)
 		void FunCall::print()
 		{
 			tab_degree++;
-			indent_print(typeLookup[astnode_type]+"\n");
+			indent_print( "("+func_name );
 			for( auto i = list_exp_ast.begin() ; i != list_exp_ast.end() ; i++)
 			{
-				indent_print("C: {\n");
+				cout<<"\n";
 				(*i)->print();
-				indent_print("}\n");
+				
 			}
+			cout << ")";
 			tab_degree--;
 		}
 		
@@ -268,8 +264,8 @@ void indent_print(std::string s)
 		void IntConst::print()
 		{
 			tab_degree++;
-			indent_print(typeLookup[astnode_type]+"\n");
-			indent_print("Value: "+std::to_string(val)+"\n");
+			indent_print("(IntConst ");
+			cout << val << ")";
 			tab_degree--;
 		}
 
@@ -283,8 +279,8 @@ void indent_print(std::string s)
 		void StringConst::print()
 		{
 			tab_degree++;
-			indent_print(typeLookup[astnode_type]+"\n");
-			indent_print("Value: "+val+"\n");
+			indent_print("(StrConst ");
+			cout << val << ")";
 			tab_degree--;
 		}
 
@@ -299,8 +295,8 @@ void indent_print(std::string s)
 		void Identifier::print()
 		{
 			tab_degree++;
-			indent_print(typeLookup[astnode_type]+"\n");
-			indent_print("Value: "+val+"\n");
+			indent_print("(Identifier ");
+			cout << val << ")";
 			tab_degree--;
 		}
 
@@ -315,13 +311,11 @@ void indent_print(std::string s)
 		void Index::print()
 		{
 			tab_degree++;
-			indent_print(typeLookup[astnode_type]+"\n");
-			indent_print("C1: {\n");
+			indent_print("(ArrayRef\n");
 			c1->print();
-			indent_print("}\n");
-			indent_print("C2: {\n");
+			indent_print("\n");
 			c2->print();
-			indent_print("}\n");
+			cout << ")";
 			tab_degree--;
 		}
 

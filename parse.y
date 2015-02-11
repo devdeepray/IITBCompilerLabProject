@@ -22,12 +22,13 @@
 %token FP_CONST INT_CONST VOID INT FLOAT FOR WHILE IF ELSE RETURN IDENTIFIER
 %token LEQ_OP GEQ_OP INCREMENT STRING_LITERAL
 %token LOGICAL_AND LOGICAL_OR EQUAL_TO NEQ_TO
-%polymorphic expAstPtr: ExpAst*; stmtAstPtr: StmtAst*; arrayRefPtr: ArrayRef*; opType: typeOp; 
+%polymorphic expAstPtr: ExpAst*; stmtAstPtr: StmtAst*; arrayRefPtr: ArrayRef*; opType: typeOp; idAttr: std::string;  
 
 %type <stmtAstPtr> assignment_statement statement statement_list selection_statement iteration_statement
 %type <expAstPtr> expression logical_and_expression equality_expression relational_expression additive_expression multiplicative_expression unary_expression postfix_expression primary_expression expression_list
 %type <arrayRefPtr> l_expression 
 %type <opType> unary_operator
+%type <idAttr> IDENTIFIER STRING_LITERAL INT_CONST FP_CONST
 
 %%
 
@@ -235,12 +236,12 @@ postfix_expression
     | IDENTIFIER '(' ')'
     {
 		$$ = new FunCall(nullptr);
-		((FunCall*)($$))->setName("Fname");
+		((FunCall*)($$))->setName($1);
 	}
 	| IDENTIFIER '(' expression_list ')' 
 	{
 		$$ = $3;
-		((FunCall*)($3))->setName("Fname");
+		((FunCall*)($3))->setName($1);
 	}
 	| l_expression INCREMENT
 	{
@@ -259,15 +260,15 @@ primary_expression
 	}
 	| INT_CONST
 	{
-		$$ = new IntConst(1);
+		$$ = new IntConst(std::stoi($1));
 	}
 	| FP_CONST
 	{
-		$$ = new FloatConst(0.1);
+		$$ = new FloatConst(std::stof($1));
 	}
     | STRING_LITERAL
     {
-		$$ = new StringConst("Str");
+		$$ = new StringConst($1);
     }
 	| '(' expression ')' 
 	{
@@ -278,7 +279,7 @@ primary_expression
 l_expression
         : IDENTIFIER
         {
-			$$ = new Identifier("ID");
+			$$ = new Identifier($1);
 		}
         | l_expression '[' expression ']' 	
         {
