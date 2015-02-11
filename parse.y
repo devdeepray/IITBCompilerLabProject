@@ -1,762 +1,386 @@
+/* Changes:  */
 
+/* 1. Character constants removed */
+/* 2. Changed INTCONSTANT to INT_CONSTANT */
+/* 3. Changed the production for constant_expression to include FLOAT_CONSTANT */
+/* 4. Added examples of FLOAT_CONSTANTS */
+/* 5. Added the description of STRING_LITERAL */
+/* 6. Changed primary_expression and FOR */
+/* 7. The grammar permits a empty statement. This should be  */
+/*    explicitly represented in the AST. */
+/* 8. To avoid local decl inside blocks, a rule for statement  */
+/*    has been changed. */
+
+/* ----------------------------------------------------------------------- */
+
+/* start symbol is translation_unit */
+
+/* ---------------------------------------------------- */
 %scanner Scanner.h
 %scanner-token-function d_scanner.lex()
 
 %token FP_CONST INT_CONST VOID INT FLOAT FOR WHILE IF ELSE RETURN IDENTIFIER
 %token LEQ_OP GEQ_OP INCREMENT STRING_LITERAL
 %token LOGICAL_AND LOGICAL_OR EQUAL_TO NEQ_TO
-
+%polymorphic 
+%type
 
 %%
 
+translation_unit
+	: function_definition 
+	| translation_unit function_definition 
+    ;
 
-
-translation_unit:
-	function_definition 
-	{
-		$$=++nodeCount;
-		std::cout << $$ << " [label=\"translation_unit\"];" << std::endl;
-		std::cout << $$ << "->" << $1 <<";" << std::endl;
-	}
-	| translation_unit function_definition  
-	{
-		$$=++nodeCount;
-		std::cout << $$ << " [label=\"translation_unit\"];" << std::endl;
-		std::cout << $$ << "->" << $1 <<";" << std::endl;
-		std::cout << $$ << "->" << $2 <<";" << std::endl;
-	}	
+function_definition
+	: type_specifier fun_declarator compound_statement 
 	;
 
-function_definition:
-	type_specifier fun_declarator compound_statement 
-	{
-		$$=++nodeCount;
-		std::cout << $$ << " [label=\"function_definition\"];" << std::endl;
-		std::cout << $$ << "->" << $1 <<";" << std::endl;
-		std::cout << $$ << "->" << $2 <<";" << std::endl;
-		std::cout << $$ << "->" << $3 <<";" << std::endl;
-	}
-	;
-
-type_specifier:
-	VOID 
-	{
-		$$=++nodeCount;
-		std::cout << $$ << " [label=\"type_specifier\"];" << std::endl;
-		std::cout << ++nodeCount << " [label=\"void\"];" << std::endl;
-		std::cout << $$ << "->" << nodeCount <<";" << std::endl;
-	}
-	| INT 
-	{
-		$$=++nodeCount;
-		std::cout << $$ << " [label=\"type_specifier\"];" << std::endl;
-		std::cout << ++nodeCount << " [label=\"int\"];" << std::endl;
-		std::cout << $$ << "->" << nodeCount <<";" << std::endl;
-	}
+type_specifier
+	: VOID 	
+    | INT   
 	| FLOAT 
-	{
-		$$=++nodeCount;
-		std::cout << $$ << " [label=\"type_specifier\"];" << std::endl;
-		std::cout << ++nodeCount << " [label=\"float\"];" << std::endl;
-		std::cout << $$ << "->" << nodeCount <<";" << std::endl;
-	}
-	;
+    ;
 
 fun_declarator
 	: IDENTIFIER '(' parameter_list ')' 
-	{
-		$$=++nodeCount;
-		std::cout << $$ << " [label=\"fun_declarator\"];" << std::endl;
-		std::cout << ++nodeCount << " [label=\"identifier\"];" << std::endl;
-		std::cout << $$ << "->" << nodeCount <<";" << std::endl;
-
-		std::cout << ++nodeCount << " [label=\"(\"];" << std::endl;
-		std::cout << $$ << "->" << nodeCount <<";" << std::endl;
-
-		std::cout << $$ << "->" << $3 <<";" << std::endl;		
-		
-		std::cout << ++nodeCount << " [label=\")\"];" << std::endl;
-		std::cout << $$ << "->" << nodeCount <<";" << std::endl;	
-	}
-	| IDENTIFIER '(' ')' 
-	{
-		$$=++nodeCount;
-		std::cout << $$ << " [label=\"fun_declarator\"];" << std::endl;
-		std::cout << ++nodeCount << " [label=\"identifier\"];" << std::endl;
-		std::cout << $$ << "->" << nodeCount <<";" << std::endl;
-
-		std::cout << ++nodeCount << " [label=\"(\"];" << std::endl;
-		std::cout << $$ << "->" << nodeCount <<";" << std::endl;		
-		
-		std::cout << ++nodeCount << " [label=\")\"];" << std::endl;
-		std::cout << $$ << "->" << nodeCount <<";" << std::endl;	
-	}
+    | IDENTIFIER '(' ')' 
 	;
 
 parameter_list
 	: parameter_declaration 
-	{ 
-		$$=++nodeCount;
-		std::cout << $$ << " [label=\"parameter_list\"];" << std::endl;
-		std::cout << $$ << "->" << $1 <<";" << std::endl; 
-	}
-	| parameter_list ',' parameter_declaration
-	{
-		$$=++nodeCount;
-		std::cout << $$ << " [label=\"parameter_list\"];" << std::endl;
-		std::cout << $$ << "->" << $1 <<";" << std::endl;
-
-		std::cout << ++nodeCount << " [label=\",\"];" << std::endl;
-		std::cout << $$ << "->" << nodeCount <<";" << std::endl;		
-		
-		std::cout << $$ << "->" << $3 <<";" << std::endl;	
-	}
+	| parameter_list ',' parameter_declaration 
 	;
 
 parameter_declaration
 	: type_specifier declarator 
-	{
-		$$=++nodeCount;
-		std::cout << $$ << " [label=\"parameter_declaration\"];" << std::endl;
-		std::cout << $$ << "->" << $1 <<";" << std::endl;		
-		std::cout << $$ << "->" << $2 <<";" << std::endl;
-	}
-	;
-
+        ;
 
 declarator
 	: IDENTIFIER 
-	{ 
-		$$=++nodeCount;
-		std::cout << $$ << " [label=\"declarator\"];" << std::endl;
-		std::cout << ++nodeCount << " [label=\"identifier\"];" << std::endl;
-		std::cout << $$ << "->" << nodeCount <<";" << std::endl;
-	}
-	| declarator '[' constant_expression ']'
-	{
-		$$=++nodeCount;
-		std::cout << $$ << " [label=\"declarator\"];" << std::endl;
+	| declarator '[' constant_expression ']' 
+        ;
 
-		std::cout << $$ << "->" << $1 <<";" << std::endl;
-
-		std::cout << ++nodeCount << " [label=\"[\"];" << std::endl;
-		std::cout << $$ << "->" << nodeCount <<";" << std::endl;
-
-		std::cout << $$ << "->" << $3 <<";" << std::endl;		
-		
-		std::cout << ++nodeCount << " [label=\"]\"];" << std::endl;
-		std::cout << $$ << "->" << nodeCount <<";" << std::endl;
-	}
-	;
-
-constant_expression
-        : INT_CONST 
-	{ 
-		$$=++nodeCount;
-		std::cout << $$ << " [label=\"constant_expression\"];" << std::endl;
-		std::cout << ++nodeCount << " [label=\"int_const\"];" << std::endl;
-		std::cout << $$ << "->" << nodeCount <<";" << std::endl;
-	}
-        | FP_CONST
-	{ 
-		$$=++nodeCount;
-		std::cout << $$ << " [label=\"constant_expression\"];" << std::endl;
-		std::cout << ++nodeCount << " [label=\"fp_const\"];" << std::endl;
-		std::cout << $$ << "->" << nodeCount <<";" << std::endl;
-	}
+constant_expression 
+        : INT_CONST
+        | FP_CONST 
         ;
 
 compound_statement
 	: '{' '}' 
-	{ 
-		$$=++nodeCount;
-		std::cout << $$ << " [label=\"compound_statement\"];" << std::endl;
-		std::cout << ++nodeCount << " [label=\"{\"];" << std::endl;
-		std::cout << $$ << "->" << nodeCount <<";" << std::endl;
-		
-		std::cout << ++nodeCount << " [label=\"}\"];" << std::endl;
-		std::cout << $$ << "->" << nodeCount <<";" << std::endl;
-	}
 	| '{' statement_list '}'
 	{
-		$$=++nodeCount;
-		std::cout << $$ << " [label=\"compound_statement\"];" << std::endl;
-		std::cout << ++nodeCount << " [label=\"{\"];" << std::endl;
-		std::cout << $$ << "->" << nodeCount <<";" << std::endl;
-		std::cout << $$ << "->" << $2 <<";" << std::endl;
-		std::cout << ++nodeCount << " [label=\"}\"];" << std::endl;
-		std::cout << $$ << "->" << nodeCount <<";" << std::endl;
-	}
-  	| '{' declaration_list statement_list '}'
+		($2)->print();
+	} 
+	| '{' declaration_list statement_list '}'
 	{
-		
-		$$=++nodeCount;
-		std::cout << $$ << " [label=\"compound_statement\"];" << std::endl;
-		std::cout << ++nodeCount << " [label=\"{\"];" << std::endl;
-		std::cout << $$ << "->" << nodeCount <<";" << std::endl;
-		std::cout << $$ << "->" << $2 <<";" << std::endl;
-		std::cout << $$ << "->" << $3 <<";" << std::endl;
-		std::cout << ++nodeCount << " [label=\"}\"];" << std::endl;
-		std::cout << $$ << "->" << nodeCount <<";" << std::endl;
-	}
+		($3)->print();
+	} 
 	;
 
 statement_list
-	: statement 
+	: statement
 	{
-		$$=++nodeCount;
-		std::cout << $$ << " [label=\"statement_list\"];" << std::endl;
-		std::cout << $$ << "->" << $1 <<";" << std::endl; 
+		($$) = new Block($1);
 	}
-	| statement_list statement 
-	{
-		$$=++nodeCount;
-		std::cout << $$ << " [label=\"statement_list\"];" << std::endl;
-		std::cout << $$ << "->" << $1 <<";" << std::endl;
-		std::cout << $$ << "->" << $2 <<";" << std::endl;
+    | statement_list statement	
+    {
+		($1).insert($2);
+		($$) = ($1);
 	}
 	;
 
 statement
- 	: compound_statement 
-	{
-		$$=++nodeCount;
-		std::cout << $$ << " [label=\"statement\"];" << std::endl;
-		std::cout << $$ << "->" << $1 <<";" << std::endl; 
-	}
-	| selection_statement 
-	{
-		$$=++nodeCount;
-		std::cout << $$ << " [label=\"statement\"];" << std::endl;
-		std::cout << $$ << "->" << $1 <<";" << std::endl; 
-	}
-	| iteration_statement 
-	{
-		$$=++nodeCount;
-		std::cout << $$ << " [label=\"statement\"];" << std::endl;
-		std::cout << $$ << "->" << $1 <<";" << std::endl; 
-	}
-	| assignment_statement 
-	{
-		$$=++nodeCount;
-		std::cout << $$ << " [label=\"statement\"];" << std::endl;
-		std::cout << $$ << "->" << $1 <<";" << std::endl; 
-	}
-	| RETURN expression ';'	
-	{
-		$$=++nodeCount;
-		std::cout << $$ << " [label=\"statement\"];" << std::endl;
-		std::cout << ++nodeCount << " [label=\"return\"];" << std::endl;
-		std::cout << $$ << "->" << nodeCount <<";" << std::endl;
-		std::cout << $$ << "->" << $2 <<";" << std::endl;
-		
-		std::cout << ++nodeCount << " [label=\";\"];" << std::endl;
-		std::cout << $$ << "->" << nodeCount <<";" << std::endl;
-	}
-	;
+        : '{' statement_list '}'
+        {
+			($$) = ($2);
+        }  //a solution to the local decl problem
+        | selection_statement 	
+        {
+			($$) = ($1);
+        }
+        | iteration_statement
+        {
+			($$) = ($1);
+        } 	
+		| assignment_statement	
+		{
+			($$) = ($1);
+		}
+        | RETURN expression ';'	
+        {
+			($$) = new Return( ($2) );
+        }
+        ;
 
 assignment_statement
 	: ';'
 	{
-		$$ = ++nodeCount;
-		std::cout << $$ << " [label=\"assignment_statement\"];" << std::endl;
-		std::cout << ++nodeCount << " [label=\";\"];" << std::endl;
-		std::cout << $$ << "->"<< nodeCount << ";" << std::endl;
-	}
-	| l_expression '=' expression ';'
+		$$ = new Empty();
+	} 								
+	|  l_expression '=' expression ';'	
 	{
-		$$ = ++nodeCount;
-		std::cout << $$ << " [label=\"assignment_statement\"];" << std::endl;
-
-		std::cout << $$ << "->" << $1 << ";" << std::endl;
-
-		std::cout << ++nodeCount << " [label=\"=\"];" << std::endl;
-		std::cout << $$ << "->" << nodeCount << ";" << std::endl;
-
-		std::cout << $$ << "->" << $3 << ";" << std::endl;
-
-		std::cout << ++nodeCount << " [label=\";\"];" << std::endl;
-		std::cout << $$ << "->"<< nodeCount << ";" << std::endl;
+		$$ = new Ass($1, $3);
 	}
 	;
 
 expression
-	: logical_and_expression 
+	: logical_and_expression
 	{
-		$$=++nodeCount;
-		std::cout << $$ << " [label=\"expression\"];" << std::endl;
-		std::cout << $$ << "->" << $1 <<";" << std::endl; 
-	}
+		$$ = $1;
+	} 
 	| expression LOGICAL_OR logical_and_expression
 	{
-		$$=++nodeCount;
-		std::cout << $$ << " [label=\"expression\"];" << std::endl;
-		std::cout << $$ << "->" << $1 <<";" << std::endl;
-
-		std::cout << ++nodeCount << " [label=\"logical_or\"];" << std::endl;
-		std::cout << $$ << "->" << nodeCount <<";" << std::endl;		
-		
-		std::cout << $$ << "->" << $3 <<";" << std::endl;
+		$$ = new BinaryOp($1, $3, OR);
 	}
 	;
 
 logical_and_expression
-	: equality_expression 
+	: equality_expression
 	{
-		$$=++nodeCount;
-		std::cout << $$ << " [label=\"logical_and_expression\"];" << std::endl;
-		std::cout << $$ << "->" << $1 <<";" << std::endl;
+		$$ = $1;
 	}
 	| logical_and_expression LOGICAL_AND equality_expression
 	{
-		$$=++nodeCount;
-		std::cout << $$ << " [label=\"logical_and_expression\"];" << std::endl;
-		std::cout << $$ << "->" << $1 <<";" << std::endl;
-
-		std::cout << ++nodeCount << " [label=\"logical_and\"];" << std::endl;
-		std::cout << $$ << "->" << nodeCount <<";" << std::endl;		
-		
-		std::cout << $$ << "->" << $3 <<";" << std::endl;
-	}
+		$$ = new BinaryOp($1, $3, AND);
+	} 
 	;
 
 equality_expression
-	: relational_expression 
+	: relational_expression
 	{
-		$$=++nodeCount;
-		std::cout << $$ << " [label=\"equality_expression\"];" << std::endl;
-		std::cout << $$ << "->" << $1 <<";" << std::endl;
-	}
+		$$ = $1;
+	} 
 	| equality_expression EQUAL_TO relational_expression
-	{
-		$$=++nodeCount;
-		std::cout << $$ << " [label=\"equality_expression\"];" << std::endl;
-		std::cout << $$ << "->" << $1 <<";" << std::endl;
-
-		std::cout << ++nodeCount << " [label=\"equal_to\"];" << std::endl;
-		std::cout << $$ << "->" << nodeCount <<";" << std::endl;		
-		
-		std::cout << $$ << "->" << $3 <<";" << std::endl;
-	}
+    {
+		$$ = new BinaryOp($1, $3, EQ_OP);
+	} 	
 	| equality_expression NEQ_TO relational_expression
 	{
-		$$=++nodeCount;
-		std::cout << $$ << " [label=\"equality_expression\"];" << std::endl;
-		std::cout << $$ << "->" << $1 <<";" << std::endl;
-
-		std::cout << ++nodeCount << " [label=\"neq_to\"];" << std::endl;
-		std::cout << $$ << "->" << nodeCount <<";" << std::endl;		
-		
-		std::cout << $$ << "->" << $3 <<";" << std::endl;
+		$$ = new BinaryOp($1, $3, NE_OP);
 	}
 	;
 relational_expression
-	: additive_expression 
+	: additive_expression
 	{
-		$$=++nodeCount;
-		std::cout << $$ << " [label=\"relational_expression\"];" << std::endl;
-		std::cout << $$ << "->" << $1 <<";" << std::endl;
+		$$ = $1;
 	}
-	| relational_expression '<' additive_expression
-	{
-		$$=++nodeCount;
-		std::cout << $$ << " [label=\"relational_expression\"];" << std::endl;
-		std::cout << $$ << "->" << $1 <<";" << std::endl;
-
-		std::cout << ++nodeCount << " [label=\"<\"];" << std::endl;
-		std::cout << $$ << "->" << nodeCount <<";" << std::endl;		
-		
-		std::cout << $$ << "->" << $3 <<";" << std::endl;
-	}
+    | relational_expression '<' additive_expression
+    {
+		$$ = new BinaryOp($1, $3, LT);
+	}  
 	| relational_expression '>' additive_expression
 	{
-		$$=++nodeCount;
-		std::cout << $$ << " [label=\"relational_expression\"];" << std::endl;
-		std::cout << $$ << "->" << $1 <<";" << std::endl;
-
-		std::cout << ++nodeCount << " [label=\">\"];" << std::endl;
-		std::cout << $$ << "->" << nodeCount <<";" << std::endl;		
-		
-		std::cout << $$ << "->" << $3 <<";" << std::endl;
-	}
+		$$ = new BinaryOp($1, $3, GT);
+	}  
 	| relational_expression LEQ_OP additive_expression
 	{
-		$$=++nodeCount;
-		std::cout << $$ << " [label=\"relational_expression\"];" << std::endl;
-		std::cout << $$ << "->" << $1 <<";" << std::endl;
-
-		std::cout << ++nodeCount << " [label=\"leq_op\"];" << std::endl;
-		std::cout << $$ << "->" << nodeCount <<";" << std::endl;		
-		
-		std::cout << $$ << "->" << $3 <<";" << std::endl;
-	}
-	| relational_expression GEQ_OP additive_expression
-	{
-		$$=++nodeCount;
-		std::cout << $$ << " [label=\"relational_expression\"];" << std::endl;
-		std::cout << $$ << "->" << $1 <<";" << std::endl;
-
-		std::cout << ++nodeCount << " [label=\"geq_op\"];" << std::endl;
-		std::cout << $$ << "->" << nodeCount <<";" << std::endl;		
-		
-		std::cout << $$ << "->" << $3 <<";" << std::endl;
-	}
+		$$ = new BinaryOp($1, $3, LE_OP);
+	}  
+    | relational_expression GEQ_OP additive_expression 
+    {
+		$$ = new BinaryOp($1, $3, GE_OP);
+	} 
 	;
 
-additive_expression
-	: multiplicative_expression 
+additive_expression 
+	: multiplicative_expression
 	{
-		$$=++nodeCount;
-		std::cout << $$ << " [label=\"additive_expression\"];" << std::endl;
-		std::cout << $$ << "->" << $1 <<";" << std::endl;
+		$$ = $1;
 	}
 	| additive_expression '+' multiplicative_expression
 	{
-		$$=++nodeCount;
-		std::cout << $$ << " [label=\"additive_expression\"];" << std::endl;
-		std::cout << $$ << "->" << $1 <<";" << std::endl;
-
-		std::cout << ++nodeCount << " [label=\"+\"];" << std::endl;
-		std::cout << $$ << "->" << nodeCount <<";" << std::endl;		
-		
-		std::cout << $$ << "->" << $3 <<";" << std::endl;
-	}
+		$$ = new BinaryOp($1, $3, PLUS);
+	} 
 	| additive_expression '-' multiplicative_expression
 	{
-		$$=++nodeCount;
-		std::cout << $$ << " [label=\"additive_expression\"];" << std::endl;
-		std::cout << $$ << "->" << $1 <<";" << std::endl;
-
-		std::cout << ++nodeCount << " [label=\"-\"];" << std::endl;
-		std::cout << $$ << "->" << nodeCount <<";" << std::endl;		
-		
-		std::cout << $$ << "->" << $3 <<";" << std::endl;
-	}
+		$$ = new BinaryOp($1, $3, MINUS);
+	} 
 	;
 
 multiplicative_expression
-	: unary_expression 
+	: unary_expression
 	{
-		$$=++nodeCount;
-		std::cout << $$ << " [label=\"multiplicative_expression\"];" << std::endl;
-		std::cout << $$ << "->" << $1 <<";" << std::endl;
+		$$ = $1;
 	}
 	| multiplicative_expression '*' unary_expression
 	{
-		$$=++nodeCount;
-		std::cout << $$ << " [label=\"multiplicative_expression\"];" << std::endl;
-		std::cout << $$ << "->" << $1 <<";" << std::endl;
-
-		std::cout << ++nodeCount << " [label=\"*\"];" << std::endl;
-		std::cout << $$ << "->" << nodeCount <<";" << std::endl;		
-		
-		std::cout << $$ << "->" << $3 <<";" << std::endl;
-	}
+		$$ = new BinaryOp($1, $3, MULT);
+	} 
 	| multiplicative_expression '/' unary_expression
 	{
-		$$=++nodeCount;
-		std::cout << $$ << " [label=\"multiplicative_expression\"];" << std::endl;
-		std::cout << $$ << "->" << $1 <<";" << std::endl;
-
-		std::cout << ++nodeCount << " [label=\"/\"];" << std::endl;
-		std::cout << $$ << "->" << nodeCount <<";" << std::endl;		
-		
-		std::cout << $$ << "->" << $3 <<";" << std::endl;
-	}
+		$$ = new BinaryOp($1, $3, DIV);
+	} 
 	;
 unary_expression
-	: postfix_expression 
+	: postfix_expression
 	{
-		$$=++nodeCount;
-		std::cout << $$ << " [label=\"unary_expression\"];" << std::endl;
-		std::cout << $$ << "->" << $1 <<";" << std::endl;
-	}
-	| unary_operator postfix_expression 
-	{
-		$$=++nodeCount;
-		std::cout << $$ << " [label=\"unary_expression\"];" << std::endl;
-		std::cout << $$ << "->" << $1 <<";" << std::endl;
-		std::cout << $$ << "->" << $2 <<";" << std::endl;
-	}
+		$$ = $1;
+	}  				
+	| unary_operator postfix_expression
+	{	
+		$$ = new unaryOp($2,$1);
+	} 
 	;
 
 postfix_expression
-	: primary_expression 
+	: primary_expression
 	{
-		$$=++nodeCount;
-		std::cout << $$ << " [label=\"postfix_expression\"];" << std::endl;
-		std::cout << $$ << "->" << $1 <<";" << std::endl;
+		$$ = $1;
 	}
-	| IDENTIFIER '(' ')' 
-	{
-		$$=++nodeCount;
-		std::cout << $$ << " [label=\"postfix_expression\"];" << std::endl;
-		std::cout << ++nodeCount << " [label=\"identifier\"];" << std::endl;
-		std::cout << $$ << "->" << nodeCount <<";" << std::endl;
-
-		std::cout << ++nodeCount << " [label=\"(\"];" << std::endl;
-		std::cout << $$ << "->" << nodeCount <<";" << std::endl;		
-		
-		std::cout << ++nodeCount << " [label=\")\"];" << std::endl;
-		std::cout << $$ << "->" << nodeCount <<";" << std::endl;
+    | IDENTIFIER '(' ')'
+    {
+		$$ = new Funcall(nullptr,"FNAME");
 	}
-	| IDENTIFIER '(' expression_list ')'
+	| IDENTIFIER '(' expression_list ')' 
 	{
-		$$=++nodeCount;
-		std::cout << $$ << " [label=\"postfix_expression\"];" << std::endl;
-		std::cout << ++nodeCount << " [label=\"identifier\"];" << std::endl;
-		std::cout << $$ << "->" << nodeCount <<";" << std::endl;
-
-		std::cout << ++nodeCount << " [label=\"(\"];" << std::endl;
-		std::cout << $$ << "->" << nodeCount <<";" << std::endl;		
-		std::cout << $$ << "->" << $3 <<";" << std::endl;
-		std::cout << ++nodeCount << " [label=\")\"];" << std::endl;
-		std::cout << $$ << "->" << nodeCount <<";" << std::endl;
+		$$ = new Funcall($3,"FNAME");
 	}
-	| l_expression INCREMENT 
+	| l_expression INCREMENT
 	{
-		$$=++nodeCount;
-		std::cout << $$ << " [label=\"postfix_expression\"];" << std::endl;
-		
-		std::cout << $$ << "->" << $1 <<";" << std::endl;
-
-		std::cout << ++nodeCount << " [label=\"increment\"];" << std::endl;
-		std::cout << $$ << "->" << nodeCount <<";" << std::endl;
+		$$ = new UnaryOp($1, PP);
 	}
 	;
 
 primary_expression
-	: l_expression 
+	: l_expression
 	{
-		$$=++nodeCount;
-		std::cout << $$ << " [label=\"primary_expression\"];" << std::endl;
-		std::cout << $$ << "->" << $1 <<";" << std::endl;
+		$$ = $1;
 	}
-	| l_expression '=' expression
+    | l_expression '=' expression // added this production
+    {
+		$$ = new BinaryOp($1, $3, ASSIGN);
+	}
+	| INT_CONST
 	{
-		$$=++nodeCount;
-		std::cout << $$ << " [label=\"primary_expression\"];" << std::endl;
-		std::cout << $$ << "->" << $1 << ";" << std::endl;
-		std::cout << ++nodeCount << "[label=\"=\"];" << std::endl;
-		std::cout << $$ << "->" << nodeCount << ";" << std::endl;
-		std::cout << $$ << "->" << $3 << ";" << std::endl;
+		$$ = new IntConst("Int");
 	}
-	| INT_CONST 
+	| FP_CONST
 	{
-		$$=++nodeCount;
-		std::cout << $$ << " [label=\"primary_expression\"];" << std::endl;
-		std::cout << ++nodeCount << " [label=\"int_const\"];" << std::endl;
-		std::cout << $$ << "->" << nodeCount <<";" << std::endl;
+		$$ = new FloatConst("Float");
 	}
-	| FP_CONST 
+    | STRING_LITERAL
+    {
+		$$ = new StringConst("Str");
+    }
+	| '(' expression ')' 
 	{
-		$$=++nodeCount;
-		std::cout << $$ << " [label=\"primary_expression\"];" << std::endl;
-		std::cout << ++nodeCount << " [label=\"fp_const\"];" << std::endl;
-		std::cout << $$ << "->" << nodeCount <<";" << std::endl;
-	}
-	| STRING_LITERAL 
-	{
-		$$=++nodeCount;
-		std::cout << $$ << " [label=\"primary_expression\"];" << std::endl;
-		std::cout << ++nodeCount << " [label=\"string_literal\"];" << std::endl;
-		std::cout << $$ << "->" << nodeCount <<";" << std::endl;
-	}
-	| '(' expression ')'
-	{
-		$$=++nodeCount;
-		std::cout << $$ << " [label=\"primary_expression\"];" << std::endl;
-		std::cout << ++nodeCount << " [label=\"(\"];" << std::endl;
-		std::cout << $$ << "->" << nodeCount <<";" << std::endl;
-		std::cout << $$ << "->" << $2 <<";" << std::endl;
-		std::cout << ++nodeCount << " [label=\")\"];" << std::endl;
-		std::cout << $$ << "->" << nodeCount <<";" << std::endl;
-	}
+		$$ = $2;
+	}	
 	;
 
 l_expression
-	: IDENTIFIER 
-	{
-		$$=++nodeCount;
-		std::cout << $$ << " [label=\"l_expression\"];" << std::endl;
-		std::cout << ++nodeCount << " [label=\"identifier\"];" << std::endl;
-		std::cout << $$ << "->" << nodeCount <<";" << std::endl;
-	}
-	| l_expression '[' expression ']'
-	{
-		$$=++nodeCount;
-		std::cout << $$ << " [label=\"l_expression\"];" << std::endl;
-
-		std::cout << $$ << "->" << $1 <<";" << std::endl;
-
-		std::cout << ++nodeCount << " [label=\"[\"];" << std::endl;
-		std::cout << $$ << "->" << nodeCount <<";" << std::endl;
-
-		std::cout << $$ << "->" << $3 <<";" << std::endl;		
-		
-		std::cout << ++nodeCount << " [label=\"]\"];" << std::endl;
-		std::cout << $$ << "->" << nodeCount <<";" << std::endl;
-	} 
+        : IDENTIFIER
+        {
+			$$ = new Identifier("ID");
+		}
+        | l_expression '[' expression ']' 	
+        {
+			$$ = new Index($1, $3);
+        }
         ;
 expression_list
-	: expression 
-	{
-		$$=++nodeCount;
-		std::cout << $$ << " [label=\"expression_list\"];" << std::endl;
-		std::cout << $$ << "->" << $1 <<";" << std::endl;
-	}
-	| expression_list ',' expression
-	{
-		$$=++nodeCount;
-		std::cout << $$ << " [label=\"expression_list\"];" << std::endl;
-		std::cout << $$ << "->" << $1 <<";" << std::endl;
-
-		std::cout << ++nodeCount << " [label=\",\"];" << std::endl;
-		std::cout << $$ << "->" << nodeCount <<";" << std::endl;		
-		
-		std::cout << $$ << "->" << $3 <<";" << std::endl;
-	} 
-	;
-
+        : expression
+        {
+			$$ = new Funcall($1);
+        }
+        | expression_list ',' expression
+        {
+			$1.insert($3);
+			$$ = $1;
+        }
+        ;
 unary_operator
-	: '-'  
-	{
-		$$=++nodeCount;
-		std::cout << $$ << " [label=\"unary_operator\"];" << std::endl;
-		std::cout << ++nodeCount << " [label=\"-\"];" << std::endl;
-		std::cout << $$ << "->" << nodeCount <<";" << std::endl;
+    : '-'
+    {
+		$$ = UMINUS;
 	}
-	| '!'  
+	| '!' 	
 	{
-		$$=++nodeCount;
-		std::cout << $$ << " [label=\"unary_operator\"];" << std::endl;
-		std::cout << ++nodeCount << " [label=\"!\"];" << std::endl;
-		std::cout << $$ << "->" << nodeCount <<";" << std::endl;
+		$$ = NOT;
 	}
 	;
 
 selection_statement
-	: IF '(' expression ')' statement ELSE statement
-	{
-		$$=++nodeCount;
-		std::cout << $$ << " [label=\"selection_statement\"];" << std::endl;
-
-		std::cout << ++nodeCount << " [label=\"IF\"];" << std::endl;
-		std::cout << $$ << "->" << nodeCount <<";" << std::endl;
-
-		std::cout << ++nodeCount << " [label=\"(\"];" << std::endl;
-		std::cout << $$ << "->" << nodeCount <<";" << std::endl;
-
-		std::cout << $$ << "->" << $3 <<";" << std::endl;
-
-		std::cout << ++nodeCount << " [label=\")\"];" << std::endl;
-		std::cout << $$ << "->" << nodeCount <<";" << std::endl;
-
-		std::cout << $$ << "->" << $5 <<";" << std::endl;
-
-		std::cout << ++nodeCount << " [label=\"else\"];" << std::endl;
-		std::cout << $$ << "->" << nodeCount <<";" << std::endl;
-
-		std::cout << $$ << "->" << $7 <<";" << std::endl;
-	}
+        : IF '(' expression ')' statement ELSE statement 
+		{
+			($$) = new If( ($1), ($2), ($3));
+		}
 	;
 
 iteration_statement
-	: WHILE '(' expression ')' statement
+	: WHILE '(' expression ')' statement 
 	{
-		$$=++nodeCount;
-		std::cout << $$ << " [label=\"iteration_statement\"];" << std::endl;
-
-		std::cout << ++nodeCount << " [label=\"while\"];" << std::endl;
-		std::cout << $$ << "->" << nodeCount <<";" << std::endl;
-
-		std::cout << ++nodeCount << " [label=\"(\"];" << std::endl;
-		std::cout << $$ << "->" << nodeCount <<";" << std::endl;
-
-		std::cout << $$ << "->" << $3 <<";" << std::endl;
-
-		std::cout << ++nodeCount << " [label=\")\"];" << std::endl;
-		std::cout << $$ << "->" << nodeCount <<";" << std::endl;
-
-		std::cout << $$ << "->" << $5 <<";" << std::endl;
-		
+		($$) = new While( ($1), ($2));
 	}
-	| FOR '(' expression ';' expression ';' expression ')' statement
+    | FOR '(' expression ';' expression ';' expression ')' statement  //modified this production
 	{
-		$$=++nodeCount;
-		std::cout << $$ << " [label=\"iteration_statement\"];" << std::endl;
-
-		std::cout << ++nodeCount << " [label=\"for\"];" << std::endl;
-		std::cout << $$ << "->" << nodeCount <<";" << std::endl;
-
-		std::cout << ++nodeCount << " [label=\"(\"];" << std::endl;
-		std::cout << $$ << "->" << nodeCount <<";" << std::endl;
-
-		std::cout << $$ << "->" << $3 <<";" << std::endl;
-
-		std::cout << ++nodeCount << " [label=\";\"];" << std::endl;
-		std::cout << $$ << "->" << nodeCount <<";" << std::endl;
-
-		std::cout << $$ << "->" << $5 <<";" << std::endl;		
-
-		std::cout << ++nodeCount << " [label=\";\"];" << std::endl;
-		std::cout << $$ << "->" << nodeCount <<";" << std::endl;
-
-		std::cout << $$ << "->" << $7 <<";" << std::endl;
-
-		std::cout << ++nodeCount << " [label=\")\"];" << std::endl;
-		std::cout << $$ << "->" << nodeCount <<";" << std::endl;
-
-		std::cout << $$ << "->" << $9 <<";" << std::endl;
+		($$) = new For( ($1), ($2), ($3), ($4));
 	}
-	;
+    ;
 
 declaration_list
-	: declaration 
-	{
-		$$=++nodeCount;
-		std::cout << $$ << " [label=\"declaration_list\"];" << std::endl;
-		std::cout << $$ << "->" << $1 <<";" << std::endl;
-	}
-	| declaration_list declaration 
-	{
-		$$=++nodeCount;
-		std::cout << $$ << " [label=\"declaration_list\"];" << std::endl;
-		std::cout << $$ << "->" << $1 <<";" << std::endl;
-		std::cout << $$ << "->" << $2 <<";" << std::endl;
-	}
+        : declaration  					
+        | declaration_list declaration
 	;
 
 declaration
 	: type_specifier declarator_list';'
-	{
-		$$=++nodeCount;
-		std::cout << $$ << " [label=\"declaration\"];" << std::endl;
-		std::cout << $$ << "->" << $1 <<";" << std::endl;
-		std::cout << $$ << "->" << $2 <<";" << std::endl;
-		
-		std::cout << ++nodeCount << " [label=\";\"];" << std::endl;
-		std::cout << $$ << "->" << nodeCount <<";" << std::endl;
-	}
 	;
 
 declarator_list
-	: declarator 
-	{
-		$$=++nodeCount;
-		std::cout << $$ << " [label=\"declarator_list\"];" << std::endl;
-		std::cout << $$ << "->" << $1 <<";" << std::endl;
-	}
-	| declarator_list ',' declarator
-	{
-		$$=++nodeCount;
-		std::cout << $$ << " [label=\"declarator_list\"];" << std::endl;
-		std::cout << $$ << "->" << $1 <<";" << std::endl;
-		
-		
-		std::cout << ++nodeCount << " [label=\",\"];" << std::endl;
-		std::cout << $$ << "->" << nodeCount <<";" << std::endl;
-
-		std::cout << $$ << "->" << $3 <<";" << std::endl;
-	}
+	: declarator
+	| declarator_list ',' declarator 
 	;
+
+
+/* A description of integer and float constants. Not part of the grammar.   */
+
+/* Numeric constants are defined as:  */
+
+/* C-constant: */
+/*   C-integer-constant */
+/*   floating-point-constant */
+ 
+/* C-integer-constant: */
+/*   [1-9][0-9]* */
+/*   0[bB][01]* */
+/*   0[0-7]* */
+/*   0[xX][0-9a-fA-F]* */
+ 
+/* floating-point-constant: */
+/*   integer-part.[fractional-part ][exponent-part ] */
+
+/* integer-part: */
+/*   [0-9]* */
+ 
+/* fractional-part: */
+/*   [0-9]* */
+ 
+/* exponent-part: */
+/*   [eE][+-][0-9]* */
+/*   [eE][0-9]* */
+
+/* The rule given above is not entirely accurate. Correct it on the basis of the following examples: */
+
+/* 1. */
+/* 23.1 */
+/* 01.456 */
+/* 12.e45 */
+/* 12.45e12 */
+/* 12.45e-12 */
+/* 12.45e+12 */
+
+/* The following are not examples of FLOAT_CONSTANTs: */
+
+/* 234 */
+/* . */
+
+/* We have not yet defined STRING_LITERALs. For our purpose, these are */
+/* sequence of characters enclosed within a pair of ". If the enclosed */
+/* sequence contains \ and ", they must be preceded with a \. Apart from */
+/* \and ", the only other character that can follow a \ within a string */
+/* are t and n.  */
+
+
+
