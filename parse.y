@@ -22,8 +22,12 @@
 %token FP_CONST INT_CONST VOID INT FLOAT FOR WHILE IF ELSE RETURN IDENTIFIER
 %token LEQ_OP GEQ_OP INCREMENT STRING_LITERAL
 %token LOGICAL_AND LOGICAL_OR EQUAL_TO NEQ_TO
-%polymorphic 
-%type
+%polymorphic expAstPtr: ExpAst*; stmtAstPtr: StmtAst*; arrayRefPtr: ArrayRef*; opType: typeOp; 
+
+%type <stmtAstPtr> assignment_statement statement statement_list selection_statement iteration_statement
+%type <expAstPtr> expression logical_and_expression equality_expression relational_expression additive_expression multiplicative_expression unary_expression postfix_expression primary_expression expression_list
+%type <arrayRefPtr> l_expression 
+%type <opType> unary_operator
 
 %%
 
@@ -85,7 +89,7 @@ statement_list
 	}
     | statement_list statement	
     {
-		($1).insert($2);
+		((Block*)($1))->insert($2);
 		($$) = ($1);
 	}
 	;
@@ -219,7 +223,7 @@ unary_expression
 	}  				
 	| unary_operator postfix_expression
 	{	
-		$$ = new unaryOp($2,$1);
+		$$ = new UnaryOp($2,$1);
 	} 
 	;
 
@@ -230,11 +234,13 @@ postfix_expression
 	}
     | IDENTIFIER '(' ')'
     {
-		$$ = new Funcall(nullptr,"FNAME");
+		$$ = new FunCall(nullptr);
+		((FunCall*)($$))->setName("Fname");
 	}
 	| IDENTIFIER '(' expression_list ')' 
 	{
-		$$ = new Funcall($3,"FNAME");
+		$$ = $3;
+		((FunCall*)($3))->setName("Fname");
 	}
 	| l_expression INCREMENT
 	{
@@ -253,11 +259,11 @@ primary_expression
 	}
 	| INT_CONST
 	{
-		$$ = new IntConst("Int");
+		$$ = new IntConst(1);
 	}
 	| FP_CONST
 	{
-		$$ = new FloatConst("Float");
+		$$ = new FloatConst(0.1);
 	}
     | STRING_LITERAL
     {
@@ -282,11 +288,11 @@ l_expression
 expression_list
         : expression
         {
-			$$ = new Funcall($1);
+			$$ = new FunCall($1);
         }
         | expression_list ',' expression
         {
-			$1.insert($3);
+			((FunCall*)($1))->insert($3);
 			$$ = $1;
         }
         ;
@@ -304,18 +310,18 @@ unary_operator
 selection_statement
         : IF '(' expression ')' statement ELSE statement 
 		{
-			($$) = new If( ($1), ($2), ($3));
+			($$) = new If( ($3), ($5), ($7));
 		}
 	;
 
 iteration_statement
 	: WHILE '(' expression ')' statement 
 	{
-		($$) = new While( ($1), ($2));
+		($$) = new While( ($3), ($5));
 	}
     | FOR '(' expression ';' expression ';' expression ')' statement  //modified this production
 	{
-		($$) = new For( ($1), ($2), ($3), ($4));
+		($$) = new For( ($3), ($5), ($7), ($9));
 	}
     ;
 

@@ -5,21 +5,15 @@
 #include <vector>
 using namespace std;
 enum typeExp {STMT, BLK, EXP, EMP_BLK, ASS, RET, IF, FOR, WHILE, FLOAT, BINARY_OP, UNARY_OP, FUNCALL, INT, STR, IDENTIFIER, INDEX};
-std::string typeLookup[] = {"STMT", "BLK", "EXP", "EMP_BLK", "ASS", "RET", "IF", "FOR", "WHILE", "FLOAT", "BINARY_OP", "UNARY_OP", "FUNCALL",
-	"INT", "STR", "IDENTIFIER", "INDEX"};
+extern std::string typeLookup[];
 
 enum typeOp {OR, AND, EQ_OP, NE_OP, LT, GT, LE_OP, GE_OP, PLUS, MINUS, MULT, DIV, ASSIGN, UMINUS, NOT, PP};
-std::string opLookup[]  = {"OR", "AND", "EQ_OP", "NE_OP", "LT","GT", "LE_OP", "GE_OP", "PLUS", "MINUS", "MULT", "DIV", "ASSIGN", "UMINUS", "NOT", "PP"};
+extern std::string opLookup[];
 
-int tab_degree = 0;
+extern int tab_degree;
 
 
-void indent_print(std::string s)
-{
-	for(int i = 0; i < tab_degree; ++i)
-		std::cout << "  ";
-	std::cout << s;
-}
+void indent_print(std::string s);
 
 class abstract_astnode
 {
@@ -59,16 +53,8 @@ class Empty : public StmtAst
 	private:
 		typeExp astnode_type;
 	public:
-		Empty()
-		{
-			astnode_type = EMP_BLK;
-		}
-		void print()
-		{
-			tab_degree++;
-			indent_print( typeLookup[astnode_type]+"\n" );
-			tab_degree--;
-		}
+		Empty();
+		void print();
 };
 
 
@@ -78,28 +64,9 @@ class Block : public StmtAst
 		typeExp astnode_type;
 		std::list<StmtAst*> clist;
 	public:
-		Block(StmtAst* _c)
-		{
-			astnode_type = BLK;
-			clist.push_back(c);
-		}
-		void print()
-		{
-			tab_degree++;
-			indent_print( typeLookup[astnode_type]+"\n" );
-			for(auto it = clist.begin(); it != clist.end(); ++it)
-			{
-				indent_print( "C {\n" );
-				(*it)->print();
-				indent_print( "}\n" );
-			}
-
-			tab_degree--;
-		}
-		void insert(StmtAst* c)
-		{
-			clist.push_back(c);
-		}
+		Block(StmtAst* _c);
+		void print();
+		void insert(StmtAst* c);
 };
 
 class Ass : public StmtAst
@@ -109,24 +76,8 @@ class Ass : public StmtAst
 		ExpAst* c1;
 		ExpAst* c2;
 	public:
-		Ass(ExpAst* left_stmt, ExpAst* right_stmt)
-		{
-			astnode_type = ASS;
-			c1 = left_stmt;
-			c2 = right_stmt;
-		}
-		void print()
-		{
-			tab_degree++;
-
-			indent_print( typeLookup[astnode_type] +"\n" ); 
-			indent_print( "C1: {\n" );
-			c1->print();
-			indent_print( "}\nC2: {\n" );
-			c2->print();
-			indent_print( "}\n" );
-			tab_degree--;
-		}
+		Ass(ExpAst* left_stmt, ExpAst* right_stmt);
+		void print();
 };
 
 class Return : public StmtAst
@@ -135,21 +86,8 @@ class Return : public StmtAst
 		typeExp astnode_type;
 		ExpAst* c1;
 	public:
-		Return(ExpAst* ret_exp)
-		{
-			astnode_type = RET;
-			c1 = ret_exp;
-		}
-		void print()
-		{
-			tab_degree++;
-
-			indent_print( typeLookup[astnode_type] + "\n" );
-			indent_print( "C1: {\n" );
-			c1->print();
-			indent_print( "\n}\n" );
-			tab_degree--;
-		}
+		Return(ExpAst* ret_exp);
+		void print();
 };
 
 
@@ -161,27 +99,8 @@ class If : public StmtAst
 		StmtAst* c2;
 		StmtAst* c3;
 	public:
-		If(ExpAst* cond, StmtAst* if_stats, StmtAst* else_stats)
-		{
-			astnode_type = IF;
-			c1 = cond;
-			c2 = if_stats;
-			c3 = else_stats;
-		}
-		void print()
-		{
-			tab_degree++;
-
-			indent_print( typeLookup[astnode_type] + "\n" );
-			indent_print( "C1: {\n" );
-			c1->print();
-			indent_print( "}\nC2: {\n" );
-			c2->print();
-			indent_print( "}\nC3: {\n" );
-			c3->print();
-			indent_print( "}\n" );
-			tab_degree--;
-		}
+		If(ExpAst* cond, StmtAst* if_stats, StmtAst* else_stats);
+		void print();
 };
 
 
@@ -194,31 +113,8 @@ class For : public StmtAst
 		ExpAst* c3;
 		StmtAst* c4;
 	public:
-		For(ExpAst* initialize, ExpAst* guard, ExpAst* update, StmtAst* forbody)
-		{
-			astnode_type = FOR;
-			c1 = initialize;
-			c2 = guard;
-			c3 = update;
-			c4 = forbody;
-		}
-		void print()
-		{
-			tab_degree++;
-
-
-			indent_print( typeLookup[astnode_type] + "\n" );
-			indent_print( "C1: {\n" );
-			c1->print();
-			indent_print( "}\nC2: {\n" );
-			c2->print();
-			indent_print( "}\nC3: {\n" );
-			c3->print();
-			indent_print( "}\nC4: {\n" );
-			c4->print();
-			indent_print( "}\n" );
-			tab_degree--;
-		}
+		For(ExpAst* initialize, ExpAst* guard, ExpAst* update, StmtAst* forbody);
+		void print();
 };
 
 class While : public StmtAst
@@ -228,25 +124,8 @@ class While : public StmtAst
 		ExpAst* c1;
 		StmtAst* c2;
 	public:
-		While(ExpAst* guard, StmtAst* whilebody)
-		{
-			astnode_type = WHILE;
-			c1 = guard;
-			c2 = whilebody;
-		}
-		void print()
-		{
-			tab_degree++;
-
-
-			indent_print( typeLookup[astnode_type] + "\n" );
-			indent_print( "C1: {\n" );
-			c1->print();
-			indent_print( "}\nC2: {\n" );
-			c2->print();
-			indent_print( "}\n" );
-			tab_degree--;
-		}
+		While(ExpAst* guard, StmtAst* whilebody);
+		void print();
 };
 
 class FloatConst : public ExpAst
@@ -255,19 +134,8 @@ class FloatConst : public ExpAst
 		typeExp astnode_type;
 		float val;
 	public:
-		FloatConst(float _val)
-		{
-			astnode_type = FLOAT;
-			val = _val;
-		}
-		void print()
-		{
-			tab_degree++;
-
-			indent_print( typeLookup[astnode_type] + "\n" );
-			indent_print( "Value: " + std::to_string(val) + "\n" ); 
-			tab_degree--;
-		}
+		FloatConst(float _val);
+		void print();
 };
 
 class BinaryOp : public ExpAst
@@ -278,49 +146,19 @@ class BinaryOp : public ExpAst
 		ExpAst* c2;
 		typeOp op;
 	public:
-		BinaryOp(ExpAst* left_exp , ExpAst* right_exp, typeExp _op)
-		{
-			astnode_type = BINARY_OP;
-			op= _op;
-			c1=left_exp;
-			c2=right_exp;
-		}
-		void print()
-		{
-			tab_degree++;
-			indent_print(typeLookup[astnode_type]+"\n");
-			indent_print("C1: {\n");
-			c1->print();
-			indent_print("}\n");
-			indent_print("C2: {\n");
-			c2->print();
-			indent_print("}\n");
-			tab_degree--;
-		}
+		BinaryOp(ExpAst* left_exp , ExpAst* right_exp, typeOp _op);
+		void print();
 };
 
-class unaryOp : public ExpAst
+class UnaryOp : public ExpAst
 {
 	private:
 		typeExp astnode_type;
 		ExpAst* c1;
 		typeOp op;
 	public:
-		unaryOp(ExpAst* exp, typeOp _op)
-		{
-			astnode_type = UNARY_OP;
-			op = _op;
-			c1=exp;
-		}
-		void print()
-		{
-			tab_degree++;
-			indent_print(typeLookup[astnode_type]+"\n");
-			indent_print("C1: {\n");
-			c1->print();
-			indent_print("}\n");
-			tab_degree--;
-		}
+		UnaryOp(ExpAst* exp, typeOp _op);
+		void print();
 };
 
 class FunCall : public ExpAst
@@ -330,29 +168,11 @@ class FunCall : public ExpAst
 		list<ExpAst*> list_exp_ast;
 		string func_name;
 	public:
-		FunCall(ExpAst* _exp_ast, string _func_name)
-		{
-			astnode_type = FUNCALL;
-			if( _exp_ast) list_exp_ast.push_back(_exp_ast);
-			func_name = _func_name;
-		}
-		void print()
-		{
-			tab_degree++;
-			indent_print(typeLookup[astnode_type]+"\n");
-			for( auto i = list_exp_ast.begin() ; i != list_exp_ast.end() ; i++)
-			{
-				indent_print("C: {\n");
-				(*i)->print();
-				indent_print("}\n");
-			}
-			tab_degree--;
-		}
+		FunCall(ExpAst* _exp_ast);
+		void setName(string fname);
+		void print();
 		
-		void insert(ExpAst* e)
-		{
-			list_exp_ast.push_back(e);
-		}
+		void insert(ExpAst* e);
 };
 
 
@@ -362,18 +182,8 @@ class IntConst : public ExpAst
 		typeExp astnode_type;
 		int val;
 	public:
-		IntConst(int _val)
-		{
-			astnode_type = INT;
-			val = _val;
-		}
-		void print()
-		{
-			tab_degree++;
-			indent_print(typeLookup[astnode_type]+"\n");
-			indent_print("Value: "+std::to_string(val)+"\n");
-			tab_degree--;
-		}
+		IntConst(int _val);
+		void print();
 };
 
 class StringConst : public ExpAst
@@ -382,18 +192,8 @@ class StringConst : public ExpAst
 		typeExp astnode_type;
 		std::string val;
 	public:
-		StringConst(int _val)
-		{
-			astnode_type = STR;
-			val = _val;
-		}
-		void print()
-		{
-			tab_degree++;
-			indent_print(typeLookup[astnode_type]+"\n");
-			indent_print("Value: "+val+"\n");
-			tab_degree--;
-		}
+		StringConst(std::string _val);
+		void print();
 };
 
 
@@ -403,18 +203,8 @@ class Identifier : public ArrayRef
 		typeExp astnode_type;
 		std::string val;
 	public:
-		Identifier(std::string _val)
-		{
-			astnode_type = IDENTIFIER;
-			val = _val;
-		}
-		void print()
-		{
-			tab_degree++;
-			indent_print(typeLookup[astnode_type]+"\n");
-			indent_print("Value: "+val+"\n");
-			tab_degree--;
-		}
+		Identifier(std::string _val);
+		void print();
 };
 
 class Index : public ArrayRef
@@ -424,24 +214,8 @@ class Index : public ArrayRef
 		ArrayRef* c1;
 		ExpAst* c2;
 	public:
-		Index(ArrayRef* arrRef , ExpAst* expAst)
-		{
-			astnode_type = INDEX;
-			c1 = arrRef;
-			c2 = expAst;
-		}
-		void print()
-		{
-			tab_degree++;
-			indent_print(typeLookup[astnode_type]+"\n");
-			indent_print("C1: {\n");
-			c1->print();
-			indent_print("}\n");
-			indent_print("C2: {\n");
-			c2->print();
-			indent_print("}\n");
-			tab_degree--;
-		}
+		Index(ArrayRef* arrRef , ExpAst* expAst);
+		void print();
 };
  
 #endif

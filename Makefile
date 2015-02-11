@@ -9,7 +9,8 @@ lex.cc: lex.l Scanner.ih
 
 parse.cc: parse.y Parser.ih Parser.h Parserbase.h
 	bisonc++  parse.y; 
-	sed -i '/d_scanner;/r makeTree.txt' Parser.h; 
+	sed -i '/insert preincludes/a #include "./AST_files/ASTNodes.h"' Parserbase.h; 
+	sed -i '/include "Parser.h"/a #include "./AST_files/ASTNodes.cc"' Parser.ih
 
 graph:
 	rm -f *graph
