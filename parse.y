@@ -76,10 +76,12 @@ compound_statement
 	| '{' statement_list '}'
 	{
 		($2)->print();
+		std::cout <<'\n'; 
 	} 
 	| '{' declaration_list statement_list '}'
 	{
 		($3)->print();
+		std::cout << '\n';
 	} 
 	;
 
@@ -268,7 +270,7 @@ primary_expression
 	}
     | STRING_LITERAL
     {
-		$$ = new StringConst($1);
+		$$ = new StringConst((std::string)$1);
     }
 	| '(' expression ')' 
 	{

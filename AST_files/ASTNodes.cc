@@ -16,7 +16,7 @@ int tab_degree = 0;
 
 void indent_print(std::string s)
 {
-	for(int i = 0; i < tab_degree; ++i)
+	for(int i = 1; i < tab_degree; ++i)
 		std::cout << "  ";
 	std::cout << s;
 }
@@ -53,7 +53,7 @@ void indent_print(std::string s)
 				(*it)->print();
 				
 			}
-			cout << "])\n" ;
+			cout << "])" ;
 
 			tab_degree--;
 		}
@@ -78,7 +78,7 @@ void indent_print(std::string s)
 			c1->print();
 			indent_print( "\n" );
 			c2->print();
-			cout << "))" ;
+			cout << ")" ;
 			tab_degree--;
 		}
 
@@ -162,8 +162,6 @@ void indent_print(std::string s)
 		void While::print()
 		{
 			tab_degree++;
-
-
 			indent_print( "(While\n" );
 			c1->print();
 			indent_print( "\n" );

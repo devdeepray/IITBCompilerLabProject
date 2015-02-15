@@ -42,7 +42,7 @@ return { /*std::cout << "RETURN" << std::endl;*/return Parser::RETURN;}
 \>= { /*std::cout << "GEQ_OP" << std::endl;*/return Parser::GEQ_OP;}
 \+\+ { /*std::cout << "INCREMENT" << std::endl;*/return Parser::INCREMENT;}
 
-\"((\\[tn\"\\])+|[^\\\"\n]+)*\" { /*std::cout << "STRING_LITERAL" << std::endl;*/return Parser::STRING_LITERAL;}
+\"((\\[tn\"\\])+|[^\\\"\n]+)*\" { /*std::cout << "STRING_LITERAL" << std::endl;*/Parser::d_val__ = std::string(matched());return Parser::STRING_LITERAL;}
 
 ! { /*std::cout << "EXCLAMATION" << std::endl;*/return '!';}
 \- { /*std::cout << "MINUS" << std::endl;*/return '-';}
