@@ -11,6 +11,8 @@ parse.cc: parse.y Parser.ih Parser.h Parserbase.h
 	bisonc++  parse.y; 
 	sed -i '/insert preincludes/a #include "./AST_files/ASTNodes.h"' Parserbase.h; 
 	sed -i '/include "Parser.h"/a #include "./AST_files/ASTNodes.cc"' Parser.ih
+	sed -i '/d_scanner;/r ParserHInsert.txt' Parser.h;
+	sed -i '/include "Scanner.h"/a #include "./AST_files/SymbolTable.h"' Parser.h
 	./sedscript
 
 graph:

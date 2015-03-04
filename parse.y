@@ -38,32 +38,90 @@ translation_unit
     ;
 
 function_definition
-	: type_specifier fun_declarator compound_statement 
+	: type_specifier 
+	{
+		_g_offset = 0;
+		_g_funcTable.reset();
+		_g_funcTable.setReturnType(_g_typeSpec);
+	}
+	fun_declarator compound_statement 
+	{
+		_g_globalSymTable.addFuncTable(_g_funcTable);
+	}
 	;
 
 type_specifier
 	: VOID 	
+	{
+		_g_typeSpec = DECL_P_VOID;
+		_g_width = 0;
+	}
     | INT   
+	{
+		_g_typeSpec = DECL_P_INT;
+		_g_width = 4;
+	}
 	| FLOAT 
+	{
+		_g_typeSpec = DECL_P_FLOAT;
+		_g_width = 4;
+	}
     ;
 
 fun_declarator
-	: IDENTIFIER '(' parameter_list ')' 
-    | IDENTIFIER '(' ')' 
+	: IDENTIFIER '(' parameter_list ')'
+	{
+		// Set the name, check for conflicting args.
+		if(	_g_funcTable.existsSymbol($1) )
+		{
+			cerr << "Duplicate identifier used for function name and arguments" << endl;
+			_exit(-1);
+		}
+		_g_funcTable.setName($1);
+
+	}
+    | IDENTIFIER '(' ')'
+	{
+		_g_funcTable.setName($1);
+	}
 	;
 
 parameter_list
-	: parameter_declaration 
+	: parameter_declaration
 	| parameter_list ',' parameter_declaration 
 	;
 
 parameter_declaration
 	: type_specifier declarator 
-        ;
+	{
+		_g_curVarType.setPrimitive(_g_typeSpec);
+		VarDeclaration v;
+		v.setDeclType(PARAM);
+		v.setName(_g_currentId);
+		v.setSize(_g_size);
+		v.setOffset(_g_offset);
+		v.setVarType(_g_varType);
+		_g_funcTable.setName($1);
+		_g_funcTable.addParam(v);
+		_g_offset += _g_size;
+	}		
+	;
 
 declarator
 	: IDENTIFIER 
-	| declarator '[' constant_expression ']' 
+	{
+		_g_currentId = $1;
+		_g_varType = new VarType();
+		_g_curVarType = _g_varType;
+		_g_size = _g_width;
+	}
+	| declarator '[' INT_CONST ']'  // Changed constant expr to INT_CONST
+	{
+		_g_curVarType.setArray($3);
+		_g_curVarType.setNestedVarType(new VarType());
+		_g_curVarType = _g_curVarType.getNestedVarType();
+		_g_size *= ($3);
+	}
         ;
 
 constant_expression 
