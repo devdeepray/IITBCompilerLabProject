@@ -52,6 +52,7 @@ function_definition
 	}
 	fun_declarator compound_statement 
 	{
+		_g_funcTable.correctOffsets();
 		_g_globalSymTable.addFuncTable(_g_funcTable);
 	}
 	;

@@ -100,7 +100,29 @@ struct FunctionTable
 	{
 		strVarMap[_varDecl.name] = _varDecl;
 	}
-
+	void correctOffsets()
+	{
+		if(strVarMap.size() != paramOrderVector.size()) // If some params are present
+		{
+			// Get the last param
+			auto lastParam = strVarMap.begin();
+			for(auto it = strVarMap.begin(); it != strVarMap.end(); ++it)
+			{
+				if(it->second.declType == PARAM)
+				{
+					if(it -> second.offset > lastParam -> second.offset)
+					{
+						lastParam = it;
+					}
+				}
+			}
+			int offsetCorrection = lastParam->second.offset+ lastParam->second.size;
+			for(auto it = strVarMap.begin(); it != strVarMap.end(); ++it)
+			{
+				it->second.offset -= offsetCorrection;
+			}
+		}
+	}
 	void setReturnType(TypeInfo _type)
 	{
 		returnType = new VarType();
