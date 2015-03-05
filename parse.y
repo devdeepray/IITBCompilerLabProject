@@ -33,8 +33,14 @@
 %%
 
 translation_unit
-	: function_definition 
+	: function_definition
+	{
+		//_g_globalSymTable.print();
+	} 
 	| translation_unit function_definition 
+	{
+		_g_globalSymTable.print();
+	}
     ;
 
 function_definition
@@ -75,7 +81,7 @@ fun_declarator
 		if(	_g_funcTable.existsSymbol($1) )
 		{
 			cerr << "Duplicate identifier used for function name and arguments" << endl;
-			_exit(-1);
+			exit(-1);
 		}
 		_g_funcTable.setName($1);
 
@@ -94,14 +100,13 @@ parameter_list
 parameter_declaration
 	: type_specifier declarator 
 	{
-		_g_curVarType.setPrimitive(_g_typeSpec);
+		_g_curVarType->setPrimitive(_g_typeSpec);
 		VarDeclaration v;
 		v.setDeclType(PARAM);
 		v.setName(_g_currentId);
 		v.setSize(_g_size);
 		v.setOffset(_g_offset);
 		v.setVarType(_g_varType);
-		_g_funcTable.setName($1);
 		_g_funcTable.addParam(v);
 		_g_offset += _g_size;
 	}		
@@ -117,10 +122,10 @@ declarator
 	}
 	| declarator '[' INT_CONST ']'  // Changed constant expr to INT_CONST
 	{
-		_g_curVarType.setArray($3);
-		_g_curVarType.setNestedVarType(new VarType());
-		_g_curVarType = _g_curVarType.getNestedVarType();
-		_g_size *= ($3);
+		_g_curVarType->setArray(stoi($3)); 
+		_g_curVarType->setNestedVarType(new VarType());
+		_g_curVarType = _g_curVarType->getNestedVarType();
+		_g_size *= (stoi($3));
 	}
         ;
 
@@ -133,12 +138,12 @@ compound_statement
 	: '{' '}' 
 	| '{' statement_list '}'
 	{
-		($2)->print();
+		//($2)->print(); //Uncomment to print the ADT
 		std::cout <<'\n'; 
 	} 
 	| '{' declaration_list statement_list '}'
 	{
-		($3)->print();
+		//($3)->print(); //Uncomment to print the ADT 
 		std::cout << '\n';
 	} 
 	;
@@ -397,7 +402,29 @@ declaration
 
 declarator_list
 	: declarator
+	{
+		_g_curVarType->setPrimitive(_g_typeSpec);
+		VarDeclaration v;
+		v.setDeclType(LOCAL);
+		v.setName(_g_currentId);
+		v.setSize(_g_size);
+		v.setOffset(_g_offset);
+		v.setVarType(_g_varType);
+		_g_funcTable.addVar(v);
+		_g_offset += _g_size;
+	}
 	| declarator_list ',' declarator 
+	{
+		_g_curVarType->setPrimitive(_g_typeSpec);
+		VarDeclaration v;
+		v.setDeclType(LOCAL);
+		v.setName(_g_currentId);
+		v.setSize(_g_size);
+		v.setOffset(_g_offset);
+		v.setVarType(_g_varType);
+		_g_funcTable.addVar(v);
+		_g_offset += _g_size;
+	}
 	;
 
 
