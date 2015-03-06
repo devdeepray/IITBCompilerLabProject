@@ -95,7 +95,7 @@ struct FunctionTable
 		strVarMap[_varDecl.name] = _varDecl;
 		paramOrderVector.push_back(_varDecl.name);
 	}
-
+	
 	void addVar( VarDeclaration _varDecl)
 	{
 		strVarMap[_varDecl.name] = _varDecl;
@@ -128,7 +128,10 @@ struct FunctionTable
 		returnType = new VarType();
 		returnType->setPrimitive(_type);	
 	}
-	
+	string getName()
+	{
+		return name;
+	}
 	void setName( std::string _name)
 	{
 		name = _name;
@@ -184,6 +187,11 @@ struct SymTab
 
 //		it = strFuncMap.begin();
 //		for( ; it != strFuncMap.end() ; it++) (it->second).print();
+	}
+
+	bool existsSymbol(string id)
+	{
+		return strFuncMap.find(id) != strFuncMap.end();
 	}
 };
 

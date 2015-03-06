@@ -6,13 +6,10 @@ all:    lex.cc parse.cc main.cc Scanner.h Scannerbase.h Scanner.ih Parser.h Pars
 lex.cc: lex.l Scanner.ih 
 	flexc++ lex.l; 
 	sed -i '/include/a #include "Parserbase.h"' Scanner.ih; 
+	sed -i '/VectorInt/a public: int lineCount = 1 ; private:' Scannerbase.h; #Add linecount capability to the lexer.
 
 parse.cc: parse.y Parser.ih Parser.h Parserbase.h
 	bisonc++  parse.y; 
-	sed -i '/insert preincludes/a #include "./AST_files/ASTNodes.h"' Parserbase.h; 
-	sed -i '/include "Parser.h"/a #include "./AST_files/ASTNodes.cc"' Parser.ih
-	sed -i '/d_scanner;/r globalDef' Parser.h;
-	sed -i '/include "Scanner.h"/a #include "./AST_files/SymbolTable.h"' Parser.h
 	./sedscript
 
 graph:

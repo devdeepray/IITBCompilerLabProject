@@ -1,0 +1,18 @@
+int add(int addP1, int addP2[3])
+{
+	int addV1;
+	int addV2;
+	return addV1;
+}
+void print(int print, float printP2)
+{
+	int printV1[3][4][5];
+	int printV2[8];
+	return printV2;
+}
+float add(int mulP1, int mulP2[3][5])
+{
+	int mulV1;
+	float mulV2;
+	return mulV2;
+}

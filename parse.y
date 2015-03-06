@@ -49,11 +49,19 @@ function_definition
 		_g_offset = 0;
 		_g_funcTable.reset();
 		_g_funcTable.setReturnType(_g_typeSpec);
+		_g_functionDefError = false;
 	}
 	fun_declarator compound_statement 
 	{
-		_g_funcTable.correctOffsets();
-		_g_globalSymTable.addFuncTable(_g_funcTable);
+		if(!_g_functionDefError)
+		{
+			_g_funcTable.correctOffsets();
+			_g_globalSymTable.addFuncTable(_g_funcTable);
+		}
+		else
+		{
+			cerr << "Error in function " << _g_funcTable.getName() << endl;
+		}
 	}
 	;
 
@@ -81,15 +89,32 @@ fun_declarator
 		// Set the name, check for conflicting args.
 		if(	_g_funcTable.existsSymbol($1) )
 		{
-			cerr << "Duplicate identifier used for function name and arguments" << endl;
-			exit(-1);
+			cerr << "Line " << _g_lineCount <<": Duplicate identifier used for function name and arguments" << endl;
+			_g_functionDefError = true;
+			_g_semanticError = true;
 		}
+		
+		else if( _g_globalSymTable.existsSymbol($1) )
+		{
+			cerr << "Line " << _g_lineCount <<": Function already defined earlier" << endl;
+			_g_functionDefError = true;
+			_g_semanticError = true;
+		}
+		// !!TODO!!
+		// If repeated function name with same argument pattern,
+		// then it is a duplicate definition. Report error.
+
 		_g_funcTable.setName($1);
 
 	}
     | IDENTIFIER '(' ')'
 	{
 		_g_funcTable.setName($1);
+		// !!TODO!!
+		// If repeated function name with same argument pattern,
+		// then it is a duplicate definition. Report error.
+
+
 	}
 	;
 
@@ -140,12 +165,12 @@ compound_statement
 	| '{' statement_list '}'
 	{
 		//($2)->print(); //Uncomment to print the ADT
-		std::cout <<'\n'; 
+		//std::cout <<'\n'; 
 	} 
 	| '{' declaration_list statement_list '}'
 	{
 		//($3)->print(); //Uncomment to print the ADT 
-		std::cout << '\n';
+		//std::cout << '\n';
 	} 
 	;
 

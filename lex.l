@@ -23,7 +23,8 @@ return { /*std::cout << "RETURN" << std::endl;*/return Parser::RETURN;}
 
 {identifier} { Parser::d_val__ = std::string(matched()); return Parser::IDENTIFIER;}
 
-[ \t\n]+ {/* Can ignore whitespace*/ /* /*std::cout << "WHITESPACE" << std::endl;return WHITESPACE;*/}
+[ \t]+ { /* Ignore hspace */}
+\n {lineCount++;}
 \( { /*std::cout << "LEFT_PAREN" << std::endl;*/return '(';}
 \) { /*std::cout << "RIGHT_PAREN" << std::endl;*/return ')';}
 \[ { /*std::cout << "LEFT_BOX" << std::endl;*/return '[';}
