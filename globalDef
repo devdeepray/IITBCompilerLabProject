@@ -1,3 +1,4 @@
+public:
 int _g_offset = 0;
 FunctionTable _g_funcTable;
 SymTab _g_globalSymTable;

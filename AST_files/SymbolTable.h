@@ -174,7 +174,7 @@ struct SymTab
 	{
 		cout << "Global Symbol Table" << endl;
 
-		std::map <std::string,FunctionTable> :: iterator it = strFuncMap.begin();
+		auto it = strFuncMap.begin();
 		printf("%-20s %-20s\n","Function_Name","Return_Type");
 		for( ; it != strFuncMap.end() ; it++)
 		{			
@@ -182,8 +182,8 @@ struct SymTab
 		}
 		cout << endl;
 
-		it = strFuncMap.begin();
-		for( ; it != strFuncMap.end() ; it++) (it->second).print();
+//		it = strFuncMap.begin();
+//		for( ; it != strFuncMap.end() ; it++) (it->second).print();
 	}
 };
 

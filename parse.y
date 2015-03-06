@@ -35,13 +35,13 @@
 translation_unit
 	: function_definition
 	{
-		//_g_globalSymTable.print();
+		// _g_globalSymTable.print();
 	} 
 	| translation_unit function_definition 
 	{
-		_g_globalSymTable.print();
+		// _g_globalSymTable.print();
 	}
-    ;
+  ;
 
 function_definition
 	: type_specifier 
