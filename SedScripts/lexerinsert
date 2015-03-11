@@ -1,0 +1,3 @@
+sed -i '/include/a #include "Parserbase.h"' Scanner.ih; 
+sed -i '/include "Scanner.h"/a #include "Util/catter.h"' Scanner.ih;
+sed -i '/VectorInt/a public: int lineCount = 1 ; private:' Scannerbase.h; #Add linecount capability to the lexer.

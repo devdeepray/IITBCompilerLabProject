@@ -9,7 +9,7 @@ lex.cc: lex.l Scanner.ih
 
 parse.cc: parse.y Parser.ih Parser.h Parserbase.h
 	bisonc++  parse.y; 
-	./SedScripts/parserinsert
+	./sedscript
 
 graph:
 	rm -f *graph

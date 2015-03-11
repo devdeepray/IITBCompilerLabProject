@@ -24,7 +24,7 @@ identifier [_a-zA-Z][_a-zA-Z0-9]*
 \"((\\[tn\"\\])+|[^\\\"\n]+)*\" { 
                                     cat::token( "STRING_LITERAL" ); 
                                     Parser::d_val__ = std::string(matched());
-                                    return Parser::TOK_STR_CONST;
+                                    return Parser::TOK_STRING_LITERAL;
                                 }
 
 void {cat::token( "VOID" ); return Parser::TOK_VOID_KW;}

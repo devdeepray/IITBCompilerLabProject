@@ -21,7 +21,7 @@ void indent_print(std::string s);
 class abstract_astnode
 {
 	public:
-	    
+	    bool validAST = true;
 		virtual void print () = 0;
 		void setValidAST();
 		void getValidAST();
@@ -32,7 +32,6 @@ class abstract_astnode
 		//virtual void setType(basic_types) = 0;
 	private:
 		typeExp astnode_type;
-		bool validAST = true;
 };
 
 

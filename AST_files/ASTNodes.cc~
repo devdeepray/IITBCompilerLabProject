@@ -16,7 +16,7 @@ std::string valTypeLookup[] = {"INT", "FLOAT", "STRING"};
 int tab_degree = 0;
 
 abstract_astnode::setValidAST(bool val) { validAST = val; }
-abstract_astnode::getValidAST() { return validAST; }
+abstract_astnode::isValidAST() { return validAST; }
 
 void indent_print(std::string s)
 {

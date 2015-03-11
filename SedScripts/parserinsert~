@@ -1,0 +1,20 @@
+sed -i '\|STYPE__     d_val__;| d 
+' Parserbase.h
+
+sed -i '\|typedef Meta__::SType STYPE__;| a \\tpublic: static STYPE__  d_val__;
+' Parserbase.h 
+
+sed -i '\|void Parser::print__()| i Meta__::SType ParserBase::d_val__;
+' parse.cc
+
+sed -i '/insert preincludes/a #include "./AST_files/ASTNodes.h"
+' Parserbase.h; 
+
+sed -i '/include "Parser.h"/a #include "./AST_files/ASTNodes.cc"
+' Parser.ih
+
+sed -i '/include "Scanner.h"/a #include "./AST_files/SymbolTable.h"
+' Parser.h 
+
+sed -i '/d_scanner;/r AST_Files/globalDef
+' Parser.h; 
