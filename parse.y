@@ -179,26 +179,26 @@ compound_statement  : '
 statement_list  : statement
 {
     ($$) = new Block($1);
-    // New list of statements  ($$).validAST = ($1).validAST;
+    // New list of statements  
+    ($$).validAST = ($1).validAST;
     // Valid if each stmt is valid
 }
 | statement_list statement
 {
     ((Block*)($1))->insert($2);
-    // Insert into orig list  ($$).validAST = ($1).validAST() && ($2).validAST();
-    // Update validity  ($$) = ($1);
+    // Insert into orig list  
+    ($$).validAST = ($1).validAST() && ($2).validAST();
+    // Update validity  
+    ($$) = ($1);
     // Set current list to longer list
 }
 ;
-statement  : '
-{
-    ' statement_list '
-}
-'
+statement  : '{' statement_list '}'
 {
     ($$) = ($2);
 }
-//a solution to the local decl problem  | selection_statement
+//a solution to the local decl problem  
+| selection_statement
 {
     ($$) = ($1);
 }
@@ -210,24 +210,26 @@ statement  : '
 {
     ($$) = ($1);
 }
-| TOK_RETURN_KW expression ';
-'
+| TOK_RETURN_KW expression ';'
 {
     ($$) = new Return( ($2) );
     if( ($2).validAST() &&   retTypeCompatible(_g_funcTable.getReturnType(), ($2).valType())
     {
-        // All ok  ($$).validAST() = true;
+        // All ok  
+	($$).validAST() = true;
     }
     else if(($2).validAST())
     {
-        // Return type doesnt match  ($$).validAST() = false;
+        // Return type doesnt match  
+        ($$).validAST() = false;
         _g_funcDefError = true;
         _g_semanticError = true;
         cat::parse::stmterror::rettypeerror(_g_lineCount);
     }
     else
     {
-        // Error already present in subexpr  ($$).validAST() = false;
+        // Error already present in subexpr  
+	($$).validAST() = false;
     }
 }
 ;

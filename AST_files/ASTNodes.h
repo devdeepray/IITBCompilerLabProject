@@ -179,7 +179,7 @@ class FunCall : public ExpAst
 		FunCall(ExpAst* _exp_ast);
 		void setName(string fname);
 		void print();
-		void getArgTypeList();
+		std::list<ValType> getArgTypeList();
 		void insert(ExpAst* e);
 };
 
