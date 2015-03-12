@@ -2,17 +2,17 @@
 #include <map>
 #include <vector>
 #include "../Util/catter.h"
-enum TypeInfo {DECL_P_INT, DECL_P_FLOAT, DECL_P_VOID, DECL_P_CHAR, DECL_ARRAY, DECL_POINTER};
 enum VarDeclType {GLOBAL, LOCAL, PARAM};
+enum ValType {TYPE_INT, TYPE_FLOAT, TYPE_VOID, TYPE_CHAR, TYPE_ARRAY, TYPE_POINTER};
 
 struct VarType
 {
 	bool primitive;
-	TypeInfo type;
+	ValType type;
 	int size; // Size is not initialized for primitives
-	VarType* nestedVarType;
+	VarType* nestedVarType; // If it is an array
 
-	void setPrimitive(TypeInfo _type) // TODO: set the size here
+	void setPrimitive(ValType _type) // TODO: set the size here
 	{
 		primitive = true;	
 		nestedVarType = NULL;
@@ -142,7 +142,7 @@ struct FunctionTable
 		for( int i  = 0 ; i < paramOrderVector.size() ; i++)
 		{	
 			if( _symbolName == paramOrderVector[i]) return true;
-		}
+		}EXP_VAL_INT
 		return false;
 	} 
 
@@ -188,7 +188,10 @@ struct SymTab
 //		it = strFuncMap.begin();
 //		for( ; it != strFuncMap.end() ; it++) (it->second).print();
 	}
-
+	FunctionTable getFuncTable(std::string fname)
+	{
+	   return strFuncMap[fname];
+	}
 	bool existsSymbol(string id)
 	{
 		return strFuncMap.find(id) != strFuncMap.end();

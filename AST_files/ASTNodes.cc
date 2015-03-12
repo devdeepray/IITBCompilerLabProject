@@ -4,11 +4,10 @@
 #include <vector>
 #include "ASTNodes.h"
 using namespace std;
-//enum typeExp {STMT, BLK, EXP, EMP_BLK, ASS, RET, IF, FOR, WHILE, FLOAT, BINARY_OP, UNARY_OP, FUNCALL, INT, STR, IDENTIFIER, INDEX};
+
 std::string typeLookup[] = {"STMT", "BLK", "EXP", "EMP_BLK", "ASS", "RET", "IF", "FOR", "WHILE", "FLOAT", "BINARY_OP", "UNARY_OP", "FUNCALL",
 	"INT", "STR", "IDENTIFIER", "INDEX"};
 
-//enum typeOp {OR, AND, EQ_OP, NE_OP, LT, GT, LE_OP, GE_OP, PLUS, MINUS, MULT, DIV, ASSIGN, UMINUS, NOT, PP};
 std::string opLookup[]  = {"OR", "AND", "EQ_OP", "NE_OP", "LT","GT", "LE_OP", "GE_OP", "PLUS", "MINUS", "MULT", "DIV", "ASSIGN", "UMINUS", "NOT", "PP"};
 
 std::string valTypeLookup[] = {"INT", "FLOAT", "STRING"};
@@ -248,6 +247,16 @@ void indent_print(std::string s)
 			}
 			cout << ")";
 			tab_degree--;
+		}
+		
+		std::list< valType > FunCall::getArgTypeList()
+		{
+		    std::list<valType> l;
+		    for(auto it = list_exp_ast.begin(); it != list_exp_ast.end(); ++it)
+		    {
+		      l.push_back(it->val_type);
+		    }
+		    return l;
 		}
 		
 		void FunCall::insert(ExpAst* e)

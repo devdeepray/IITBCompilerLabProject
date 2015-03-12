@@ -4,13 +4,13 @@
 #include <list>
 #include <vector>
 using namespace std;
-enum typeExp {STMT, BLK, EXP, EMP_BLK, ASS, RET, IF, FOR, WHILE, FLOAT, BINARY_OP, UNARY_OP, FUNCALL, INT, STR, IDENTIFIER, INDEX};
+enum TypeExp {STMT, BLK, EXP, EMP_BLK, ASS, RET, IF, FOR, WHILE, FLOAT, BINARY_OP, UNARY_OP, FUNCALL, INT, STR, IDENTIFIER, INDEX};
 extern std::string typeLookup[];
 
-enum typeOp {OR, AND, EQ_OP, NE_OP, LT, GT, LE_OP, GE_OP, PLUS, MINUS, MULT, DIV, ASSIGN, UMINUS, NOT, PP};
+enum TypeOp {OR, AND, EQ_OP, NE_OP, LT, GT, LE_OP, GE_OP, PLUS, MINUS, MULT, DIV, ASSIGN, UMINUS, NOT, PP};
 extern std::string opLookup[];
 
-enum valType {EXP_VAL_INT, EXP_VAL_FLOAT, EXP_VAL_STRING};
+enum ValType {TYPE_INT, TYPE_FLOAT, TYPE_VOID, TYPE_CHAR, TYPE_ARRAY, TYPE_POINTER};
 extern std::string valTypeLookup[];
 
 extern int tab_degree;
@@ -31,7 +31,7 @@ class abstract_astnode
 	protected:
 		//virtual void setType(basic_types) = 0;
 	private:
-		typeExp astnode_type;
+		TypeExp astnode_type;
 		bool validAST = true;
 };
 
@@ -39,27 +39,27 @@ class abstract_astnode
 class ExpAst : public abstract_astnode
 {
 	private:
-		typeExp astnode_type;
-		valType val_type;
+		TypeExp astnode_type;
+		ValType val_type;
 };
 
 
 class StmtAst : public abstract_astnode
 {
 	private:
-		typeExp astnode_type;
+		TypeExp astnode_type;
 };
 
 class ArrayRef : public ExpAst
 {
 	private:
-		typeExp astnode_type;
+		TypeExp astnode_type;
 };
 
 class Empty : public StmtAst
 {
 	private:
-		typeExp astnode_type;
+		TypeExp astnode_type;
 	public:
 		Empty();
 		void print();
@@ -69,7 +69,7 @@ class Empty : public StmtAst
 class Block : public StmtAst
 {
 	private:
-		typeExp astnode_type;
+		TypeExp astnode_type;
 		std::list<StmtAst*> clist;
 	public:
 		Block(StmtAst* _c);
@@ -80,7 +80,7 @@ class Block : public StmtAst
 class Ass : public StmtAst
 {
 	private:
-		typeExp astnode_type;
+		TypeExp astnode_type;
 		ExpAst* c1;
 		ExpAst* c2;
 	public:
@@ -91,7 +91,7 @@ class Ass : public StmtAst
 class Return : public StmtAst
 {
 	private:
-		typeExp astnode_type;
+		TypeExp astnode_type;
 		ExpAst* c1;
 	public:
 		Return(ExpAst* ret_exp);
@@ -102,7 +102,7 @@ class Return : public StmtAst
 class If : public StmtAst
 {
 	private:
-		typeExp astnode_type;
+		TypeExp astnode_type;
 		ExpAst* c1;
 		StmtAst* c2;
 		StmtAst* c3;
@@ -115,7 +115,7 @@ class If : public StmtAst
 class For : public StmtAst
 {
 	private:
-		typeExp astnode_type;
+		TypeExp astnode_type;
 		ExpAst* c1;
 		ExpAst* c2;
 		ExpAst* c3;
@@ -128,7 +128,7 @@ class For : public StmtAst
 class While : public StmtAst
 {
 	private:
-		typeExp astnode_type;
+		TypeExp astnode_type;
 		ExpAst* c1;
 		StmtAst* c2;
 	public:
@@ -139,7 +139,7 @@ class While : public StmtAst
 class FloatConst : public ExpAst
 {
 	private:
-		typeExp astnode_type;
+		TypeExp astnode_type;
 		float val;
 	public:
 		FloatConst(float _val);
@@ -149,7 +149,7 @@ class FloatConst : public ExpAst
 class BinaryOp : public ExpAst
 {
 	private:
-		typeExp astnode_type;
+		TypeExp astnode_type;
 		ExpAst* c1;
 		ExpAst* c2;
 		typeOp op;
@@ -161,7 +161,7 @@ class BinaryOp : public ExpAst
 class UnaryOp : public ExpAst
 {
 	private:
-		typeExp astnode_type;
+		TypeExp astnode_type;
 		ExpAst* c1;
 		typeOp op;
 	public:
@@ -172,14 +172,14 @@ class UnaryOp : public ExpAst
 class FunCall : public ExpAst
 {
 	private:
-		typeExp astnode_type;
+		TypeExp astnode_type;
 		list<ExpAst*> list_exp_ast;
 		string func_name;
 	public:
 		FunCall(ExpAst* _exp_ast);
 		void setName(string fname);
 		void print();
-		
+		void getArgTypeList();
 		void insert(ExpAst* e);
 };
 
@@ -187,7 +187,7 @@ class FunCall : public ExpAst
 class IntConst : public ExpAst
 {
 	private:
-		typeExp astnode_type;
+		TypeExp astnode_type;
 		int val;
 	public:
 		IntConst(int _val);
@@ -197,7 +197,7 @@ class IntConst : public ExpAst
 class StringConst : public ExpAst
 {
 	private:
-		typeExp astnode_type;
+		TypeExp astnode_type;
 		std::string val;
 	public:
 		StringConst(std::string _val);
@@ -208,7 +208,7 @@ class StringConst : public ExpAst
 class Identifier : public ArrayRef
 {
 	private:
-		typeExp astnode_type;
+		TypeExp astnode_type;
 		std::string val;
 	public:
 		Identifier(std::string _val);
@@ -218,7 +218,7 @@ class Identifier : public ArrayRef
 class Index : public ArrayRef
 {
 	private:
-		typeExp astnode_type;
+		TypeExp astnode_type;
 		ArrayRef* c1;
 		ExpAst* c2;
 	public:
