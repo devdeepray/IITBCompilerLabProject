@@ -31,27 +31,39 @@ translation_unit  : function_definition
 ;
 function_definition  : type_specifier
 {
-    /*   * This part of the code will be reached at the beginning  * of a function definition (after reducing the type specifier).   * Start a new function table at this point.   * Assume all errors except glob errors are false  */    _g_offset = 0;
+    /*  
+    * This part of the code will be reached at the beginning  
+    * of a function definition (after reducing the type specifier).   
+    * Start a new function table at this point.   
+    * Assume all errors except glob errors are false  */    
+    _g_offset = 0;
     _g_funcTable.reset();
     _g_funcTable.setReturnType(_g_typeSpec);
     _g_functionStartLno = _g_lineCount;
 }
 fun_declarator compound_statement
 {
-    /*  * After the function has been processed.   * _g_functionDefError will be true if there was an error.  */  if(!_g_functionDefError) // Function is correct
+    /*  
+    * After the function has been processed.   
+    * _g_functionDecError will be true if there was an error in declarator. 
+    * If compound statement has error, that is not fdec error
+    */  
+    
+    // Do these regardless of error
+    // Fix offsets 
+    _g_funcTable.correctOffsets();
+      
+    // Add to table
+    _g_globalSymTable.addFuncTable(_g_funcTable);
+        
+    if(_g_functionDecError)// Function declaration was bad
     {
-        _g_funcTable.correctOffsets();
-        // Fix offsets   _g_globalSymTable.addFuncTable(_g_funcTable);
-        // Add to table
+        cat::parse::fdecerror(_g_functionStartLno, _g_funcTable.getSignature());
     }
-    else // Function encountered error
-    {
-        cat::parse::fdeferror(_g_functionStartLno, _g_funcTable.getName());
-        _g_semanticError = true;
-        // Set semantic error
-    }
-    // Set function and declaration errors to false  _g_functionDefError = false;
-    _g_declaratorError = false;
+    
+    // Set function and declaration errors to false  
+    _g_semanticError = _g_semanticError || _g_functionDecError;
+    _g_functionDecError = false;
 }
 ;
 type_specifier  : TOK_VOID_KW
@@ -72,42 +84,39 @@ type_specifier  : TOK_VOID_KW
 ;
 fun_declarator  : TOK_IDENTIFIER '(' parameter_list ')'
 {
-    /* Function declarator.   * if parameter_list is wrong, _g_declaratorError is true  * Need to check for duplicate function signature.   * Wrong stuff means _g_functionDefError set to true  */    /*// Set the name, check for conflicting args.  if( _g_funcTable.existsSymbol($1) )
+    
+    if( _g_globalSymTable.existsSameSignature(_g_funcTable) )
     {
-        cat::parse::fdeferror::dupargid(_g_lineCount, $1);
-        _g_functionDefError = true;
-        _g_semanticError = true;
+        // Same signature exists   
+        cat::parse::fdecerror::funcdupsig(_g_lineCount, _g_funcTable.getSignature());
+        _g_functionDecError = true;
     }
-    // Apparently no error is given by gcc */    if( _g_globalSymTable.existsSameSignature(_g_funcTable) )
-    {
-        // Same signature exists   cat::parse::fdeferror::funcdupsig(_g_lineCount, _g_funcTable.getSignature());
-        _g_functionDefError = true;
-        _g_semanticError = true;
-    }
-    // On success or failure, doesnt hurt to set the name  _g_funcTable.setName($1);
-    _g_offset += 4;
-    // Address bytes of machine for ebp
+    
+    // On success or failure, doesnt hurt to set the name  
+    _g_funcTable.setName($1);
+    _g_offset += 4; // Address bytes of machine for ebp
 }
 | TOK_IDENTIFIER '(' ')'
 {
     if( _g_globalSymTable.existsSameSignature(_g_funcTable) )
     {
-        cat::parse::fdeferror(_g_lineCount, _g_funcTable.getSignature());
-        _g_functionDefError = true;
-        _g_semanticError = true;
+        cat::parse::fdecerror(_g_lineCount, _g_funcTable.getSignature());
+        _g_functionDecError = true;
     }
+    
     _g_funcTable.setName($1);
-    _g_offset += 4;
-    // Address bytes of machine for ebp
+    _g_offset += 4; // Address bytes of machine for ebp
 }
 ;
-parameter_list  : parameter_declaration  | parameter_list ',' parameter_declaration   ;
+parameter_list  : parameter_declaration  
+| parameter_list ',' parameter_declaration   
+;
 parameter_declaration  : type_specifier declarator
 {
-    if(!_g_declaratorError)
-    {
+    // Whether decl wrong or right semantically, store it
         _g_curVarType->setPrimitive(_g_typeSpec);
-        // Innermost type of non primitive     VarDeclaration v;
+        // Innermost type of non primitive     
+        VarDeclaration v;
         v.setDeclType(PARAM);
         v.setName(_g_currentId);
         v.setSize(_g_size);
@@ -115,89 +124,72 @@ parameter_declaration  : type_specifier declarator
         v.setVarType(_g_varType);
         _g_funcTable.addParam(v);
         _g_offset += _g_size;
-    }
-    _g_declaratorError = false;
+	  
+	_g_functionDecError = _g_functionDecError || _g_declarationError;  
+	_g_declarationError = false; // Reset declaration error for next one
 }
 ;
 declarator  : TOK_IDENTIFIER
 {
     if(_g_funcTable.existsSymbol($1))
     {
-        _g_declaratorError = true;
-        _g_funcDefError = true;
-        _g_semanticError = true;
+        _g_declarationError = true;
         cat::parser::declatorerror::dupid(_g_lineCount, $1);
     }
-    else
-    {
-        _g_currentId = $1;
-        _g_varType = new VarType();
-        _g_varType   _g_curVarType = _g_varType;
-        _g_size = _g_width;
-    }
+    
+    
+    _g_currentId = $1;
+    _g_varType = new VarType();
+    _g_varType   _g_curVarType = _g_varType;
+    _g_size = _g_width;
+  
 }
 | declarator '[' TOK_INT_CONST ']' // Changed constant expr to INT_CONST
 {
     if(std::stoi($3) == 0)
     {
-        _g_declaratorError = true;
+        _g_declarationError = true;
         cat::parser::declatorerror::emptyarray(_g_lineCount, _g_currentId);
     }
-    if(!_g_declaratorError)
-    {
-        _g_curVarType->setArray(stoi($3));
-        _g_curVarType->setNestedVarType(new VarType());
-        _g_curVarType = _g_curVarType->getNestedVarType();
-        _g_size *= (stoi($3));
-    }
+    _g_curVarType->setArray(stoi($3));
+    _g_curVarType->setNestedVarType(new VarType());
+    _g_curVarType = _g_curVarType->getNestedVarType();
+    _g_size *= (stoi($3));
 }
 ;
-constant_expression   : TOK_INT_CONST  | TOK_FP_CONST   ;
-compound_statement  : '
-{
-    ' '
-}
-'   | '
-{
-    ' statement_list '
-}
-'
+constant_expression   : TOK_INT_CONST  
+| TOK_FP_CONST   
+;
+compound_statement  : '{' '}'   
+|'{' statement_list '}'
 {
     //($2)->print();
     //Uncomment to print the ADT  //std::cout <<'n';
+    _g_semanticError = _g_semanticError || ($2).validAST();
 }
-| '
-{
-    ' declaration_list statement_list '
-}
-'
+| '{' declaration_list statement_list '}'
 {
     //($3)->print();
     //Uncomment to print the ADT   //std::cout << 'n';
+    _g_semanticError = _g_semanticError || ($2).validAST();
 }
 ;
 statement_list  : statement
 {
-    ($$) = new Block($1);
-    // New list of statements  
-    ($$).validAST = ($1).validAST;
-    // Valid if each stmt is valid
+    ($$) = new Block($1); // New list of statements  
+    ($$).validAST = ($1).validAST; // Valid if each stmt is valid
 }
 | statement_list statement
 {
-    ((Block*)($1))->insert($2);
-    // Insert into orig list  
-    ($$).validAST = ($1).validAST() && ($2).validAST();
-    // Update validity  
-    ($$) = ($1);
-    // Set current list to longer list
+    ((Block*)($1))->insert($2); // Insert into orig list  
+    ($$).validAST = ($1).validAST() && ($2).validAST(); // Update validity  
+    ($$) = ($1); // Set current list to longer list
 }
 ;
 statement  : '{' statement_list '}'
 {
     ($$) = ($2);
 }
-//a solution to the local decl problem  
 | selection_statement
 {
     ($$) = ($1);
@@ -213,50 +205,33 @@ statement  : '{' statement_list '}'
 | TOK_RETURN_KW expression ';'
 {
     ($$) = new Return( ($2) );
-    if( ($2).validAST() &&   retTypeCompatible(_g_funcTable.getReturnType(), ($2).valType())
+    
+    bool retComp = retTypeCompatible(_g_funcTable.getReturnType(), ($2).valType());
+    ($$).validAST() = ($2).validAST() && retComp;
+	
+    if(!retComp)
     {
-        // All ok  
-	($$).validAST() = true;
-    }
-    else if(($2).validAST())
-    {
-        // Return type doesnt match  
-        ($$).validAST() = false;
-        _g_funcDefError = true;
-        _g_semanticError = true;
         cat::parse::stmterror::rettypeerror(_g_lineCount);
-    }
-    else
-    {
-        // Error already present in subexpr  
-	($$).validAST() = false;
     }
 }
 ;
-assignment_statement  : ';
-'
+assignment_statement  : ';'
 {
     $$ = new Empty();
 }
-| l_expression '=' expression ';
-'
+| l_expression '=' expression ';'
 {
     $$ = new Ass($1, $3);
-    if( ($1).validAST() && ($2).validAST() &&   assTypeCompatible(($1).valType(), ($3).valType()))
+    
+    bool comp = assTypeCompatible(($1).valType(), ($3).valType());
+    
+    ($$).validAST() = ($1).validAST() && ($3).validAST() && comp;
+    ($$).valType() = ($1).valType();
+    
+    if(!comp)
     {
-        // All ok  ($$).validAST() = true;
-        ($$).valType() = ($1).valType();
-    }
-    else if(($1).validAST() && ($2).validAST())
-    {
-        // Wrong assignment type mismatch   ($$).setValidAST(false);
-        _g_funcDefError = true;
-        _g_semanticError = true;
+        // Wrong assignment type mismatch   
         cat::parse::stmterror::incompasstype(_g_lineCount, ($1).valType(), ($3).valType());
-    }
-    else
-    {
-        ($$).setValidAST(false);
     }
 }
 ;
@@ -267,21 +242,16 @@ expression  : logical_and_expression
 | expression TOK_LOR_OP logical_and_expression
 {
     $$ = new BinaryOp($1, $3, OR);
-    if( ($1).validAST() && ($2).validAST() &&   binOpTypeCompatible(($1).valType(), ($3).valType(), OR));
+    
+    bool comp = binOpTypeCompatible(($1).valType(), ($3).valType(), OP_OR);
+    
+    ($$).validAST() = ($1).validAST() && ($3).validAST() && comp;
+    ($$).valType() = TYPE_INT;
+    
+    if(!comp)
     {
-        // All ok  ($$).validAST() = true;
-        ($$).valType() = TYPE_INT;
-    }
-    else if(($1).validAST() && ($2).validAST())
-    {
-        // Wrong binOp type mismatch   ($$).validAST() = false;
-        _g_funcDefError = true;
-        _g_semanticError = true;
-        cat::parse::stmterror::incompboptype(_g_lineCount, ($1).valType(), ($3).valType(), OR);
-    }
-    else
-    {
-        ($$).validAST() = false;
+        // Wrong type mismatch   
+        cat::parse::stmterror::incompboptype(_g_lineCount, ($1).valType(), ($3).valType(), OP_OR);
     }
 }
 ;
@@ -291,22 +261,17 @@ logical_and_expression  : equality_expression
 }
 | logical_and_expression TOK_LAND_OP equality_expression
 {
-    $$ = new BinaryOp($1, $3, AND);
-    if( ($1).validAST() && ($2).validAST() &&   binOpTypeCompatible(($1).valType(), ($3).valType(), AND));
+    $$ = new BinaryOp($1, $3, OP_AND);
+    
+    bool comp = binOpTypeCompatible(($1).valType(), ($3).valType(), OP_AND);
+    
+    ($$).validAST() = ($1).validAST() && ($3).validAST() && comp;
+    ($$).valType() = TYPE_INT;
+    
+    if(!comp)
     {
-        // All ok  ($$).validAST() = true;
-        ($$).valType() = TYPE_INT;
-    }
-    else if(($1).validAST() && ($2).validAST())
-    {
-        // Wrong binOp type mismatch   ($$).validAST() = false;
-        _g_funcDefError = true;
-        _g_semanticError = true;
-        cat::parse::stmterror::incompboptype(_g_lineCount, ($1).valType(), ($3).valType(), AND);
-    }
-    else
-    {
-        ($$).validAST() = false;
+        // Wrong  type mismatch   
+        cat::parse::stmterror::incompboptype(_g_lineCount, ($1).valType(), ($3).valType(), OP_AND);
     }
 }
 ;
@@ -316,42 +281,32 @@ equality_expression  : relational_expression
 }
 | equality_expression TOK_EQ_OP relational_expression
 {
-    $$ = new BinaryOp($1, $3, EQ_OP);
-    if( ($1).validAST() && ($2).validAST() &&   binOpTypeCompatible(($1).valType(), ($3).valType(), EQ_OP));
+   $$ = new BinaryOp($1, $3, OP_EQ);
+    
+    bool comp = binOpTypeCompatible(($1).valType(), ($3).valType(), OP_EQ);
+    
+    ($$).validAST() = ($1).validAST() && ($3).validAST() && comp;
+    ($$).valType() = TYPE_INT;
+    
+    if(!comp)
     {
-        // All ok  ($$).validAST() = true;
-        ($$).valType() = TYPE_INT;
-    }
-    else if(($1).validAST() && ($2).validAST())
-    {
-        // Wrong binOp type mismatch   ($$).validAST() = false;
-        _g_funcDefError = true;
-        _g_semanticError = true;
-        cat::parse::stmterror::incompboptype(_g_lineCount, ($1).valType(), ($3).valType(), EQ_OP);
-    }
-    else
-    {
-        ($$).validAST() = false;
+        // Wrong type mismatch   
+        cat::parse::stmterror::incompboptype(_g_lineCount, ($1).valType(), ($3).valType(), OP_EQ);
     }
 }
 | equality_expression TOK_NEQ_OP relational_expression
 {
-    $$ = new BinaryOp($1, $3, NE_OP);
-    if( ($1).validAST() && ($2).validAST() &&   binOpTypeCompatible(($1).valType(), ($3).valType(), NE_OP));
+    $$ = new BinaryOp($1, $3, OP_NE);
+    
+    bool comp = binOpTypeCompatible(($1).valType(), ($3).valType(), OP_NE);
+    
+    ($$).validAST() = ($1).validAST() && ($3).validAST() && comp;
+    ($$).valType() = TYPE_INT;
+    
+    if(!comp)
     {
-        // All ok  ($$).validAST() = true;
-        ($$).valType() = TYPE_INT;
-    }
-    else if(($1).validAST() && ($2).validAST())
-    {
-        // Wrong binOp type mismatch   ($$).validAST() = false;
-        _g_funcDefError = true;
-        _g_semanticError = true;
-        cat::parse::stmterror::incompboptype(_g_lineCount, ($1).valType(), ($3).valType(), NE_OP);
-    }
-    else
-    {
-        ($$).validAST() = false;
+        // Wrong type mismatch   
+        cat::parse::stmterror::incompboptype(_g_lineCount, ($1).valType(), ($3).valType(), OP_NE);
     }
 }
 ;
@@ -361,82 +316,62 @@ relational_expression  : additive_expression
 }
 | relational_expression '<' additive_expression
 {
-    $$ = new BinaryOp($1, $3, LT);
-    if( ($1).validAST() && ($2).validAST() &&   binOpTypeCompatible(($1).valType(), ($3).valType(), LT));
+    $$ = new BinaryOp($1, $3, OP_LT);
+    
+    bool comp = binOpTypeCompatible(($1).valType(), ($3).valType(), OP_LT);
+    
+    ($$).validAST() = ($1).validAST() && ($3).validAST() && comp;
+    ($$).valType() = TYPE_INT;
+    
+    if(!comp)
     {
-        // All ok  ($$).validAST() = true;
-        ($$).valType() = TYPE_INT;
-    }
-    else if(($1).validAST() && ($2).validAST())
-    {
-        // Wrong binOp type mismatch   ($$).validAST() = false;
-        _g_funcDefError = true;
-        _g_semanticError = true;
-        cat::parse::stmterror::incompboptype(_g_lineCount, ($1).valType(), ($3).valType(), LT);
-    }
-    else
-    {
-        ($$).validAST() = false;
+        // Wrong type mismatch   
+        cat::parse::stmterror::incompboptype(_g_lineCount, ($1).valType(), ($3).valType(), OP_LT);
     }
 }
 | relational_expression '>' additive_expression
 {
-    $$ = new BinaryOp($1, $3, GT);
-    if( ($1).validAST() && ($2).validAST() &&   binOpTypeCompatible(($1).valType(), ($3).valType(), GT));
+    $$ = new BinaryOp($1, $3, OP_GT);
+    
+    bool comp = binOpTypeCompatible(($1).valType(), ($3).valType(), OP_GT);
+    
+    ($$).validAST() = ($1).validAST() && ($3).validAST() && comp;
+    ($$).valType() = TYPE_INT;
+    
+    if(!comp)
     {
-        // All ok  ($$).validAST() = true;
-        ($$).valType() = TYPE_INT;
-    }
-    else if(($1).validAST() && ($2).validAST())
-    {
-        // Wrong binOp type mismatch   ($$).validAST() = false;
-        _g_funcDefError = true;
-        _g_semanticError = true;
-        cat::parse::stmterror::incompboptype(_g_lineCount, ($1).valType(), ($3).valType(), GT);
-    }
-    else
-    {
-        ($$).validAST() = false;
+        // Wrong type mismatch   
+        cat::parse::stmterror::incompboptype(_g_lineCount, ($1).valType(), ($3).valType(), OP_GT);
     }
 }
 | relational_expression TOK_LEQ_OP additive_expression
 {
-    $$ = new BinaryOp($1, $3, LE_OP);
-    if( ($1).validAST() && ($2).validAST() &&   binOpTypeCompatible(($1).valType(), ($3).valType(), LE_OP));
+    $$ = new BinaryOp($1, $3, OP_LE);
+    
+    bool comp = binOpTypeCompatible(($1).valType(), ($3).valType(), OP_LE);
+    
+    ($$).validAST() = ($1).validAST() && ($3).validAST() && comp;
+    ($$).valType() = TYPE_INT;
+    
+    if(!comp)
     {
-        // All ok  ($$).validAST() = true;
-        ($$).valType() = TYPE_INT;
-    }
-    else if(($1).validAST() && ($2).validAST())
-    {
-        // Wrong binOp type mismatch   ($$).validAST() = false;
-        _g_funcDefError = true;
-        _g_semanticError = true;
-        cat::parse::stmterror::incompboptype(_g_lineCount, ($1).valType(), ($3).valType(), LE_OP);
-    }
-    else
-    {
-        ($$).validAST() = false;
+        // Wrong assignment type mismatch   
+        cat::parse::stmterror::incompboptype(_g_lineCount, ($1).valType(), ($3).valType(), OP_LE);
     }
 }
 | relational_expression TOK_GEQ_OP additive_expression
 {
-    $$ = new BinaryOp($1, $3, GE_OP);
-    if( ($1).validAST() && ($2).validAST() &&   binOpTypeCompatible(($1).valType(), ($3).valType(), GE_OP));
+    $$ = new BinaryOp($1, $3, OP_GE);
+    
+    bool comp = binOpTypeCompatible(($1).valType(), ($3).valType(), OP_GE);
+    
+    ($$).validAST() = ($1).validAST() && ($3).validAST() && comp;
+    ($$).valType() = TYPE_INT;
+    
+    if(!comp)
     {
-        // All ok  ($$).validAST() = true;
-        ($$).valType() = TYPE_INT;
-    }
-    else if(($1).validAST() && ($2).validAST())
-    {
-        // Wrong binOp type mismatch   ($$).validAST() = false;
-        _g_funcDefError = true;
-        _g_semanticError = true;
-        cat::parse::stmterror::incompboptype(_g_lineCount, ($1).valType(), ($3).valType(), GE_OP);
-    }
-    else
-    {
-        ($$).validAST() = false;
+        // Wrong assignment type mismatch   
+        cat::parse::stmterror::incompboptype(_g_lineCount, ($1).valType(), ($3).valType(), OP_GE);
     }
 }
 ;
@@ -446,56 +381,34 @@ additive_expression   : multiplicative_expression
 }
 | additive_expression '+' multiplicative_expression
 {
-    $$ = new BinaryOp($1, $3, PLUS);
-    if( ($1).validAST() && ($2).validAST() &&   binOpTypeCompatible(($1).valType(), ($3).valType(), PLUS));
+
+    $$ = new BinaryOp($1, $3, OP_PLUS);
+    
+    bool comp = binOpTypeCompatible(($1).valType(), ($3).valType(), OP_PLUS);
+    
+    ($$).validAST() = ($1).validAST() && ($3).validAST() && comp;
+    ($$).valType() = getDominantType( ($1).valType(), ($3).valType()); 
+    
+    if(!comp)
     {
-        // All ok  ($$).validAST() = true;
-        if(($1).valType() == TYPE_FLOAT || ($3).valType() == TYPE_FLOAT)
-        {
-            ($$).valType() = TYPE_FLOAT;
-        }
-        else
-        {
-            ($$).valType() = TYPE_INT;
-        }
+        // Wrong assignment type mismatch   
+        cat::parse::stmterror::incompboptype(_g_lineCount, ($1).valType(), ($3).valType(), OP_PLUS);
     }
-    else if(($1).validAST() && ($2).validAST())
-    {
-        // Wrong binOp type mismatch   ($$).validAST() = false;
-        _g_funcDefError = true;
-        _g_semanticError = true;
-        cat::parse::stmterror::incompboptype(_g_lineCount, ($1).valType(), ($3).valType(), PLUS);
-    }
-    else
-    {
-        ($$).validAST() = false;
-    }
+    
 }
 | additive_expression '-' multiplicative_expression
 {
-    $$ = new BinaryOp($1, $3, MINUS);
-    if( ($1).validAST() && ($2).validAST() &&   binOpTypeCompatible(($1).valType(), ($3).valType(), MINUS));
+    $$ = new BinaryOp($1, $3, OP_MINUS);
+    
+    bool comp = binOpTypeCompatible(($1).valType(), ($3).valType(), OP_MINUS);
+    
+    ($$).validAST() = ($1).validAST() && ($3).validAST() && comp;
+    ($$).valType() = getDominantType( ($1).valType(), ($3).valType()); 
+    
+    if(!comp)
     {
-        // All ok  ($$).validAST() = true;
-        if(($1).valType() == TYPE_FLOAT || ($3).valType() == TYPE_FLOAT)
-        {
-            ($$).valType() = TYPE_FLOAT;
-        }
-        else
-        {
-            ($$).valType() = TYPE_INT;
-        }
-    }
-    else if(($1).validAST() && ($2).validAST())
-    {
-        // Wrong binOp type mismatch   ($$).validAST() = false;
-        _g_funcDefError = true;
-        _g_semanticError = true;
-        cat::parse::stmterror::incompboptype(_g_lineCount, ($1).valType(), ($3).valType(), MINUS);
-    }
-    else
-    {
-        ($$).validAST() = false;
+        // Wrong assignment type mismatch   
+        cat::parse::stmterror::incompboptype(_g_lineCount, ($1).valType(), ($3).valType(), OP_MINUS);
     }
 }
 ;
@@ -505,56 +418,32 @@ multiplicative_expression  : unary_expression
 }
 | multiplicative_expression '*' unary_expression
 {
-    $$ = new BinaryOp($1, $3, MULT);
-    if( ($1).validAST() && ($2).validAST() &&   binOpTypeCompatible(($1).valType(), ($3).valType(), MULT));
+    $$ = new BinaryOp($1, $3, OP_MULT);
+    
+    bool comp = binOpTypeCompatible(($1).valType(), ($3).valType(), OP_MULT);
+    
+    ($$).validAST() = ($1).validAST() && ($3).validAST() && comp;
+    ($$).valType() = getDominantType( ($1).valType(), ($3).valType()); 
+    
+    if(!comp)
     {
-        // All ok  ($$).validAST() = true;
-        if(($1).valType() == TYPE_FLOAT || ($3).valType() == TYPE_FLOAT)
-        {
-            ($$).valType() = TYPE_FLOAT;
-        }
-        else
-        {
-            ($$).valType() = TYPE_INT;
-        }
-    }
-    else if(($1).validAST() && ($2).validAST())
-    {
-        // Wrong binOp type mismatch   ($$).validAST() = false;
-        _g_funcDefError = true;
-        _g_semanticError = true;
-        cat::parse::stmterror::incompboptype(_g_lineCount, ($1).valType(), ($3).valType(), MULT);
-    }
-    else
-    {
-        ($$).validAST() = false;
+        // Wrong assignment type mismatch   
+        cat::parse::stmterror::incompboptype(_g_lineCount, ($1).valType(), ($3).valType(), OP_MULT);
     }
 }
 | multiplicative_expression '/' unary_expression
 {
-    $$ = new BinaryOp($1, $3, DIV);
-    if( ($1).validAST() && ($2).validAST() &&   binOpTypeCompatible(($1).valType(), ($3).valType(), DIV));
+    $$ = new BinaryOp($1, $3, OP_DIV);
+    
+    bool comp = binOpTypeCompatible(($1).valType(), ($3).valType(), OP_DIV);
+    
+    ($$).validAST() = ($1).validAST() && ($3).validAST() && comp;
+    ($$).valType() = getDominantType( ($1).valType(), ($3).valType()); 
+    
+    if(!comp)
     {
-        // All ok  ($$).validAST() = true;
-        if(($1).valType() == TYPE_FLOAT || ($3).valType() == TYPE_FLOAT)
-        {
-            ($$).valType() = TYPE_FLOAT;
-        }
-        else
-        {
-            ($$).valType() = TYPE_INT;
-        }
-    }
-    else if(($1).validAST() && ($2).validAST())
-    {
-        // Wrong binOp type mismatch   ($$).validAST() = false;
-        _g_funcDefError = true;
-        _g_semanticError = true;
-        cat::parse::stmterror::incompboptype(_g_lineCount, ($1).valType(), ($3).valType(), DIV);
-    }
-    else
-    {
-        ($$).validAST() = false;
+        // Wrong assignment type mismatch   
+        cat::parse::stmterror::incompboptype(_g_lineCount, ($1).valType(), ($3).valType(), OP_DIV);
     }
 }
 ;
@@ -564,23 +453,20 @@ unary_expression  : postfix_expression
 }
 | unary_operator postfix_expression
 {
+
     $$ = new UnaryOp($1, $2);
-    if( ($2).validAST() &&   validUnaryOp( ($1) , ($2).valType()));
+    
+    bool comp = unaryOpCompatible($1, ($2).valType());
+    
+    ($$).validAST() = ($2).validAST() && comp;
+    ($$).valType() = ($2).valType(); 
+    
+    if(!comp)
     {
-        // All ok  ($$).validAST() = true;
-        ($$).valType() = ($2).valType();
-    }
-    else if(($2).validAST())
-    {
-        // Wrong binOp type mismatch   ($$).validAST() = false;
-        _g_funcDefError = true;
-        _g_semanticError = true;
+        // Wrong assignment type mismatch   
         cat::parse::stmterror::invalidunop(_g_lineCount, $1, ($2).valType());
     }
-    else
-    {
-        ($$).validAST() = false;
-    }
+    
 }
 ;
 postfix_expression  : primary_expression
@@ -590,24 +476,28 @@ postfix_expression  : primary_expression
 | TOK_IDENTIFIER '(' ')'
 {
     $$ = new FunCall(nullptr);
-    // No args fun call  ((FunCall*)($$))->setName($1);
+    // No args fun call  
+    ((FunCall*)($$))->setName($1);
+    ($$).valType() = TYPE_WEAK;
+    
     if(_g_globalSymTable.existsFuncDefinition($1, list<ValType>())
     {
-        // Valid function call  ($$).validAST() = true;
+        // Valid function call  
+        ($$).validAST() = true;
         ($$).valType() = _g_globalSymTable.getFuncTable($1, list<ValType>()).getReturnType();
     }
     else
     {
-        _g_funcDefError = true;
-        _g_semanticError = true;
         ($$).validAST() = false;
-        cat::parse::fdeferror::badfcall(_g_lineCount, $1, list<ValType>());
+        cat::parse::fdecerror::badfcall(_g_lineCount, $1, list<ValType>());
     }
 }
 | TOK_IDENTIFIER '(' expression_list ')'
 {
     $$ = $3;
     ((FunCall*)($3))->setName($1);
+    ($$).valType() = TYPE_WEAK;
+    
     if(($3).validAST() && _g_globalSymTable.existsFuncDefinition($1, ($3).getArgTypeList()))
     {
         ($$).validAST() = true;
@@ -615,35 +505,27 @@ postfix_expression  : primary_expression
     }
     else if(($3).validAST())
     {
-        _g_funcDefError = true;
-        _g_semanticError = true;
         ($$).validAST() = false;
-        cat::parse::fdeferror::badfcall(_g_lineCount, $1, ($3).getArgTypeList());
-    }
-    else
-    {
-        ($$).validAST() = false;
+        cat::parse::fdecerror::badfcall(_g_lineCount, $1, ($3).getArgTypeList());
     }
 }
 | l_expression TOK_INCR_OP
 {
-    $$ = new UnaryOp($1, PP);
-    if(($1).validAST() && (($$).valType() == TYPE_INT || ($$).valType() == TYPE_FLOAT))
+
+
+    $$ = new UnaryOp($1, OP_PP);
+    
+    bool comp = unaryOpCompatible(OP_PP, ($1).valType());
+    
+    ($$).validAST() = ($1).validAST() && comp;
+    ($$).valType() = ($1).valType(); 
+    
+    if(!comp)
     {
-        ($$).validAST() = true;
-        ($$).valType() = l_expression.valType();
+        // Wrong assignment type mismatch   
+        cat::parse::stmterror::invalidunop(_g_lineCount, OP_PP, ($1).valType());
     }
-    else if(($1).validAST())
-    {
-        _g_funcDefError = true;
-        _g_semanticError = true;
-        ($$).validAST() = false;
-        cat::parse::fdeferror::def(_g_lineCount,
-    }
-    else
-    {
-        ($$).validAST() = false;
-    }
+    
 }
 ;
 primary_expression  : l_expression
@@ -652,7 +534,18 @@ primary_expression  : l_expression
 }
 | l_expression '=' expression // added this production
 {
-    $$ = new BinaryOp($1, $3, ASSIGN);
+    $$ = new Ass($1, $3);
+    
+    bool comp = assTypeCompatible(($1).valType(), ($3).valType());
+    
+    ($$).validAST() = ($1).validAST() && ($3).validAST() && comp;
+    ($$).valType() = ($1).valType();
+    
+    if(!comp)
+    {
+        // Wrong assignment type mismatch   
+        cat::parse::stmterror::incompasstype(_g_lineCount, ($1).valType(), ($3).valType());
+    }
 }
 | TOK_INT_CONST
 {
@@ -674,10 +567,50 @@ primary_expression  : l_expression
 l_expression  : TOK_IDENTIFIER
 {
     $$ = new Identifier($1);
+    // Check for this symbol in the local symbol table
+    ($$).valType = TYPE_WEAK;
+    
+    if(_g_funcTable.existsSymbol($1))
+    {
+      ($$).validAST() = true;
+      
+      if(_g_funcTable.getVar($1).varType->primitive)
+      {
+	($$).valType() = (_g_funcTable.getVar($1).varType())->type;
+      }
+      else
+      {
+	_g_curVarType = _g_funcTable.getVar($1).varType();
+      }
+    }
+    else
+    {
+      ($$).validAST() = false;
+      cat::parser::stmterror::symbolnotfound(_g_lineCount, $1, _g_funcTable);
+    }
 }
 | l_expression '[' expression ']'
 {
-    $$ = new Index($1, $3);
+    
+    if(($1).validAST())
+    {
+      $$ = new Index($1, $3);
+      bool canIndex = !(_g_curVarType->primitive);
+      ($$).validAST() = ($2).validAST() && canIndex;
+      
+      if(!canIndex)
+      {
+	cat::parser::stmterror::arrayreferror(_g_lineCount, _g_currentId);
+      }
+      else
+      {
+	  _g_curVarType = _g_curVarType->getNestedVarType();
+      }
+    }
+    else
+    {
+      ($$) = ($1);
+    }
 }
 ;
 expression_list  : expression
@@ -715,9 +648,12 @@ iteration_statement  : TOK_WHILE_KW '(' expression ')' statement
     ($$) = new For( ($3), ($5), ($7), ($9));
 }
 ;
-declaration_list  : declaration    | declaration_list declaration  ;
-declaration  : type_specifier declarator_list';
-'  ;
+declaration_list  : declaration    
+| declaration_list declaration  
+;
+
+declaration  : type_specifier declarator_list';'  ;
+
 declarator_list  : declarator
 {
     _g_curVarType->setPrimitive(_g_typeSpec);
@@ -729,6 +665,10 @@ declarator_list  : declarator
     v.setVarType(_g_varType);
     _g_funcTable.addVar(v);
     _g_offset += _g_size;
+    
+    
+    _g_varDecError = _g_varDecError || _g_declarationError;
+    _g_declarationError = false;
 }
 | declarator_list ',' declarator
 {
@@ -741,5 +681,8 @@ declarator_list  : declarator
     v.setVarType(_g_varType);
     _g_funcTable.addVar(v);
     _g_offset += _g_size;
+    
+    _g_varDecError = _g_varDecError || _g_declarationError;
+    _g_declarationError = false;
 }
 ;
