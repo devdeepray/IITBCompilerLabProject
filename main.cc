@@ -1,4 +1,5 @@
 #include <iostream>
+#include <set>
 #include "Scanner.h"
 #include "Parser.h"
 using namespace std;
@@ -19,10 +20,20 @@ int main (int argc, char** arg)
 	}
 	else
 	{	
-		for(int i = 1; i < argc ; ++i)
+	      
+	  std::set<std::string> fnames;
+	  for(int i = 1;  i < argc; ++i)
+	    fnames.insert(std::string(arg[i]));
+	  
+	  for(auto it = parser._g_globalSymTable.strFuncMap.begin(); 
+	      it != parser._g_globalSymTable.strFuncMap.end(); 
+	      ++it)
+	      {
+		if(fnames.find(it->first.fname) != fnames.end())
 		{
-			parser._g_globalSymTable.strFuncMap[arg[i]].print();
+		  it->second.print();
 		}
+	      }
 	}
 
 }

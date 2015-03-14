@@ -1,6 +1,9 @@
 .PHONY: clean
-all:    lex.cc parse.cc main.cc Scanner.h Scannerbase.h Scanner.ih Parser.h Parserbase.h Parser.ih
-	g++   --std=c++0x lex.cc parse.cc main.cc;
+all: clean
+	make build;
+
+build:	lex.cc parse.cc main.cc Scanner.h Scannerbase.h Scanner.ih Parser.h Parserbase.h Parser.ih
+	g++ -std=c++0x lex.cc parse.cc main.cc AST_files/*.cc;
 	
 
 lex.cc: lex.l Scanner.ih 

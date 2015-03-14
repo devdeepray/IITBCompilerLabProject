@@ -10,10 +10,18 @@ sed -i '\|void Parser::print__()| i Meta__::SType ParserBase::d_val__;
 sed -i '/insert preincludes/a #include "./AST_files/ASTNodes.h"
 ' Parserbase.h; 
 
-sed -i '/include "Parser.h"/a #include "./AST_files/ASTNodes.cc"
+sed -i '/include "Parser.h"/a #include "./AST_files/ASTNodes.h"
 ' Parser.ih
 
+sed -i '/include "Scanner.h"/a #include "./AST_files/ASTNodes.h"
+' Parser.h
+
+
+
 sed -i '/include "Scanner.h"/a #include "./AST_files/SymbolTable.h"
+' Parser.h 
+
+sed -i '/include "Scanner.h"/a #include "./AST_files/TypeChecks.h"
 ' Parser.h 
 
 sed -i '/d_scanner;/r AST_files/globalDef

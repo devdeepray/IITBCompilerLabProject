@@ -3,12 +3,13 @@
 #include <list>
 #include <vector>
 #include "ASTNodes.h"
+#include "../Util/catter.h"
 using namespace std;
 
 int tab_degree = 0;
 
-bool abstract_astnode::validAST() { return validAST; }
-bool& abstract_astnode::validAST() { return validAST; }
+bool const& abstract_astnode::validAST() const { return valid; }
+bool& abstract_astnode::validAST()  { return valid; }
 
 
 // For printing with indentation
@@ -19,6 +20,10 @@ void indent_print(std::string s)
   std::cout << s;
 }
 
+ValType& ExpAst::valType()
+{
+  return val_type;
+}
 
 // Empty AST
 Empty::Empty()
@@ -191,7 +196,7 @@ void FloatConst::print()
 }
 
 
-BinaryOp::BinaryOp(ExpAst* left_exp , ExpAst* right_exp, typeOp _op)
+BinaryOp::BinaryOp(ExpAst* left_exp , ExpAst* right_exp, OpType _op)
 {
   astnode_type = AST_BINOP;
   op= _op;
@@ -202,7 +207,7 @@ void BinaryOp::print()
 {
   tab_degree++;
   indent_print("(");
-  cout << opLookup[op] << "\n";
+  cout << opTypeLookup[op] << "\n";
   c1->print();
   indent_print("\n");
   c2->print();
@@ -211,7 +216,7 @@ void BinaryOp::print()
 }
 
 
-UnaryOp::UnaryOp(ExpAst* exp, typeOp _op)
+UnaryOp::UnaryOp(ExpAst* exp, OpType _op)
 {
   astnode_type = AST_UNOP;
   op = _op;
@@ -221,7 +226,7 @@ void UnaryOp::print()
 {
   tab_degree++;
   indent_print("(");
-  cout << opLookup[op] << "\n";
+  cout << opTypeLookup[op] << "\n";
   c1->print();
   cout << ")";
   tab_degree--;
@@ -254,12 +259,12 @@ void FunCall::print()
   tab_degree--;
 }
 
-std::list< valType > FunCall::getArgTypeList()
+std::list< ValType > FunCall::getArgTypeList()
 {
-  std::list<valType> l;
+  std::list<ValType> l;
   for(auto it = list_exp_ast.begin(); it != list_exp_ast.end(); ++it)
   {
-    l.push_back(it->val_type);
+    l.push_back((*it)->val_type);
   }
   return l;
 }

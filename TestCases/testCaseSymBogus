@@ -2,7 +2,7 @@ int add(int addP1, int addP2[3])
 {
 	int addV1;
 	int addV2;
-	return addV1;
+	return addP1 + addP2[1][3];
 }
 void print(int print, float printP2)
 {

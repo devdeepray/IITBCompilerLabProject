@@ -4,6 +4,9 @@
 #include <list>
 #include <vector>
 #include "Enums.h"
+#include "SymbolTable.h"
+#include "../Util/catter.h"
+#include "TypeChecks.h"
 using namespace std;
 
 
@@ -14,46 +17,49 @@ void indent_print(std::string s);
 
 class abstract_astnode
 {
+  
+private:
+  AstType astnode_type;
+  bool valid = true;
 public:
   
   virtual void print () = 0;
   bool& validAST();
-  bool validAST();
+  bool const& validAST() const;
   //virtual std::string generate_code(const symbolTable&) = 0;
   //virtual basic_types getType() = 0;
   //virtual bool checkTypeofAST() = 0;
 protected:
   //virtual void setType(basic_types) = 0;
-private:
-  TypeExp astnode_type;
-  bool validAST = true;
+
 };
 
 
 class ExpAst : public abstract_astnode
 {
-private:
-  TypeExp astnode_type;
+public:
+  AstType astnode_type;
   ValType val_type;
+  ValType& valType();
 };
 
 
 class StmtAst : public abstract_astnode
 {
 private:
-  TypeExp astnode_type;
+  AstType astnode_type;
 };
 
 class ArrayRef : public ExpAst
 {
 private:
-  TypeExp astnode_type;
+  AstType astnode_type;
 };
 
 class Empty : public StmtAst
 {
 private:
-  TypeExp astnode_type;
+  AstType astnode_type;
 public:
   Empty();
   void print();
@@ -63,7 +69,7 @@ public:
 class Block : public StmtAst
 {
 private:
-  TypeExp astnode_type;
+  AstType astnode_type;
   std::list<StmtAst*> clist;
 public:
   Block(StmtAst* _c);
@@ -74,7 +80,7 @@ public:
 class Ass : public StmtAst
 {
 private:
-  TypeExp astnode_type;
+  AstType astnode_type;
   ExpAst* c1;
   ExpAst* c2;
 public:
@@ -85,7 +91,7 @@ public:
 class Return : public StmtAst
 {
 private:
-  TypeExp astnode_type;
+  AstType astnode_type;
   ExpAst* c1;
 public:
   Return(ExpAst* ret_exp);
@@ -96,7 +102,7 @@ public:
 class If : public StmtAst
 {
 private:
-  TypeExp astnode_type;
+  AstType astnode_type;
   ExpAst* c1;
   StmtAst* c2;
   StmtAst* c3;
@@ -109,7 +115,7 @@ public:
 class For : public StmtAst
 {
 private:
-  TypeExp astnode_type;
+  AstType astnode_type;
   ExpAst* c1;
   ExpAst* c2;
   ExpAst* c3;
@@ -122,7 +128,7 @@ public:
 class While : public StmtAst
 {
 private:
-  TypeExp astnode_type;
+  AstType astnode_type;
   ExpAst* c1;
   StmtAst* c2;
 public:
@@ -133,7 +139,7 @@ public:
 class FloatConst : public ExpAst
 {
 private:
-  TypeExp astnode_type;
+  AstType astnode_type;
   float val;
 public:
   FloatConst(float _val);
@@ -143,30 +149,30 @@ public:
 class BinaryOp : public ExpAst
 {
 private:
-  TypeExp astnode_type;
+  AstType astnode_type;
   ExpAst* c1;
   ExpAst* c2;
-  typeOp op;
+  OpType op;
 public:
-  BinaryOp(ExpAst* left_exp , ExpAst* right_exp, typeOp _op);
+  BinaryOp(ExpAst* left_exp , ExpAst* right_exp, OpType _op);
   void print();
 };
 
 class UnaryOp : public ExpAst
 {
 private:
-  TypeExp astnode_type;
+  AstType astnode_type;
   ExpAst* c1;
-  typeOp op;
+  OpType op;
 public:
-  UnaryOp(ExpAst* exp, typeOp _op);
+  UnaryOp(ExpAst* exp, OpType _op);
   void print();
 };
 
 class FunCall : public ExpAst
 {
 private:
-  TypeExp astnode_type;
+  AstType astnode_type;
   list<ExpAst*> list_exp_ast;
   string func_name;
 public:
@@ -181,7 +187,7 @@ public:
 class IntConst : public ExpAst
 {
 private:
-  TypeExp astnode_type;
+  AstType astnode_type;
   int val;
 public:
   IntConst(int _val);
@@ -191,7 +197,7 @@ public:
 class StringConst : public ExpAst
 {
 private:
-  TypeExp astnode_type;
+  AstType astnode_type;
   std::string val;
 public:
   StringConst(std::string _val);
@@ -202,7 +208,7 @@ public:
 class Identifier : public ArrayRef
 {
 private:
-  TypeExp astnode_type;
+  AstType astnode_type;
   std::string val;
 public:
   Identifier(std::string _val);
@@ -212,7 +218,7 @@ public:
 class Index : public ArrayRef
 {
 private:
-  TypeExp astnode_type;
+  AstType astnode_type;
   ArrayRef* c1;
   ExpAst* c2;
 public:
