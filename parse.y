@@ -556,14 +556,17 @@ primary_expression  : l_expression
 | TOK_INT_CONST
 {
     $$ = new IntConst(std::stoi($1));
+    ($$)->valType() = TYPE_INT;
 }
 | TOK_FP_CONST
 {
     $$ = new FloatConst(std::stof($1));
+    ($$)->valType() = TYPE_FLOAT;
 }
 | TOK_STR_CONST
 {
     $$ = new StringConst((std::string)$1);
+    ($$)->valType() = TYPE_STR;
 }
 | '(' expression ')'
 {

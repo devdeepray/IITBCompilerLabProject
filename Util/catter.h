@@ -99,7 +99,7 @@ public:
 	    static void invalidunop(int lno, OpType op, ValType val)
 	    {
 	      cout << "[Unary operator mismatch][Line " << lno << "]:" << valTypeLookup[val] << " is not compatible with operator "
-		    << opTypeLookup[op];
+		    << opTypeLookup[op] <<endl;
 	    }
 			
 			static void symbolnotfound(int lno, string name)

@@ -10,4 +10,4 @@ std::string astTypeLookup[] = {"STMT", "BLK", "EXP", "EMP_BLK", "ASS", "RET", "I
 std::string opTypeLookup[]  = {"OR", "AND", "EQ_OP", "NE_OP", "LT","GT", "LE_OP", "GE_OP", 
 		"PLUS", "MINUS", "MULT", "DIV", "ASSIGN", "UMINUS", "NOT", "PP"};
 
-std::string valTypeLookup[] = {"INT", "FLOAT", "VOID", "CHAR", "ARRAY", "POINTER", "TYPE_WEAK"};
+std::string valTypeLookup[] = {"INT", "FLOAT", "VOID", "CHAR", "ARRAY", "POINTER", "TYPE_WEAK", "TYPE_STR"};

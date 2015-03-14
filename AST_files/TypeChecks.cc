@@ -62,7 +62,7 @@ bool unaryOpCompatible(OpType op, ValType val)
 {
   if(val == TYPE_WEAK) return true;
   
-  if(op == OP_UMINUS)
+  if(op == OP_UMINUS || op == OP_PP)
   {
     if(val == TYPE_INT || val == TYPE_FLOAT)
       return true;

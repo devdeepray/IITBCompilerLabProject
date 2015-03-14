@@ -116,17 +116,23 @@
     {
       // Get the last param
       auto lastParam = strVarMap.begin();
+      
       for(auto it = strVarMap.begin(); it != strVarMap.end(); ++it)
       {
 	if(it->second.declType == PARAM)
 	{
-	  if(it -> second.offset > lastParam -> second.offset)
+	  if(lastParam ->second.offset != PARAM)
+	  {
+	    lastParam = it;
+	  }
+	  else if(it -> second.offset > lastParam -> second.offset)
 	  {
 	    lastParam = it;
 	  }
 	}
       }
       int offsetCorrection = lastParam->second.offset+ lastParam->second.size;
+      cout << offsetCorrection << endl;
       for(auto it = strVarMap.begin(); it != strVarMap.end(); ++it)
       {
 	it->second.offset -= offsetCorrection;
