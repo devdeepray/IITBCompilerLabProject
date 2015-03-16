@@ -77,6 +77,17 @@ public:
   void insert(StmtAst* c);
 };
 
+
+class ExpStmt : public StmtAst
+{
+   private:
+     AstType astnode_type;
+     ExpAst* c1;
+public:
+  ExpStmt(ExpAst* exp);
+  void print();
+};
+
 class Ass : public StmtAst
 {
 private:

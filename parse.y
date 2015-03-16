@@ -21,49 +21,34 @@
 %% 
 
 translation_unit  : function_definition
-{
-    // _g_globalSymTable.print();
-}
 | translation_unit function_definition
-{
-    // _g_globalSymTable.print();
-}
 ;
+
 function_definition  : type_specifier
 {
-    /*  
-    * This part of the code will be reached at the beginning  
-    * of a function definition (after reducing the type specifier).   
-    * Start a new function table at this point.   
-    * Assume all errors except glob errors are false  */    
+    
+    // No errors can occur here
+    
+    // Begin new function
     _g_offset = 0;
-    _g_funcTable.reset();
-    _g_funcTable.setReturnType(_g_typeSpec);
+    _g_funcTable.reset(); 
+    _g_funcTable.setReturnType(_g_typeSpec); 
     _g_functionStartLno = _g_lineCount;
+    _g_functionDecError = false;
+    _g_varDecError = false;
+    _g_stmtListError = false;
 }
 fun_declarator compound_statement
 {
-    /*  
-    * After the function has been processed.   
-    * _g_functionDecError will be true if there was an error in declarator. 
-    * If compound statement has error, that is not fdec error
-    */  
-    
-    // Do these regardless of error
-    // Fix offsets 
-    _g_funcTable.correctOffsets();
-      
-    // Add to table
-    _g_globalSymTable.addFuncTable(_g_funcTable);
-        
-    if(_g_functionDecError)// Function declaration was bad
+    // Function declaration was bad
+    if(_g_functionDecError) 
     {
         cat::parse::fdecerror(_g_functionStartLno, _g_funcTable.getSignature());
     }
     
-    // Set function and declaration errors to false  
-    _g_semanticError = _g_semanticError || _g_functionDecError;
-    _g_functionDecError = false;
+    // Set higher level error
+    _g_semanticError = _g_semanticError || _g_functionDecError || _g_stmtListError;
+    
 }
 ;
 type_specifier  : TOK_VOID_KW
@@ -85,6 +70,10 @@ type_specifier  : TOK_VOID_KW
 fun_declarator  : TOK_IDENTIFIER '(' parameter_list ')'
 {
     
+    // Set the name. Params already set
+    _g_funcTable.setName($1);
+    _g_offset = -4; 
+    
     if( _g_globalSymTable.existsSignature(_g_funcTable.getSignature()) )
     {
         // Same signature exists   
@@ -92,20 +81,32 @@ fun_declarator  : TOK_IDENTIFIER '(' parameter_list ')'
         _g_functionDecError = true;
     }
     
-    // On success or failure, doesnt hurt to set the name  
-    _g_funcTable.setName($1);
-    _g_offset += 4; // Address bytes of machine for ebp
+    // Add it to the function table if its declaration was correct
+    if(!_g_functionDecError)
+    {
+      _g_globalSymTable.addFuncTable(_g_funcTable);
+    }
+    
 }
 | TOK_IDENTIFIER '(' ')'
 {
+    
+    // Set the name of the function. 
+    _g_funcTable.setName($1);
+    _g_offset = -4; 
+    
     if( _g_globalSymTable.existsSignature(_g_funcTable.getSignature()) )
     {
         cat::parse::fdecerror(_g_lineCount, _g_funcTable.getSignature());
         _g_functionDecError = true;
     }
     
-    _g_funcTable.setName($1);
-    _g_offset += 4; // Address bytes of machine for ebp
+    // Add if no errors found
+    if(!_g_functionDecError) 
+    {
+      _g_globalSymTable.addFuncTable(_g_funcTable);
+    }
+    
 }
 ;
 parameter_list  : parameter_declaration  
@@ -113,20 +114,28 @@ parameter_list  : parameter_declaration
 ;
 parameter_declaration  : type_specifier declarator
 {
-    // Whether decl wrong or right semantically, store it
-        _g_curVarType->setPrimitive(_g_typeSpec);
-        // Innermost type of non primitive     
-        VarDeclaration v;
-        v.setDeclType(PARAM);
-        v.setName(_g_currentId);
-        v.setSize(_g_size);
-        v.setOffset(_g_offset);
-        v.setVarType(_g_varType);
-        _g_funcTable.addParam(v);
-        _g_offset += _g_size;
-	  
-	_g_functionDecError = _g_functionDecError || _g_declarationError;  
-	_g_declarationError = false; // Reset declaration error for next one
+
+	
+  if(_g_typeSpec == TYPE_VOID){
+    _g_declarationError = true;
+    //cat::parse::fdecerror::voidtype(_g_lineCount, _g_currentId);
+  }
+  
+  // Whether decl wrong or right semantically, store it
+  _g_curVarType->setPrimitive(_g_typeSpec); // Innermost type of non primitive     
+  VarDeclaration v;
+  v.setDeclType(PARAM);
+  v.setName(_g_currentId);
+  v.setSize(_g_size);
+  v.setOffset(_g_offset);
+  v.setVarType(_g_varType);
+  _g_funcTable.addParam(v);
+  _g_offset -= _g_size;
+  
+  
+  // Propagate error upwards
+  _g_functionDecError = _g_functionDecError || _g_declarationError;  
+  _g_declarationError = false; // Reset declaration error for next one
 }
 ;
 declarator  : TOK_IDENTIFIER
@@ -146,32 +155,32 @@ declarator  : TOK_IDENTIFIER
 }
 | declarator '[' TOK_INT_CONST ']' // Changed constant expr to INT_CONST
 {
-    if(std::stoi($3) == 0)
+    if(stoi($3) == 0)
     {
         _g_declarationError = true;
         cat::parse::declaratorerror::emptyarray(_g_lineCount, _g_currentId);
     }
-    _g_curVarType->setArray(stoi($3));
-    _g_curVarType->setNestedVarType(new VarType());
+    _g_curVarType->setArray(stoi($3)); 
     _g_curVarType = _g_curVarType->getNestedVarType();
     _g_size *= (stoi($3));
 }
 ;
+
 constant_expression   : TOK_INT_CONST  
 | TOK_FP_CONST   
 ;
+
 compound_statement  : '{' '}'   
-|'{' statement_list '}'
 {
-    //($2)->print();
-    //Uncomment to print the ADT  //std::cout <<'n';
-    _g_semanticError = _g_semanticError || ($2)->validAST();
+	_g_stmtListError = false;
+}
+| '{' statement_list '}'
+{
+	_g_stmtListError = ($2)->validAST();
 }
 | '{' declaration_list statement_list '}'
 {
-    //($3)->print();
-    //Uncomment to print the ADT   //std::cout << 'n';
-    _g_semanticError = _g_semanticError || ($3)->validAST();
+	_g_stmtListError = _g_varDecError || ($3)->validAST();
 }
 ;
 statement_list  : statement
@@ -182,7 +191,7 @@ statement_list  : statement
 | statement_list statement
 {
     ((Block*)($1))->insert($2); // Insert into orig list  
-    ($$)->validAST() = ($1)->validAST() && ($2)->validAST(); // Update validity  
+    ($1)->validAST() = ($1)->validAST() && ($2)->validAST(); // Update validity  
     ($$) = ($1); // Set current list to longer list
 }
 ;
@@ -215,10 +224,14 @@ statement  : '{' statement_list '}'
     }
 }
 | expression ';' // Added this for void func calls
+{
+  ($$) = new ExpStmt($1);
+  ($$)->validAST() = ($1)->validAST();
+}
 ;
 assignment_statement  : ';'
 {
-    $$ = new Empty();
+    ($$) = new Empty();
 }
 | l_expression '=' expression ';'
 {
@@ -459,7 +472,7 @@ unary_expression  : postfix_expression
     bool comp = unaryOpCompatible($1, ($2)->valType());
     
     ($$)->validAST() = ($2)->validAST() && comp;
-    ($$)->valType() = ($2)->valType(); 
+    ($$)->valType() = comp? ($2)->valType() : TYPE_WEAK; 
     
     if(!comp)
     {
@@ -482,7 +495,7 @@ postfix_expression  : primary_expression
     
     FunctionSignature fsig($1, list<ValType>());
     
-    if(_g_globalSymTable.existsSignature(FunctionSignature(fsig)))
+    if(_g_globalSymTable.existsSignature(fsig))
     {
         // Valid function call  
         ($$)->validAST() = true;
@@ -511,6 +524,9 @@ postfix_expression  : primary_expression
         ($$)->validAST() = false;
         cat::parse::fdecerror::badfcall(_g_lineCount, fsig);
     }
+    
+    
+      
 }
 | l_expression TOK_INCR_OP
 {
@@ -521,7 +537,7 @@ postfix_expression  : primary_expression
     bool comp = unaryOpCompatible(OP_PP, ($1)->valType());
     
     ($$)->validAST() = ($1)->validAST() && comp;
-    ($$)->valType() = ($1)->valType(); 
+    ($$)->valType() = comp? ($1)->valType() : TYPE_WEAK; 
     
     if(!comp)
     {
@@ -543,7 +559,7 @@ primary_expression  : l_expression
     bool comp = binOpTypeCompatible(($1)->valType(), ($3)->valType(), OP_ASSIGN);
     
     ($$)->validAST() = ($1)->validAST() && ($3)->validAST() && comp;
-    ($$)->valType() = ($1)->valType();
+    ($$)->valType() =  ($1)->valType() ;
     
     if(!comp)
     {
@@ -589,6 +605,7 @@ l_expression  : TOK_IDENTIFIER
       }
       else
       {
+	($$)->valType() = TYPE_ARRAY;
 	_g_curVarType = _g_funcTable.getVar($1).varType;
       }
     }
@@ -604,16 +621,28 @@ l_expression  : TOK_IDENTIFIER
     if(($1)->validAST())
     {
       $$ = new Index($1, $3);
+      
+      
+      
       bool canIndex = !(_g_curVarType->primitive);
       ($$)->validAST() = ($1)->validAST() && ($3)->validAST() && canIndex;
       
       if(!canIndex)
       {
 	cat::parse::stmterror::arrayreferror(_g_lineCount, _g_currentId);
+	($$)->valType() = TYPE_WEAK;
       }
       else
       {
 	  _g_curVarType = _g_curVarType->getNestedVarType();
+	  if(_g_curVarType->primitive)
+	  {
+	    ($$)->valType() = _g_curVarType->type;
+	  }
+	  else
+	  {
+	    ($$)->valType() = TYPE_ARRAY;
+	  }
       }
     }
     else

@@ -1,25 +1,11 @@
-int factorial(int x)
+void initArray(int arr[100], int val)
 {
-	int i;
-	int result;
-	result = 1;
-	for(i = 0; i < x; i++)
-	{
-		result = result * i;
-	}
-	return result;
+  int i;
+
+  for(i = 0; i < 100; i++)
+  {
+    arr[i][i] = val;
+  }
 }
 
-int factorial(int x)
-{
-	return x*x;
-}
 
-int main()
-{
-	int x[3];
-
-	x[0] = factorial("s");
-	x[1] = factorial(3);
-	
-}

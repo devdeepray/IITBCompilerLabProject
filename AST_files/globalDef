@@ -1,4 +1,6 @@
 public:
+
+bool _g_stmtListError = false;
 bool _g_semanticError = false;
 bool _g_functionDecError = false;
 bool _g_varDefError = false;

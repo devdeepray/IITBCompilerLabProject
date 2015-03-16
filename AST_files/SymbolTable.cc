@@ -18,6 +18,7 @@
     primitive = false;
     size = _size;
     type = TYPE_ARRAY;
+    nestedVarType = new VarType();
   }
   
   void VarType::setNestedVarType(VarType* _nestedVarType)

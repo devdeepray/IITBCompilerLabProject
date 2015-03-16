@@ -90,6 +90,19 @@ void Ass::print()
   tab_degree--;
 }
 
+ExpStmt::ExpStmt(ExpAst* exp)
+{
+   c1 = exp;
+}
+
+void ExpStmt::print()
+{
+  tab_degree++;
+  indent_print("(SingleStmt \n");
+  c1->print();
+  cout << ")";
+  tab_degree--;
+}
 
 // Return statement AST
 Return::Return(ExpAst* ret_exp)
