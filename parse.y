@@ -235,10 +235,28 @@ assignment_statement  : ';'
 }
 | l_expression '=' expression ';'
 {
-    $$ = new Ass($1, $3);
+    
     
     bool comp = assTypeCompatible(($1)->valType(), ($3)->valType());
-    
+    ExpAst* tmp;
+    tmp = $3;
+    if((($1)->valType() != ($3).valType()) && comp)
+    {
+      if(($1)->valType() == TYPE_FLOAT)
+      {
+	tmp = new UnaryOp(($3), OP_TOFLT);
+      }
+      else if(($1)->valType() == TYPE_INT)
+      {
+	tmp = new UnaryOp(($3), OP_TOINT);
+      }
+      else
+      {
+	cerr << "Bug in parser, should never come here"; 
+      }
+      tmp->validAST() = ($3).validAST();
+    }
+    $$ = new Ass($1, tmp);
     ($$)->validAST() = ($1)->validAST() && ($3)->validAST() && comp;
     
     if(!comp)

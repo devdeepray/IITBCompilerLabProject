@@ -14,7 +14,7 @@ enum ValType {TYPE_INT, TYPE_FLOAT, TYPE_VOID, TYPE_CHAR, TYPE_ARRAY, TYPE_POINT
 
 // Enum for ops
 enum OpType {OP_OR, OP_AND, OP_EQ, OP_NE, OP_LT, OP_GT, OP_LE, OP_GE, OP_PLUS, OP_MINUS,
-				    OP_MULT, OP_DIV, OP_ASSIGN, OP_UMINUS, OP_NOT, OP_PP}; 
+				    OP_MULT, OP_DIV, OP_ASSIGN, OP_UMINUS, OP_NOT, OP_PP, OP_TOFLT, OP_TOINT}; 
 
 extern std::string varDeclTypeLookup[];
 				    
