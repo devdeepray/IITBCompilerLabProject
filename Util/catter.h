@@ -57,6 +57,11 @@ public:
 	      fsig.print();
 	      cout << endl;
 	    }
+        static void voidtype(int lno, string id)
+        {
+            cout << "[Void type for variable][Line " << lno << "]:"
+                    << id << " defined as void." << endl;
+        }
 	    
 	   
 	  };
@@ -102,17 +107,34 @@ public:
 		    << opTypeLookup[op] <<endl;
 	    }
 			
-			static void symbolnotfound(int lno, string name)
-			{
-			  cout << "[Identifier not defined][Line " << lno << "]:"
-			  << name << " not defined in scope" << endl;
-			}
-			
-			static void arrayreferror(int lno, string arrayname)
-			{
-			  cout << "[Array reference error][Line " << lno << "]:"
-			  << arrayname << "Wrong array reference. Check the dimensions" << endl;
-			}
+        static void symbolnotfound(int lno, string name)
+        {
+          cout << "[Identifier not defined][Line " << lno << "]:"
+          << name << " not defined in scope" << endl;
+        }
+
+        static void arrayreferror(int lno, string arrayname)
+        {
+          cout << "[Array reference error][Line " << lno << "]: "
+          << arrayname << ": Wrong array reference. Check the dimensions" << endl;
+        }
+
+        static void ifexprerror(int lno)
+        {
+          cout << "[If expression error][Line "<<lno<<"]: If expression is not of correct type"<<endl;
+
+        }
+      static void forexprerror(int lno)
+      {
+        cout << "For expression error][Line "<<lno<<"]: For expression is not of correct type"<<endl;
+
+      }
+                  static void whileexprerror(int lno)
+                  {
+                    cout << "[While expression error][Line "<<lno<<"]: While expression is not of correct type"<<endl;
+
+                  }
+
 	      
 	  };
 	  

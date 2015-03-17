@@ -118,7 +118,7 @@ parameter_declaration  : type_specifier declarator
 	
   if(_g_typeSpec == TYPE_VOID){
     _g_declarationError = true;
-    //cat::parse::fdecerror::voidtype(_g_lineCount, _g_currentId);
+    cat::parse::fdecerror::voidtype(_g_lineCount, _g_currentId);
   }
   
   // Whether decl wrong or right semantically, store it
@@ -240,7 +240,7 @@ assignment_statement  : ';'
     bool comp = assTypeCompatible(($1)->valType(), ($3)->valType());
     ExpAst* tmp;
     tmp = $3;
-    if((($1)->valType() != ($3).valType()) && comp)
+    if((($1)->valType() != ($3)->valType()) && comp)
     {
       if(($1)->valType() == TYPE_FLOAT)
       {
@@ -250,11 +250,11 @@ assignment_statement  : ';'
       {
 	tmp = new UnaryOp(($3), OP_TOINT);
       }
-      else
+      else if(($1)->valType() != TYPE_WEAK)
       {
 	cerr << "Bug in parser, should never come here"; 
       }
-      tmp->validAST() = ($3).validAST();
+      tmp->validAST() = ($3)->validAST();
     }
     $$ = new Ass($1, tmp);
     ($$)->validAST() = ($1)->validAST() && ($3)->validAST() && comp;
@@ -572,9 +572,32 @@ primary_expression  : l_expression
 | l_expression '=' expression // added this production
 {
     
-    $$ = new BinaryOp($1, $3, OP_ASSIGN);
-    
+
     bool comp = binOpTypeCompatible(($1)->valType(), ($3)->valType(), OP_ASSIGN);
+    ExpAst* tmp;
+    tmp = $3;
+    if((($1)->valType() != ($3)->valType()) && comp)
+    {
+      if(($1)->valType() == TYPE_FLOAT)
+      {
+        tmp = new UnaryOp(($3), OP_TOFLT);
+      }
+      else if(($1)->valType() == TYPE_INT)
+      {
+        tmp = new UnaryOp(($3), OP_TOINT);
+      }
+      else if(($1)->valType() != TYPE_WEAK)
+      {
+        cerr << "Bug in parser, should never come here";
+      }
+      tmp->validAST() = ($3)->validAST();
+    }
+
+
+    $$ = new BinaryOp($1, tmp, OP_ASSIGN);
+
+    
+
     
     ($$)->validAST() = ($1)->validAST() && ($3)->validAST() && comp;
     ($$)->valType() =  ($1)->valType() ;
@@ -693,15 +716,33 @@ unary_operator  : '-'
 selection_statement  : TOK_IF_KW '(' expression ')' statement TOK_ELSE_KW statement
 {
     ($$) = new If( ($3), ($5), ($7));
+    ($$)->validAST() = ($3)->validAST() && ($5)->validAST() && ($7)->validAST();
+    if(!(($3)->valType() == TYPE_INT || ($3)->valType() == TYPE_FLOAT))
+    {
+        cat::parse::stmterror::ifexprerror(_g_lineCount);
+        ($$)->validAST() = false;
+    }
 }
 ;
 iteration_statement  : TOK_WHILE_KW '(' expression ')' statement
 {
     ($$) = new While( ($3), ($5));
+    ($$)->validAST() = ($3)->validAST() && ($5)->validAST();
+    if(!(($3)->valType() == TYPE_INT || ($3)->valType() == TYPE_FLOAT))
+    {
+        cat::parse::stmterror::whileexprerror(_g_lineCount);
+        ($$)->validAST() = false;
+    }
 }
 | TOK_FOR_KW '(' expression ';' expression ';' expression ')' statement //modified this production
 {
     ($$) = new For( ($3), ($5), ($7), ($9));
+    ($$)->validAST() = ($3)->validAST() && ($5)->validAST() && ($7)->validAST() && ($9)->validAST();
+    if(!(($5)->valType() == TYPE_INT || ($5)->valType() == TYPE_FLOAT))
+    {
+        cat::parse::stmterror::forexprerror(_g_lineCount);
+        ($$)->validAST() = false;
+    }
 }
 ;
 declaration_list  : declaration    

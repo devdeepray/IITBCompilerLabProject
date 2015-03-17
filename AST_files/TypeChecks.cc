@@ -28,14 +28,8 @@ bool binOpTypeCompatible(ValType val1, ValType val2, OpType op)
   
   if(val1 == TYPE_WEAK || val2 == TYPE_WEAK) return true;
   
-  if(op == OP_OR || op == OP_AND)
-  {
-    return val1 == TYPE_INT && val2 == TYPE_INT;
-  }
-  else
-  {
-     return (val1 == TYPE_INT || val1 == TYPE_FLOAT) && (val2 == TYPE_INT || val2 == TYPE_FLOAT);
-  }
+  return (val1 == TYPE_INT || val1 == TYPE_FLOAT) && (val2 == TYPE_INT || val2 == TYPE_FLOAT);
+
 }
 
 ValType getDominantType(ValType val1, ValType val2)
