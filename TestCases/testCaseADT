@@ -1,6 +1,6 @@
 int add(int val1, int val2[3])
 {
-	int sum;
+	float sum;
 	int i;
 	sum = val1;
 	for(i=0; i < 3; i=i+1)
@@ -13,6 +13,9 @@ int add(int val1, int val2[3])
 		{
 			sum = val[i+val[i]];	
 		}
+	
 	}
+
+	i  = sum || i;
 	return sum;
 }

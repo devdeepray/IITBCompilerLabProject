@@ -40,11 +40,13 @@ function_definition  : type_specifier
 }
 fun_declarator compound_statement
 {
+    
     // Function declaration was bad
     if(_g_functionDecError) 
     {
         cat::parse::fdecerror(_g_functionStartLno, _g_funcTable.getSignature());
     }
+    else _g_globalSymTable.updateFuncTable(_g_funcTable);
     
     // Set higher level error
     _g_semanticError = _g_semanticError || _g_functionDecError || _g_stmtListError;
@@ -130,7 +132,8 @@ parameter_declaration  : type_specifier declarator
   v.setOffset(_g_offset);
   v.setVarType(_g_varType);
   _g_funcTable.addParam(v);
-  _g_offset -= _g_size;
+  if(_g_varType->primitive)_g_offset += _g_size;
+  else _g_offset += SIZE_OF_PTR;
   
   
   // Propagate error upwards
@@ -146,12 +149,10 @@ declarator  : TOK_IDENTIFIER
         cat::parse::declaratorerror::dupid(_g_lineCount, $1);
     }
     
-    
     _g_currentId = $1;
     _g_varType = new VarType();
     _g_curVarType = _g_varType;
     _g_size = _g_width;
-  
 }
 | declarator '[' TOK_INT_CONST ']' // Changed constant expr to INT_CONST
 {
@@ -176,10 +177,12 @@ compound_statement  : '{' '}'
 }
 | '{' statement_list '}'
 {
+    //($2)->print();
 	_g_stmtListError = ($2)->validAST();
 }
 | '{' declaration_list statement_list '}'
 {
+    //($3)->print();
 	_g_stmtListError = _g_varDecError || ($3)->validAST();
 }
 ;
@@ -213,11 +216,30 @@ statement  : '{' statement_list '}'
 }
 | TOK_RETURN_KW expression ';'
 {
-    ($$) = new Return( ($2) );
-    
-    bool retComp = retTypeCompatible(_g_funcTable.getReturnType(), ($2)->valType());
+    ExpAst* tmp = $2;
+    ValType retType = _g_funcTable.getReturnType();
+    bool retComp = retTypeCompatible(retType, ($2)->valType());
+   
+    if(retType !=  ($2)->valType() && retComp)
+    {
+   
+      if(retType == TYPE_FLOAT)
+      {
+	    tmp = new UnaryOp(($2), OP_TOFLT);
+      }
+      else if(retType == TYPE_INT)
+      {
+      	tmp = new UnaryOp(($2), OP_TOINT);
+      }
+      else if(retType != TYPE_WEAK)
+      {
+	    cerr << "Bug in parser, should never come here"; 
+      }
+      tmp->validAST() = ($2)->validAST();
+    }
+    ($$) = new Return( tmp );
     ($$)->validAST() = ($2)->validAST() && retComp;
-	
+
     if(!retComp)
     {
         cat::parse::stmterror::rettypeerror(_g_lineCount, _g_funcTable.getReturnType(), ($2)->valType());
@@ -236,7 +258,6 @@ assignment_statement  : ';'
 | l_expression '=' expression ';'
 {
     
-    
     bool comp = assTypeCompatible(($1)->valType(), ($3)->valType());
     ExpAst* tmp;
     tmp = $3;
@@ -244,15 +265,15 @@ assignment_statement  : ';'
     {
       if(($1)->valType() == TYPE_FLOAT)
       {
-	tmp = new UnaryOp(($3), OP_TOFLT);
+	    tmp = new UnaryOp(($3), OP_TOFLT);
       }
       else if(($1)->valType() == TYPE_INT)
       {
-	tmp = new UnaryOp(($3), OP_TOINT);
+	    tmp = new UnaryOp(($3), OP_TOINT);
       }
       else if(($1)->valType() != TYPE_WEAK)
       {
-	cerr << "Bug in parser, should never come here"; 
+	    cerr << "Bug in parser, should never come here"; 
       }
       tmp->validAST() = ($3)->validAST();
     }
@@ -272,9 +293,9 @@ expression  : logical_and_expression
 }
 | expression TOK_LOR_OP logical_and_expression
 {
-    $$ = new BinaryOp($1, $3, OP_OR);
-    
     bool comp = binOpTypeCompatible(($1)->valType(), ($3)->valType(), OP_OR);
+    
+    $$ = new BinaryOp($1, $3, OP_OR);
     
     ($$)->validAST() = ($1)->validAST() && ($3)->validAST() && comp;
     ($$)->valType() = TYPE_INT;
@@ -571,11 +592,10 @@ primary_expression  : l_expression
 }
 | l_expression '=' expression // added this production
 {
-    
-
     bool comp = binOpTypeCompatible(($1)->valType(), ($3)->valType(), OP_ASSIGN);
     ExpAst* tmp;
     tmp = $3;
+    
     if((($1)->valType() != ($3)->valType()) && comp)
     {
       if(($1)->valType() == TYPE_FLOAT)
@@ -593,12 +613,8 @@ primary_expression  : l_expression
       tmp->validAST() = ($3)->validAST();
     }
 
-
     $$ = new BinaryOp($1, tmp, OP_ASSIGN);
 
-    
-
-    
     ($$)->validAST() = ($1)->validAST() && ($3)->validAST() && comp;
     ($$)->valType() =  ($1)->valType() ;
     
@@ -662,16 +678,15 @@ l_expression  : TOK_IDENTIFIER
     if(($1)->validAST())
     {
       $$ = new Index($1, $3);
-      
-      
-      
+        
       bool canIndex = !(_g_curVarType->primitive);
       ($$)->validAST() = ($1)->validAST() && ($3)->validAST() && canIndex;
       
       if(!canIndex)
       {
-	cat::parse::stmterror::arrayreferror(_g_lineCount, _g_currentId);
-	($$)->valType() = TYPE_WEAK;
+        
+	    cat::parse::stmterror::arrayreferror(_g_lineCount, ((Index*)$$)->getArrayName());
+	    ($$)->valType() = TYPE_WEAK;
       }
       else
       {
@@ -753,31 +768,38 @@ declaration  : type_specifier declarator_list';'  ;
 
 declarator_list  : declarator
 {
-    _g_curVarType->setPrimitive(_g_typeSpec);
-    VarDeclaration v;
-    v.setDeclType(LOCAL);
-    v.setName(_g_currentId);
-    v.setSize(_g_size);
-    v.setOffset(_g_offset);
-    v.setVarType(_g_varType);
-    _g_funcTable.addVar(v);
-    _g_offset += _g_size;
-    
+    if(!_g_declarationError)
+    {
+	    _g_curVarType->setPrimitive(_g_typeSpec);
+	    VarDeclaration v;
+	    v.setDeclType(LOCAL);
+	    v.setName(_g_currentId);
+	    v.setSize(_g_size);
+	    v.setOffset(_g_offset);
+	    v.setVarType(_g_varType);
+	    _g_funcTable.addVar(v);
+	    if(_g_varType->primitive) _g_offset -= _g_size;
+	    else _g_offset -= SIZE_OF_PTR;
+	}
     
     _g_varDecError = _g_varDecError || _g_declarationError;
     _g_declarationError = false;
 }
 | declarator_list ',' declarator
 {
-    _g_curVarType->setPrimitive(_g_typeSpec);
-    VarDeclaration v;
-    v.setDeclType(LOCAL);
-    v.setName(_g_currentId);
-    v.setSize(_g_size);
-    v.setOffset(_g_offset);
-    v.setVarType(_g_varType);
-    _g_funcTable.addVar(v);
-    _g_offset += _g_size;
+    if(!_g_declarationError)
+    {
+        _g_curVarType->setPrimitive(_g_typeSpec);
+        VarDeclaration v;
+        v.setDeclType(LOCAL);
+        v.setName(_g_currentId);
+        v.setSize(_g_size);
+        v.setOffset(_g_offset);
+        v.setVarType(_g_varType);
+        _g_funcTable.addVar(v);
+        if(_g_varType->primitive)_g_offset -= _g_size;
+        else _g_offset -= SIZE_OF_PTR;
+    }
     
     _g_varDecError = _g_varDecError || _g_declarationError;
     _g_declarationError = false;

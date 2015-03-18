@@ -212,6 +212,10 @@
   {
     strFuncMap.insert(pair<FunctionSignature, FunctionTable>(_funcTable.getSignature() , _funcTable));
   }
+  void SymTab::updateFuncTable(FunctionTable _funcTable)
+  {
+    strFuncMap[_funcTable.getSignature()] = _funcTable;
+  }
   
   void SymTab::print()
   {
@@ -221,7 +225,7 @@
     printf("%-20s %-20s\n","Function_Name","Return_Type");
     for( ; it != strFuncMap.end() ; it++)
     {			
-      printf("%-20s %-20d\n",((it->second).name).c_str(),((it->second).returnType)->type);// create a vector for the enumerated type
+      printf("%-20s %-20s\n",((it->second).name).c_str(),valTypeLookup[((it->second).returnType)->type].c_str());// create a vector for the enumerated type
     }
     cout << endl;
     

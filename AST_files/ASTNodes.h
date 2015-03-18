@@ -54,6 +54,8 @@ class ArrayRef : public ExpAst
 {
 private:
   AstType astnode_type;
+public:
+   virtual std::string getArrayName(); 
 };
 
 class Empty : public StmtAst
@@ -223,6 +225,7 @@ private:
   std::string val;
 public:
   Identifier(std::string _val);
+  std::string getArrayName();
   void print();
 };
 
@@ -234,6 +237,7 @@ private:
   ExpAst* c2;
 public:
   Index(ArrayRef* arrRef , ExpAst* expAst);
+  std::string getArrayName();
   void print();
 };
 

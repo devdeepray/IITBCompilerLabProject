@@ -6,7 +6,7 @@ bool retTypeCompatible(ValType expReturnType, ValType actReturnType)
   
   if(expReturnType == TYPE_INT)
   {
-    return actReturnType == TYPE_INT;
+    return actReturnType == TYPE_INT || actReturnType == TYPE_FLOAT;
   }
   
   if(expReturnType == TYPE_FLOAT)

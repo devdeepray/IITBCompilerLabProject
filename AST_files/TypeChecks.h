@@ -1,6 +1,7 @@
 #ifndef _TYPE_CHECK_H_
 #define _TYPE_CHECK_H_
 
+#define SIZE_OF_PTR 4
 #include "Enums.h"
 bool retTypeCompatible(ValType expReturnType, ValType actReturnType);
 

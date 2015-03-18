@@ -351,4 +351,18 @@ void Index::print()
   tab_degree--;
 }
 
+std::string ArrayRef::getArrayName()
+{
+    return "Arbit";
+}
+   
 
+std::string Index::getArrayName()
+{
+    return (c1)->getArrayName();
+}
+
+std::string Identifier::getArrayName()
+{
+    return val;
+}

@@ -90,9 +90,10 @@ struct FunctionTable
 
 struct SymTab
 {
-  std::multimap< FunctionSignature, FunctionTable > strFuncMap;
+  std::map< FunctionSignature, FunctionTable > strFuncMap;
   
   void addFuncTable(FunctionTable _funcTable);
+  void updateFuncTable(FunctionTable _funcTable);
   
   void print();
   FunctionTable getFuncTable(FunctionSignature sig);
