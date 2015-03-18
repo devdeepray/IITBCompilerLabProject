@@ -22,14 +22,12 @@ class cat
         
         static std::string symtabtype(int index)
         {
-            std::string symTabTypeInfo[] = {"INT", "FLOAT", "VOID", "CHAR", "ARRAY", "POINTER"};
-            return symTabTypeInfo[index];
+            return valTypeLookup[index];
         }
         
         static std::string symtabdecltype(int index)
         {
-            std::string symTabDeclTypeInfo[] = {"GLOBAL","LOCAL","PARAM"};
-            return symTabDeclTypeInfo[index];
+            return varDeclTypeLookup[index];
         }
 public:
         class parse
@@ -85,8 +83,8 @@ public:
 	  public:
 	    static void rettypeerror(int lno, ValType expret, ValType actret)
 	    {
-	      cout << "[Return Type mismatch][Line " << lno << "]:Value of type " << valTypeLookup[actret] << " cannot be\
-	      returned from a function returning " << valTypeLookup[expret] << endl;
+	      cout << "[Return Type mismatch][Line " << lno << "]:Value of type " << valTypeLookup[actret] << " cannot be" <<
+	      " returned from a function returning " << valTypeLookup[expret] << endl;
 	    }
 	    
 	    static void incompasstype(int lno, ValType lval, ValType rval)
