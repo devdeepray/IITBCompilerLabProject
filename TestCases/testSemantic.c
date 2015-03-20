@@ -1,14 +1,8 @@
-void initArray(int arr[100], int val)
+int initArray( float val[1][2][3], int x)
 {
-  int i;
-  float i;
-  int val;
-
-
-  for(i = 0; i < 100; i++)
-  {
-    arr[i][i] = val;
-  }
+  void i, j, k, l;
+	float p, q;
+	return -i == -val[1][2][3];
 }
 
 

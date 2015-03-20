@@ -6,46 +6,95 @@
 
 
 
-  void VarType::setPrimitive(ValType _type) // TODO: set the size here
+  void DataType::setPrimitive(ValType _primitive_type) // TODO: set the size here
   {
-    primitive = true;	
-    nestedVarType = NULL;
-    type = _type;
-  }
-  
-  void VarType::setArray(int _size)
-  {
-    primitive = false;
-    size = _size;
-    type = TYPE_ARRAY;
-    nestedVarType = new VarType();
-  }
-  
-  void VarType::setNestedVarType(VarType* _nestedVarType)
-  {
-    nestedVarType= _nestedVarType;
-  }
-  
-  ValType VarType::getValType()
-  {
-    return type;
-  }
-  
-  VarType* VarType::getNestedVarType()
-  {
-    return VarType::nestedVarType;
-  }
-  
-  std::string VarType::getString()
-  {
-    if(primitive) return cat::symtabtype(type);
-    else return "A(" + to_string(size) + "," + nestedVarType->getString()+")";
+    primitive_type = _primitive_type;
   }
 
-  
-  void VarDeclaration::setDeclType(VarDeclType _declType)
+  void DataType::addDimension(int dim)
   {
-    declType = _declType;
+      array_dims.push_back(dim);
+  }
+
+  void DataType::reset()
+  {
+    array_dims.clear();
+  }
+  
+  void DataType::removeDimension()
+  {
+    array_dims.pop_front();
+  }
+  
+  void DataType::clearDimensions()
+  {
+    array_dims.clear();
+  }
+  bool DataType::isPrimitive() const
+  {
+    return array_dims.size() == 0;
+  }
+  ValType DataType::getPrimitiveType()
+  {
+    return primitive_type;
+  }
+  DataType::DataType(ValType vt)
+  {
+    setPrimitive(vt);
+  }
+  DataType::DataType()
+  {
+  }
+  std::string DataType::getString()
+  {
+    
+    if(isPrimitive())
+    {
+      return cat::symtabtype(primitive_type);
+      
+    }
+    else 
+    {
+      DataType tmp = (*this);
+      int size = *(tmp.array_dims.begin());
+      tmp.removeDimension();
+      
+      return "A(" + to_string(size) + "," + tmp.getString()+")";
+    }
+  }
+
+  bool DataType::operator<(const DataType &dt2) const
+  {
+    if(isPrimitive()!= dt2.isPrimitive())
+    {
+      return dt2.isPrimitive();
+    }
+    else
+    {
+      if(primitive_type != dt2.primitive_type)
+      {
+	return primitive_type < dt2.primitive_type;
+      }
+      else
+      {
+	return array_dims < dt2.array_dims;
+      }
+    }
+  }
+  
+  bool DataType::operator==( const DataType &dt2)  const
+  {
+    return !((*this)<(dt2)) && !(dt2 < (*this));
+  }
+  
+  bool DataType::operator!=(const  DataType &dt2)  const
+  {
+    return !( (*this) == dt2);
+  }
+  
+  void VarDeclaration::setDeclType(VarDeclType _decl_type)
+  {
+    decl_type = _decl_type;
   }
   
   void VarDeclaration::setName( std::string _name)
@@ -63,109 +112,89 @@
     offset = _offset;
   }
   
-  void VarDeclaration::setVarType ( VarType* _varType)
+  void VarDeclaration::setDataType (DataType _data_type)
   {
-    varType = _varType;
+    data_type = _data_type;
   } 
   
   void VarDeclaration::print()
   {
-    printf("%-20s %-20s %-20s %-10d %-10d\n",name.c_str(),(varType->getString()).c_str(), cat::symtabdecltype(declType).c_str(),size,offset);
+    printf("%-20s %-20s %-20s %-10d %-10d\n",name.c_str(),(data_type.getString()).c_str(), cat::symtabdecltype(decl_type).c_str(),size,offset);
   }
 
-  FunctionSignature::FunctionSignature(std::string name, std::list<ValType> arg)
+  FunctionSignature::FunctionSignature(std::string _fname, std::list<DataType> _arg_types)
   {
-    fname = name;
-    argTypeList =  arg;
-  }
-  bool FunctionSignature::operator<(const FunctionSignature s2) const
-  {
-    if(fname != s2.fname) return fname < s2.fname;
-    else
-      return argTypeList < s2.argTypeList;
+    fname = _fname;
+    arg_types =  _arg_types;
   }
   
   void FunctionSignature::print()
   {
     cout << fname << "(";
-    for(auto it = argTypeList.begin(); it != argTypeList.end(); ++it)
+    for(auto it = arg_types.begin(); it != arg_types.end(); ++it)
     {
-      cout << valTypeLookup[*it];
+        cout << it->getString();
     }
     cout << ")";
   }
 
-
+  bool FunctionSignature::operator<(const FunctionSignature& sig2) const
+  {
+    if(fname != sig2.fname)
+    {
+      return fname < sig2.fname;
+    }
+    else
+    {
+      return arg_types < sig2.arg_types;
+    }
+    
+  }
   VarDeclaration FunctionTable::getVar(string var_name)
   {
-    return (strVarMap.find(var_name))->second;
+    return (var_name_map.find(var_name))->second;
   }
   
-  void FunctionTable::addParam( VarDeclaration _varDecl)
+  void FunctionTable::addParam(VarDeclaration var_decl)
   {
-    strVarMap.insert(pair<string, VarDeclaration>(_varDecl.name ,_varDecl));
-    paramOrderVector.push_back(_varDecl.name);
+    var_name_map.insert(pair<string, VarDeclaration>(var_decl.name ,var_decl));
+    var_offset_map[var_decl.offset] = var_decl.name;
   }
   
-  void FunctionTable::addVar( VarDeclaration _varDecl)
+  void FunctionTable::addLocal(VarDeclaration var_decl)
   {
-    strVarMap.insert(pair<string, VarDeclaration>(_varDecl.name ,_varDecl));
+    var_name_map.insert(pair<string, VarDeclaration>(var_decl.name ,var_decl));
+    var_offset_map[var_decl.offset] = var_decl.name;
   }
-  void FunctionTable::correctOffsets()
+
+  void FunctionTable::setReturnType(DataType type)
   {
-    if(strVarMap.size() != paramOrderVector.size()) // If some params are present
-    {
-      // Get the last param
-      auto lastParam = strVarMap.begin();
-      
-      for(auto it = strVarMap.begin(); it != strVarMap.end(); ++it)
-      {
-	if(it->second.declType == PARAM)
-	{
-	  if(lastParam ->second.offset != PARAM)
-	  {
-	    lastParam = it;
-	  }
-	  else if(it -> second.offset > lastParam -> second.offset)
-	  {
-	    lastParam = it;
-	  }
-	}
-      }
-      int offsetCorrection = lastParam->second.offset+ lastParam->second.size;
-      cout << offsetCorrection << endl;
-      for(auto it = strVarMap.begin(); it != strVarMap.end(); ++it)
-      {
-	it->second.offset -= offsetCorrection;
-      }
-    }
+    return_type = type; 
   }
-  void FunctionTable::setReturnType(ValType _type)
+  DataType FunctionTable::getReturnType()
   {
-    returnType = new VarType();
-    returnType->setPrimitive(_type);
-  }
-  ValType FunctionTable::getReturnType()
-  {
-    return returnType->getValType();
+    return return_type;
   }
   string FunctionTable::getName()
   {
-    return name;
+    return fname;
   }
-  void FunctionTable::setName( std::string _name)
+  void FunctionTable::setName(std::string _fname)
   {
-    name = _name;
+    fname = _fname;
   }
   
-  list<ValType> FunctionTable::getArgTypeList()
+  list<DataType> FunctionTable::getArgTypeList()
   {
-    list<ValType> result;
-    for(auto it = paramOrderVector.begin();
-	it != paramOrderVector.end();
+    list<DataType> result;
+    for(auto it = var_offset_map.begin();
+	it != var_offset_map.end();
 	  ++it)
 	{
-	  result.push_back(strVarMap.find(*it)->second.varType->type);
+	  if(it->first >= 0)
+	  {
+	    result.push_back(var_name_map.find(it->second)->second.data_type);
+	  }
 	}
     return result;
   }
@@ -178,12 +207,12 @@
   
 
   
-  bool FunctionTable::existsSymbol(std::string _symbolName)
+  bool FunctionTable::existsSymbol(std::string symbolName)
   {
     
-    for(auto it = strVarMap.begin(); it != strVarMap.end(); ++it)
+    for(auto it = var_name_map.begin(); it != var_name_map.end(); ++it)
     {
-      if(it->first == _symbolName)
+      if(it->first == symbolName)
 	return true;
     }
     return false;
@@ -191,18 +220,18 @@
   
   void FunctionTable::reset()
   {
-    name = "";
-    returnType = NULL;
-    paramOrderVector.clear();
-    strVarMap.clear();	
+    fname = "";
+    return_type.reset();
+    var_offset_map.clear();
+    var_name_map.clear();
   }
   
   void FunctionTable::print()
   {
-    cout << "Symbol Table For " << name << endl;
+    cout << "Symbol Table For " << fname << endl;
     printf("%-20s %-20s %-20s %-10s %-10s\n","NAME","TYPE","PARAM/LOCAL","SIZE","OFFSET");
-    std::map< std::string, VarDeclaration > :: iterator it = strVarMap.begin(); 
-    for(; it != strVarMap.end() ; it++) (it->second).print();
+    std::map< std::string, VarDeclaration > :: iterator it = var_name_map.begin();
+    for(; it != var_name_map.end() ; it++) (it->second).print();
     cout << endl;	
   }
 
@@ -210,35 +239,96 @@
 
   void SymTab::addFuncTable(FunctionTable _funcTable)
   {
-    strFuncMap.insert(pair<FunctionSignature, FunctionTable>(_funcTable.getSignature() , _funcTable));
+    func_name_map.insert(pair<FunctionSignature, FunctionTable>(_funcTable.getSignature() , _funcTable));
   }
   void SymTab::updateFuncTable(FunctionTable _funcTable)
   {
-    strFuncMap[_funcTable.getSignature()] = _funcTable;
+    
+    
+    func_name_map[_funcTable.getSignature()] = _funcTable;
   }
   
   void SymTab::print()
   {
     cout << "Global Symbol Table" << endl;
-    
-    auto it = strFuncMap.begin();
+    auto it = func_name_map.begin();
     printf("%-20s %-20s\n","Function_Name","Return_Type");
-    for( ; it != strFuncMap.end() ; it++)
+    for( ; it != func_name_map.end() ; it++)
     {			
-      printf("%-20s %-20s\n",((it->second).name).c_str(),valTypeLookup[((it->second).returnType)->type].c_str());// create a vector for the enumerated type
+      printf("%-20s %-20s\n",((it->second).fname).c_str(),it->second.return_type.getString().c_str());// create a vector for the enumerated type
     }
     cout << endl;
     
-    //		it = strFuncMap.begin();
-    //		for( ; it != strFuncMap.end() ; it++) (it->second).print();
+    //		it = func_name_map.begin();
+    //		for( ; it != func_name_map.end() ; it++) (it->second).print();
   }
   FunctionTable SymTab::getFuncTable(FunctionSignature sig)
   {
-    return strFuncMap.find(sig)->second;
+    return func_name_map.find(sig)->second;
   }
   bool SymTab::existsSignature(FunctionSignature sig)
   {
-    return strFuncMap.find(sig) != strFuncMap.end();
+    return func_name_map.find(sig) != func_name_map.end();
   }
+  
+  bool weakSignatureMatch(FunctionSignature sig1, FunctionSignature sig2)
+  {
+    // Check if sig2 can be put into sig1
+    if(sig1.arg_types.size() != sig2.arg_types.size())
+    {
+      return false;
+    }
+    else
+    {
+      auto it1 = sig1.arg_types.begin();
+      auto it2 = sig2.arg_types.begin();
+      bool iscomp = true;
+      for(; it1 != sig1.arg_types.end(); ++it1, ++it2)
+      {
+	 iscomp = iscomp && castTypeCompatible(*it1, *it2);
+      }
+      return iscomp;
+    }
+  }
+  
+  FunctionSignature SymTab::getCompatibleSignature(FunctionSignature sig, int *match_count)
+  {
+    auto exact_match = strFuncMap.end();
+    auto weak_match = strFuncMap.end();
+    int weak_match_count = 0;
+    for(auto itr = strFuncMap.begin();
+	itr != strFuncMap.end(); ++itr)
+	{
+	  if(itr->second.getSignature() == sig)
+	  {
+	    exact_match = itr;
+	  }
+	  else if(weakSignatureMatch(itr->second.getSignature(), sig))
+	  {
+	    weak_match = itr;
+	    weak_match_count++;
+	  }
+	}
+	if(exact_match != strFuncMap.end())
+	{
+	  &match_count = 1;
+	  return exact_match->second.getSignature();
+	}
+	else
+	{
+	  if(weak_match_count = 0)
+	  {
+	    &match_count = 0;
+	    return FunctionSignature();
+	  }
+	  else
+	  {
+	    &match_count = weak_match_count;
+	    return weak_match->second.getSignature();
+	  }
+	}
+	
+  }
+  
   
   

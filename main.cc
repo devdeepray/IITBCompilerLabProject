@@ -11,8 +11,8 @@ int main (int argc, char** arg)
 
 	if(argc == 1)
 	{
-		for(auto it = parser._g_globalSymTable.strFuncMap.begin(); 
-				it != parser._g_globalSymTable.strFuncMap.end(); 
+		for(auto it = parser._g_globalSymTable.func_name_map.begin(); 
+				it != parser._g_globalSymTable.func_name_map.end(); 
 				++it)
 		{
 			it->second.print();
@@ -25,8 +25,8 @@ int main (int argc, char** arg)
 	  for(int i = 1;  i < argc; ++i)
 	    fnames.insert(std::string(arg[i]));
 	  
-	  for(auto it = parser._g_globalSymTable.strFuncMap.begin(); 
-	      it != parser._g_globalSymTable.strFuncMap.end(); 
+	  for(auto it = parser._g_globalSymTable.func_name_map.begin(); 
+	      it != parser._g_globalSymTable.func_name_map.end(); 
 	      ++it)
 	      {
 		if(fnames.find(it->first.fname) != fnames.end())

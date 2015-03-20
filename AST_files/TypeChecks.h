@@ -3,13 +3,12 @@
 
 #define SIZE_OF_PTR 4
 #include "Enums.h"
-bool retTypeCompatible(ValType expReturnType, ValType actReturnType);
+#include "SymbolTable.h"
+bool castTypeCompatible(DataType expReturnType, DataType actReturnType);
 
-bool assTypeCompatible(ValType lval, ValType rval);
+bool binOpTypeCompatible(DataType val1, DataType val2, OpType op);
 
-bool binOpTypeCompatible(ValType val1, ValType val2, OpType op);
+DataType getDominantType(DataType val1, DataType val2);
 
-ValType getDominantType(ValType val1, ValType val2);
-
-bool unaryOpCompatible(OpType op, ValType val);
+bool unaryOpCompatible(OpType op, DataType val);
 #endif // _TYPE_CHECK_H_

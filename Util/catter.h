@@ -71,9 +71,9 @@ public:
 	    {
 	      cout << "[Duplicate Identifier used][Line " << lno << "]:" << id << endl;
 	    }
-	    static void emptyarray(int lno, string id)
+	    static void baddimarray(int lno, string id)
 	    {
-	      cout << "[Empty array][Line " << lno << "]:" << "Tried to declare " << id << " with some size as empty" << endl;
+	      cout << "[Array bad dimensions][Line " << lno << "]:" << "Tried to declare " << id << " with some size as empty or float" << endl;
 	    }
 	    
 	  };
@@ -81,27 +81,27 @@ public:
 	  class stmterror
 	  {
 	  public:
-	    static void rettypeerror(int lno, ValType expret, ValType actret)
+	    static void rettypeerror(int lno, DataType expret, DataType actret)
 	    {
-	      cout << "[Return Type mismatch][Line " << lno << "]:Value of type " << valTypeLookup[actret] << " cannot be" <<
-	      " returned from a function returning " << valTypeLookup[expret] << endl;
+	      cout << "[Return Type mismatch][Line " << lno << "]:Value of type " << valTypeLookup[actret.getPrimitiveType()] << " cannot be" <<
+	      " returned from a function returning " << valTypeLookup[expret.getPrimitiveType()] << endl;
 	    }
 	    
-	    static void incompasstype(int lno, ValType lval, ValType rval)
+	    static void incompasstype(int lno, DataType lval, DataType rval)
 	    {
-	      cout << "[Assignment type mismatch][Line " << lno << "]:" << valTypeLookup[rval] 
-					  << " cannot be assigned to " << valTypeLookup[lval] << endl;
+	      cout << "[Assignment type mismatch][Line " << lno << "]:" << valTypeLookup[rval.getPrimitiveType()] 
+					  << " cannot be assigned to " << valTypeLookup[lval.getPrimitiveType()] << endl;
 	    }
 	    
-	    static void incompboptype(int lno, ValType val1, ValType val2, OpType op)
+	    static void incompboptype(int lno, DataType val1, DataType val2, OpType op)
 	    {
-	      cout << "[Operator type mismatch][Line " << lno << "]:" << valTypeLookup[val1] << " and " << 
-		      valTypeLookup[val2] << " are incompatible for " << opTypeLookup[op] << endl;
+	      cout << "[Operator type mismatch][Line " << lno << "]:" << valTypeLookup[val1.getPrimitiveType()] << " and " << 
+		      valTypeLookup[val2.getPrimitiveType()] << " are incompatible for " << opTypeLookup[op] << endl;
 	    }
 	    
-	    static void invalidunop(int lno, OpType op, ValType val)
+	    static void invalidunop(int lno, OpType op, DataType val)
 	    {
-	      cout << "[Unary operator mismatch][Line " << lno << "]:" << valTypeLookup[val] << " is not compatible with operator "
+	      cout << "[Unary operator mismatch][Line " << lno << "]:" << valTypeLookup[val.getPrimitiveType()] << " is not compatible with operator "
 		    << opTypeLookup[op] <<endl;
 	    }
 			

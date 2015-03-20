@@ -3,17 +3,13 @@ public:
 bool _g_stmtListError = false;
 bool _g_semanticError = false;
 bool _g_functionDecError = false;
-bool _g_varDefError = false;
-bool _g_declaratorError = false;
 bool _g_declarationError = false;
 bool _g_varDecError = false;
 int _g_offset = 0;
 FunctionTable _g_funcTable;
 SymTab _g_globalSymTable;
-ValType _g_typeSpec;
 int _g_width=0;
-VarType* _g_curVarType;
-VarType* _g_varType;
+DataType _g_varType;
 int &_g_lineCount = d_scanner.lineCount;
 int _g_functionStartLno;
 int _g_size=0;

@@ -1,58 +1,84 @@
 #include "TypeChecks.h"
 
-bool retTypeCompatible(ValType expReturnType, ValType actReturnType)
+bool castTypeCompatible(DataType expReturnType, DataType actReturnType)
 {
-  if(expReturnType == TYPE_WEAK || actReturnType == TYPE_WEAK) return true;
-  
-  if(expReturnType == TYPE_INT)
+  if(expReturnType.getPrimitiveType() == TYPE_WEAK || actReturnType.getPrimitiveType() == TYPE_WEAK)
   {
-    return actReturnType == TYPE_INT || actReturnType == TYPE_FLOAT;
+    return true;
   }
   
-  if(expReturnType == TYPE_FLOAT)
+  
+  if(expReturnType.getPrimitiveType() == TYPE_VOID || actReturnType.getPrimitiveType() == TYPE_VOID 
+    || expReturnType.getPrimitiveType() == TYPE_STR || actReturnType.getPrimitiveType() == TYPE_STR)
   {
-    return actReturnType == TYPE_INT ||
-	    actReturnType == TYPE_FLOAT;
+    return false;
   }
   
-  return false;
+  if(!expReturnType.isPrimitive() || !actReturnType.isPrimitive() )
+  {
+    return expReturnType == actReturnType;
+  }
+  
+  
+  return true;
 }
 
-bool assTypeCompatible(ValType lval, ValType rval)
-{
-  return retTypeCompatible(lval, rval);
-}
 
-bool binOpTypeCompatible(ValType val1, ValType val2, OpType op)
+// Compatibility for binary ops
+bool binOpTypeCompatible(DataType val1, DataType val2, OpType op)
 {
   
-  if(val1 == TYPE_WEAK || val2 == TYPE_WEAK) return true;
+  if(val1.getPrimitiveType() == TYPE_WEAK || val1.getPrimitiveType() == TYPE_WEAK)
+  {
+    return true;
+  }
   
-  return (val1 == TYPE_INT || val1 == TYPE_FLOAT) && (val2 == TYPE_INT || val2 == TYPE_FLOAT);
+  
+  if(val1.getPrimitiveType() == TYPE_VOID || val2.getPrimitiveType() == TYPE_VOID 
+    || val1.getPrimitiveType() == TYPE_STR || val2.getPrimitiveType() == TYPE_STR)
+  {
+    return false;
+  }
+  
+  if(!val1.isPrimitive() || !val2.isPrimitive() )
+  {
+    return false;
+  }
+  
+ 
+  return true;
 
 }
 
-ValType getDominantType(ValType val1, ValType val2)
+
+// Gets dominant type for binary operators
+DataType getDominantType(DataType val1, DataType val2)
 {
-  if(val1 == TYPE_FLOAT)
+
+  DataType res;
+  
+  // Any of them is void or weak
+  if(val1.getPrimitiveType() == TYPE_VOID || val2.getPrimitiveType() == TYPE_VOID 
+    || val1.getPrimitiveType() == TYPE_WEAK || val2.getPrimitiveType() == TYPE_WEAK
+    || val1.getPrimitiveType() == TYPE_STR || val2.getPrimitiveType() == TYPE_STR
+    || !val1.isPrimitive() || !val2.isPrimitive())
   {
-    if(val2 == TYPE_FLOAT || val2 == TYPE_INT)
-      return TYPE_FLOAT;
-    else
-      return TYPE_WEAK;
+    res.setPrimitive(TYPE_WEAK);
+    return res;
   }
-  else if(val1 == TYPE_INT)
+  
+  
+  if(val1.getPrimitiveType() == TYPE_FLOAT || val2.getPrimitiveType() == TYPE_FLOAT)
   {
-    if(val2 == TYPE_FLOAT) return TYPE_FLOAT;
-    
-    else if(val2 == TYPE_INT) return TYPE_INT;
-    
-    else return TYPE_WEAK;
+    res.setPrimitive(TYPE_FLOAT);
+    return res;
   }
-  return TYPE_WEAK;
+  
+  res.setPrimitive(TYPE_INT);
+  return res;
 }
 
-bool unaryOpCompatible(OpType op, ValType val)
+bool unaryOpCompatible(OpType op, DataType val)
 {
   if(val == TYPE_WEAK) return true;
   

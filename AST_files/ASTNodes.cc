@@ -20,9 +20,9 @@ void indent_print(std::string s)
   std::cout << s;
 }
 
-ValType& ExpAst::valType()
+DataType& ExpAst::dataType()
 {
-  return val_type;
+  return data_type;
 }
 
 // Empty AST
@@ -272,12 +272,12 @@ void FunCall::print()
   tab_degree--;
 }
 
-std::list< ValType > FunCall::getArgTypeList()
+std::list< DataType > FunCall::getArgTypeList()
 {
-  std::list<ValType> l;
+  std::list<DataType> l;
   for(auto it = list_exp_ast.begin(); it != list_exp_ast.end(); ++it)
   {
-    l.push_back((*it)->val_type);
+    l.push_back((*it)->data_type);
   }
   return l;
 }
@@ -337,9 +337,13 @@ void Identifier::print()
 Index::Index(ArrayRef* arrRef , ExpAst* expAst)
 {
   astnode_type = AST_INDEX;
+  
   c1 = arrRef;
+  
   c2 = expAst;
 }
+
+
 void Index::print()
 {
   tab_degree++;

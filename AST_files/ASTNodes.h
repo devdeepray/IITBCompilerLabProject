@@ -19,10 +19,10 @@ class abstract_astnode
 {
   
 private:
-  AstType astnode_type;
+  
   bool valid = true;
 public:
-  
+   AstType astnode_type;
   virtual void print () = 0;
   bool& validAST();
   bool const& validAST() const;
@@ -38,22 +38,22 @@ protected:
 class ExpAst : public abstract_astnode
 {
 public:
-  AstType astnode_type;
-  ValType val_type;
-  ValType& valType();
+  // AstType astnode_type;
+  DataType data_type;
+  DataType& dataType();
 };
 
 
 class StmtAst : public abstract_astnode
 {
 private:
-  AstType astnode_type;
+  // AstType astnode_type;
 };
 
 class ArrayRef : public ExpAst
 {
 private:
-  AstType astnode_type;
+  // AstType astnode_type;
 public:
    virtual std::string getArrayName(); 
 };
@@ -61,7 +61,7 @@ public:
 class Empty : public StmtAst
 {
 private:
-  AstType astnode_type;
+  // AstType astnode_type;
 public:
   Empty();
   void print();
@@ -71,7 +71,7 @@ public:
 class Block : public StmtAst
 {
 private:
-  AstType astnode_type;
+  // AstType astnode_type;
   std::list<StmtAst*> clist;
 public:
   Block(StmtAst* _c);
@@ -83,7 +83,7 @@ public:
 class ExpStmt : public StmtAst
 {
    private:
-     AstType astnode_type;
+     // AstType astnode_type;
      ExpAst* c1;
 public:
   ExpStmt(ExpAst* exp);
@@ -93,7 +93,7 @@ public:
 class Ass : public StmtAst
 {
 private:
-  AstType astnode_type;
+  // AstType astnode_type;
   ExpAst* c1;
   ExpAst* c2;
 public:
@@ -104,7 +104,7 @@ public:
 class Return : public StmtAst
 {
 private:
-  AstType astnode_type;
+  // AstType astnode_type;
   ExpAst* c1;
 public:
   Return(ExpAst* ret_exp);
@@ -115,7 +115,7 @@ public:
 class If : public StmtAst
 {
 private:
-  AstType astnode_type;
+  // AstType astnode_type;
   ExpAst* c1;
   StmtAst* c2;
   StmtAst* c3;
@@ -128,7 +128,7 @@ public:
 class For : public StmtAst
 {
 private:
-  AstType astnode_type;
+  // AstType astnode_type;
   ExpAst* c1;
   ExpAst* c2;
   ExpAst* c3;
@@ -141,7 +141,7 @@ public:
 class While : public StmtAst
 {
 private:
-  AstType astnode_type;
+  // AstType astnode_type;
   ExpAst* c1;
   StmtAst* c2;
 public:
@@ -152,9 +152,10 @@ public:
 class FloatConst : public ExpAst
 {
 private:
-  AstType astnode_type;
-  float val;
+  // AstType astnode_type;
+  
 public:
+  float val;
   FloatConst(float _val);
   void print();
 };
@@ -162,7 +163,7 @@ public:
 class BinaryOp : public ExpAst
 {
 private:
-  AstType astnode_type;
+  // AstType astnode_type;
   ExpAst* c1;
   ExpAst* c2;
   OpType op;
@@ -174,7 +175,7 @@ public:
 class UnaryOp : public ExpAst
 {
 private:
-  AstType astnode_type;
+  // AstType astnode_type;
   ExpAst* c1;
   OpType op;
 public:
@@ -185,14 +186,15 @@ public:
 class FunCall : public ExpAst
 {
 private:
-  AstType astnode_type;
-  list<ExpAst*> list_exp_ast;
+  // AstType astnode_type;
+  
   string func_name;
 public:
+  list<ExpAst*> list_exp_ast;
   FunCall(ExpAst* _exp_ast);
   void setName(string fname);
   void print();
-  std::list<ValType> getArgTypeList();
+  std::list<DataType> getArgTypeList();
   void insert(ExpAst* e);
 };
 
@@ -200,9 +202,10 @@ public:
 class IntConst : public ExpAst
 {
 private:
-  AstType astnode_type;
-  int val;
+  // AstType astnode_type;
+  
 public:
+  int val;
   IntConst(int _val);
   void print();
 };
@@ -210,7 +213,7 @@ public:
 class StringConst : public ExpAst
 {
 private:
-  AstType astnode_type;
+  // AstType astnode_type;
   std::string val;
 public:
   StringConst(std::string _val);
@@ -221,7 +224,7 @@ public:
 class Identifier : public ArrayRef
 {
 private:
-  AstType astnode_type;
+  // AstType astnode_type;
   std::string val;
 public:
   Identifier(std::string _val);
@@ -232,7 +235,7 @@ public:
 class Index : public ArrayRef
 {
 private:
-  AstType astnode_type;
+  // AstType astnode_type;
   ArrayRef* c1;
   ExpAst* c2;
 public:
@@ -240,5 +243,6 @@ public:
   std::string getArrayName();
   void print();
 };
+
 
 #endif
