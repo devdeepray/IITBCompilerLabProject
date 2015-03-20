@@ -200,12 +200,12 @@ compound_statement  : '{' '}'
 }
 | '{' statement_list '}'
 {
-   // ($2)->print();
+    ($2)->print();
 	_g_stmtListError = ($2)->validAST();
 }
 | '{' declaration_list statement_list '}'
 {
-   // ($3)->print();
+    ($3)->print();
 	_g_stmtListError = _g_varDecError || ($3)->validAST();
 }
 ;
@@ -825,7 +825,7 @@ postfix_expression  : primary_expression
     else if(($3)->validAST())
     {
 	int wmcount;
-	FunctionSignature tmpsig = getCompatibleSignature(fsig, &wmcount);
+	FunctionSignature tmpsig = _g_globalSymTable.getCompatibleSignature(fsig, &wmcount);
 	if(wmcount == 0)
 	{
 	    ($$)->validAST() = false;
@@ -834,14 +834,14 @@ postfix_expression  : primary_expression
 	else if(wmcount > 1)
 	{
 	    ($$)->validAST() = false;
-	    cat::parse::fdecerror:ambiguousfcall(_g_lineCount, fsig);
+	    cat::parse::fdecerror::ambiguousfcall(_g_lineCount, fsig);
 	}
 	else
 	{
 	    ($$)->validAST() = true;
 	    
 	    auto it1 = tmpsig.arg_types.begin();
-	    auto it2 = ($$)->list_exp_ast.begin();
+	    auto it2 = ((FunCall*)$$)->list_exp_ast.begin();
 	    for(; it1 != tmpsig.arg_types.end(); ++it1, ++it2)
 	    {
 		if((*it2)->dataType().isPrimitive()

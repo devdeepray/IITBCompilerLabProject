@@ -128,12 +128,17 @@
     arg_types =  _arg_types;
   }
   
+  FunctionSignature::FunctionSignature()
+  {
+	fname="Default";
+  }
+  
   void FunctionSignature::print()
   {
-    cout << fname << "(";
+    cout << fname << "( ";
     for(auto it = arg_types.begin(); it != arg_types.end(); ++it)
     {
-        cout << it->getString();
+        cout << it->getString() << " ";
     }
     cout << ")";
   }
@@ -150,6 +155,21 @@
     }
     
   }
+  
+  bool FunctionSignature::operator==(const FunctionSignature& sig2) const
+  {
+	  if(this->fname != sig2.fname ) return false;
+	  if(this->arg_types.size() != sig2.arg_types.size()) return false;
+	  
+	  auto it1 = this->arg_types.begin();
+	  auto it2 = sig2.arg_types.begin();
+	  for( ; it1 != this->arg_types.end(); it1++ , it2++)
+	  {
+		  if( *it1 != *it2) return false;
+	  }
+	  return true;
+  }
+  
   VarDeclaration FunctionTable::getVar(string var_name)
   {
     return (var_name_map.find(var_name))->second;
@@ -274,6 +294,8 @@
   bool weakSignatureMatch(FunctionSignature sig1, FunctionSignature sig2)
   {
     // Check if sig2 can be put into sig1
+    
+    if( sig1.fname != sig2.fname) return false;
     if(sig1.arg_types.size() != sig2.arg_types.size())
     {
       return false;
@@ -285,7 +307,7 @@
       bool iscomp = true;
       for(; it1 != sig1.arg_types.end(); ++it1, ++it2)
       {
-	 iscomp = iscomp && castTypeCompatible(*it1, *it2);
+	     iscomp = iscomp && castTypeCompatible(*it1, *it2);
       }
       return iscomp;
     }
@@ -293,38 +315,40 @@
   
   FunctionSignature SymTab::getCompatibleSignature(FunctionSignature sig, int *match_count)
   {
-    auto exact_match = strFuncMap.end();
-    auto weak_match = strFuncMap.end();
+    auto exact_match = func_name_map.end();
+    auto weak_match = func_name_map.end();
     int weak_match_count = 0;
-    for(auto itr = strFuncMap.begin();
-	itr != strFuncMap.end(); ++itr)
+    
+    for(auto itr = func_name_map.begin();
+	itr != func_name_map.end(); ++itr)
 	{
-	  if(itr->second.getSignature() == sig)
+	  if(itr->first == sig)
 	  {
 	    exact_match = itr;
 	  }
-	  else if(weakSignatureMatch(itr->second.getSignature(), sig))
+	  else if(weakSignatureMatch(itr->first, sig))
 	  {
 	    weak_match = itr;
 	    weak_match_count++;
 	  }
 	}
-	if(exact_match != strFuncMap.end())
+	
+	if(exact_match != func_name_map.end())
 	{
-	  &match_count = 1;
-	  return exact_match->second.getSignature();
+	  *match_count = 1;
+	  return exact_match->first;
 	}
 	else
 	{
-	  if(weak_match_count = 0)
+	  if(weak_match_count == 0)
 	  {
-	    &match_count = 0;
+	    *match_count = 0;
 	    return FunctionSignature();
 	  }
 	  else
 	  {
-	    &match_count = weak_match_count;
-	    return weak_match->second.getSignature();
+	    *match_count = weak_match_count;
+	    return weak_match->first;
 	  }
 	}
 	

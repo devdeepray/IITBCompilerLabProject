@@ -1,0 +1,25 @@
+int main(int x, float y)
+{
+    int mainV1;
+    return 0;
+}
+
+
+int testFunc()
+{
+    int testFuncV1;
+    float testFuncV2;
+    int t;
+    
+    main(testFuncV1,testFuncV2);
+    
+    main(testFuncV1,testFuncV1);
+    
+    main(testFuncV2,testFuncV2);
+    
+    main(testFuncV1);
+    
+    main(testFuncV1,testFuncV1,testFuncV1);
+    
+    return 0;
+}

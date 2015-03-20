@@ -60,8 +60,14 @@ public:
             cout << "[Void type for variable][Line " << lno << "]:"
                     << id << " defined as void." << endl;
         }
-	    
-	   
+        
+        static void ambiguousfcall(int lno, FunctionSignature fsig)
+        {
+             cout << "[Ambiguous function call][Line " << lno << "]:"
+                    << "Can be resolved to multiple functions with compatible signature to: ";
+             fsig.print(); 
+             cout << endl;
+        }
 	  };
 	  
 	  class declaratorerror

@@ -54,9 +54,11 @@ struct FunctionSignature
   std::string fname;
   std::list<DataType> arg_types;
   
+  FunctionSignature();
   FunctionSignature(std::string _fname, std::list<DataType> _arg_types);
   void print();
   bool operator<(const FunctionSignature& sig2)const;
+  bool operator==(const FunctionSignature& sig2)const;
 };
 
 struct FunctionTable
