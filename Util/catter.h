@@ -89,25 +89,25 @@ public:
 	  public:
 	    static void rettypeerror(int lno, DataType expret, DataType actret)
 	    {
-	      cout << "[Return Type mismatch][Line " << lno << "]:Value of type " << valTypeLookup[actret.getPrimitiveType()] << " cannot be" <<
-	      " returned from a function returning " << valTypeLookup[expret.getPrimitiveType()] << endl;
+	      cout << "[Return Type mismatch][Line " << lno << "]:Value of type " << actret.getString() << " cannot be" <<
+	      " returned from a function returning " << expret.getString() << endl;
 	    }
 	    
 	    static void incompasstype(int lno, DataType lval, DataType rval)
 	    {
-	      cout << "[Assignment type mismatch][Line " << lno << "]:" << valTypeLookup[rval.getPrimitiveType()] 
-					  << " cannot be assigned to " << valTypeLookup[lval.getPrimitiveType()] << endl;
+	      cout << "[Assignment type mismatch][Line " << lno << "]:" << rval.getString() 
+					  << " cannot be assigned to " << lval.getString() << endl;
 	    }
 	    
 	    static void incompboptype(int lno, DataType val1, DataType val2, OpType op)
 	    {
-	      cout << "[Operator type mismatch][Line " << lno << "]:" << valTypeLookup[val1.getPrimitiveType()] << " and " << 
-		      valTypeLookup[val2.getPrimitiveType()] << " are incompatible for " << opTypeLookup[op] << endl;
+	      cout << "[Operator type mismatch][Line " << lno << "]:" << val1.getString() << " and " << 
+		      val2.getString() << " are incompatible for " << opTypeLookup[op] << endl;
 	    }
 	    
 	    static void invalidunop(int lno, OpType op, DataType val)
 	    {
-	      cout << "[Unary operator mismatch][Line " << lno << "]:" << valTypeLookup[val.getPrimitiveType()] << " is not compatible with operator "
+	      cout << "[Unary operator mismatch][Line " << lno << "]:" << val.getString() << " is not compatible with operator "
 		    << opTypeLookup[op] <<endl;
 	    }
 			

@@ -1,25 +1,34 @@
 #include "TypeChecks.h"
 
+// Checks if one can be cast into the other
 bool castTypeCompatible(DataType expReturnType, DataType actReturnType)
 {
-  if(expReturnType.getPrimitiveType() == TYPE_WEAK || actReturnType.getPrimitiveType() == TYPE_WEAK)
+
+  // Weak types can be cast into anything 
+  if(expReturnType.getPrimitiveType() == TYPE_WEAK 
+    || actReturnType.getPrimitiveType() == TYPE_WEAK)
   {
     return true;
   }
   
-  
-  if(expReturnType.getPrimitiveType() == TYPE_VOID || actReturnType.getPrimitiveType() == TYPE_VOID 
-    || expReturnType.getPrimitiveType() == TYPE_STR || actReturnType.getPrimitiveType() == TYPE_STR)
+  // Void or string cannot be cast into anything
+  if(expReturnType.getPrimitiveType() == TYPE_VOID 
+    || actReturnType.getPrimitiveType() == TYPE_VOID 
+    || expReturnType.getPrimitiveType() == TYPE_STR 
+    || actReturnType.getPrimitiveType() == TYPE_STR)
   {
     return false;
   }
   
+  // If non primitive, then allow casting if exactly the same
+  // TODO If non primitive, allow casting if same total size or like GCC,
+  // always allow casts
   if(!expReturnType.isPrimitive() || !actReturnType.isPrimitive() )
   {
     return expReturnType == actReturnType;
   }
   
-  
+  // If int to float or float to int, etc.
   return true;
 }
 

@@ -24,5 +24,8 @@ sed -i '/include "Scanner.h"/a #include "./AST_files/SymbolTable.h"
 sed -i '/include "Scanner.h"/a #include "./AST_files/TypeChecks.h"
 ' Parser.h 
 
+sed -i '/include "Scanner.h"/a #include "./AST_files/ASTCreation.h"
+' Parser.h
+
 sed -i '/d_scanner;/r AST_files/globalDef
 ' Parser.h; 

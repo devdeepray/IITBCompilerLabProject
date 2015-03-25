@@ -190,7 +190,6 @@ constant_expression   : TOK_INT_CONST
 | TOK_FP_CONST   
 {
   ($$) = new FloatConst(stof($1));
-  cout << "tit" << endl;
 }
 ;
 
@@ -200,12 +199,12 @@ compound_statement  : '{' '}'
 }
 | '{' statement_list '}'
 {
-    ($2)->print();
+    //($2)->print();
 	_g_stmtListError = ($2)->validAST();
 }
 | '{' declaration_list statement_list '}'
 {
-    ($3)->print();
+    //($3)->print();
 	_g_stmtListError = _g_varDecError || ($3)->validAST();
 }
 ;
@@ -242,7 +241,6 @@ statement  : '{' statement_list '}'
     ExpAst* tmp = $2;
     DataType retType = _g_funcTable.getReturnType();
     bool retComp = castTypeCompatible(retType, ($2)->dataType());
-   
     if(retType !=  ($2)->dataType() && retComp)
     {
    
@@ -258,6 +256,7 @@ statement  : '{' statement_list '}'
       {
 	    cerr << "Bug in parser, should never come here"; 
       }
+
       tmp->validAST() = ($2)->validAST();
     }
     ($$) = new Return( tmp );
@@ -268,50 +267,54 @@ statement  : '{' statement_list '}'
         cat::parse::stmterror::rettypeerror(_g_lineCount, _g_funcTable.getReturnType(), ($2)->dataType());
     }
 }
-| expression ';' // Added this for void func calls
+| expression ';' // Added this for void func calls. Also handles assignment statement
 {
   ($$) = new ExpStmt($1);
   ($$)->validAST() = ($1)->validAST();
 }
-;
-assignment_statement  : ';'
+| ';'
 {
-    ($$) = new Empty();
-}
-| l_expression '=' expression ';'
-{
-    
-    bool comp = castTypeCompatible(($1)->dataType(), ($3)->dataType());
-    ExpAst* tmp;
-    tmp = $3;
-    if((($1)->dataType() != ($3)->dataType()) && comp)
-    {
-      if(($1)->dataType().getPrimitiveType() == TYPE_FLOAT)
-      {
-	    tmp = new UnaryOp(($3), OP_TOFLT);
-	    tmp->dataType().setPrimitive(TYPE_FLOAT);
-      }
-      else if(($1)->dataType().getPrimitiveType() == TYPE_INT)
-      {
-	    tmp = new UnaryOp(($3), OP_TOINT);
-	    tmp->dataType().setPrimitive(TYPE_INT);
-      }
-      else if(($1)->dataType().getPrimitiveType() != TYPE_WEAK)
-      {
-	    cerr << "Bug in parser, should never come here"; 
-      }
-      tmp->validAST() = ($3)->validAST();
-    }
-    $$ = new Ass($1, tmp);
-    ($$)->validAST() = ($1)->validAST() && ($3)->validAST() && comp;
-    
-    if(!comp)
-    {
-        // Wrong assignment type mismatch   
-        cat::parse::stmterror::incompasstype(_g_lineCount, ($1)->dataType(), ($3)->dataType());
-    }
+   ($$) = new Empty();
 }
 ;
+//assignment_statement  : ';'
+//{
+ //   ($$) = new Empty();
+//}
+//| l_expression '=' expression ';'
+//{
+//    
+//    bool comp = binOpTypeCompatible(($1)->dataType(), ($3)->dataType(), OP_ASSIGN);
+//    ExpAst* tmp;
+//    tmp = $3;
+//    if((($1)->dataType() != ($3)->dataType()) && comp)
+//    {
+//      if(($1)->dataType().getPrimitiveType() == TYPE_FLOAT)
+//      {
+//	    tmp = new UnaryOp(($3), OP_TOFLT);
+//	    tmp->dataType().setPrimitive(TYPE_FLOAT);
+//      }
+//      else if(($1)->dataType().getPrimitiveType() == TYPE_INT)
+//      {
+//	    tmp = new UnaryOp(($3), OP_TOINT);
+//	    tmp->dataType().setPrimitive(TYPE_INT);
+//      }
+//      else if(($1)->dataType().getPrimitiveType() != TYPE_WEAK)
+//      {
+//	    cerr << "Bug in parser, should never come here"; 
+//      }
+//      tmp->validAST() = ($3)->validAST();
+//    }
+//    $$ = new Ass($1, tmp);
+//    ($$)->validAST() = ($1)->validAST() && ($3)->validAST() && comp;
+    
+//    if(!comp)
+//    {
+//        // Wrong assignment type mismatch   
+//        cat::parse::stmterror::incompasstype(_g_lineCount, ($1)->dataType(), ($3)->dataType());
+//    }
+//}
+//;
 expression  : logical_and_expression
 {
     ($$) = ($1);
@@ -352,6 +355,7 @@ logical_and_expression  : equality_expression
     }
 }
 ;
+
 equality_expression  : relational_expression
 {
     $$ = $1;
@@ -359,232 +363,37 @@ equality_expression  : relational_expression
 | equality_expression TOK_EQ_OP relational_expression
 {
    
-    
-    bool comp = binOpTypeCompatible(($1)->dataType(), ($3)->dataType(), OP_EQ);
-    DataType tmp = getDominantType(($1)->dataType(), ($3)->dataType());
-    ExpAst* tmp1 = $1, *tmp2 = $3;
-    
-    if(tmp.getPrimitiveType() == TYPE_FLOAT)
-    {
-	
-	if(($1)->dataType().getPrimitiveType() == TYPE_INT)
-	{
-	  tmp1 = new UnaryOp($1, OP_TOFLT);
-	  tmp1->validAST() = ($1)->validAST();
-	}
-	
-	if(($3)->dataType().getPrimitiveType() == TYPE_INT)
-	{
-	  tmp2 = new UnaryOp($3, OP_TOFLT);
-	  tmp2->validAST() = ($3)->validAST();
-	}
-	
-	$$ = new BinaryOp(tmp1, tmp2, OP_FLOAT_EQ);
-    }
-    else
-    {
-      $$ = new BinaryOp($1, $3, OP_INT_EQ);
-    }
-   
-    ($$)->validAST() = ($1)->validAST() && ($3)->validAST() && comp;
-    ($$)->dataType().setPrimitive( TYPE_INT );
-    
-    if(!comp)
-    {
-        // Wrong type mismatch   
-        cat::parse::stmterror::incompboptype(_g_lineCount, ($1)->dataType(), ($3)->dataType(), OP_EQ);
-    }
+    ($$) = createBinOpAst($1, $3, OP_EQ, OP_INT_EQ, OP_FLOAT_EQ, _g_lineCount);
 }
 | equality_expression TOK_NEQ_OP relational_expression
 {
-   bool comp = binOpTypeCompatible(($1)->dataType(), ($3)->dataType(), OP_NE);
-    DataType tmp = getDominantType(($1)->dataType(), ($3)->dataType());
-    ExpAst* tmp1 = $1, *tmp2 = $3;
-    
-    if(tmp.getPrimitiveType() == TYPE_FLOAT)
-    {
-	
-	if(($1)->dataType().getPrimitiveType() == TYPE_INT)
-	{
-	  tmp1 = new UnaryOp($1, OP_TOFLT);
-	  tmp1->validAST() = ($1)->validAST();
-	}
-	
-	if(($3)->dataType().getPrimitiveType() == TYPE_INT)
-	{
-	  tmp2 = new UnaryOp($3, OP_TOFLT);
-	  tmp2->validAST() = ($3)->validAST();
-	}
-	
-	$$ = new BinaryOp(tmp1, tmp2, OP_FLOAT_NE);
-    }
-    else
-    {
-      $$ = new BinaryOp($1, $3, OP_INT_NE);
-    }
-    
-    ($$)->validAST() = ($1)->validAST() && ($3)->validAST() && comp;
-    ($$)->dataType().setPrimitive( TYPE_INT );
-    
-    if(!comp)
-    {
-        // Wrong type mismatch   
-        cat::parse::stmterror::incompboptype(_g_lineCount, ($1)->dataType(), ($3)->dataType(), OP_NE);
-    }
+    ($$) = createBinOpAst($1, $3, OP_NE, OP_INT_NE, OP_FLOAT_NE, _g_lineCount);
+  
 }
 ;
+
 relational_expression  : additive_expression
 {
     $$ = $1;
 }
 | relational_expression '<' additive_expression
 {
-    bool comp = binOpTypeCompatible(($1)->dataType(), ($3)->dataType(), OP_LT);
-    DataType tmp = getDominantType(($1)->dataType(), ($3)->dataType());
-    ExpAst* tmp1 = $1, *tmp2 = $3;
-    
-    if(tmp.getPrimitiveType() == TYPE_FLOAT)
-    {
-	
-	if(($1)->dataType().getPrimitiveType() == TYPE_INT)
-	{
-	  tmp1 = new UnaryOp($1, OP_TOFLT);
-	  tmp1->validAST() = ($1)->validAST();
-	}
-	
-	if(($3)->dataType().getPrimitiveType() == TYPE_INT)
-	{
-	  tmp2 = new UnaryOp($3, OP_TOFLT);
-	  tmp2->validAST() = ($3)->validAST();
-	}
-	
-	$$ = new BinaryOp(tmp1, tmp2, OP_FLOAT_LT);
-    }
-    else
-    {
-      $$ = new BinaryOp($1, $3, OP_INT_LT);
-    }
-    ($$)->validAST() = ($1)->validAST() && ($3)->validAST() && comp;
-    ($$)->dataType().setPrimitive( TYPE_INT );
-    
-    if(!comp)
-    {
-        // Wrong type mismatch   
-        cat::parse::stmterror::incompboptype(_g_lineCount, ($1)->dataType(), ($3)->dataType(), OP_LT);
-    }
+    ($$) = createBinOpAst($1, $3, OP_LT, OP_INT_LT, OP_FLOAT_LT, _g_lineCount);
 }
 | relational_expression '>' additive_expression
 {
-    bool comp = binOpTypeCompatible(($1)->dataType(), ($3)->dataType(), OP_GT);
-    DataType tmp = getDominantType(($1)->dataType(), ($3)->dataType());
-    ExpAst* tmp1 = $1, *tmp2 = $3;
-    
-    if(tmp.getPrimitiveType() == TYPE_FLOAT)
-    {
-	
-	if(($1)->dataType().getPrimitiveType() == TYPE_INT)
-	{
-	  tmp1 = new UnaryOp($1, OP_TOFLT);
-	  tmp1->validAST() = ($1)->validAST();
-	}
-	
-	if(($3)->dataType().getPrimitiveType() == TYPE_INT)
-	{
-	  tmp2 = new UnaryOp($3, OP_TOFLT);
-	  tmp2->validAST() = ($3)->validAST();
-	}
-	
-	$$ = new BinaryOp(tmp1, tmp2, OP_FLOAT_GT);
-    }
-    else
-    {
-      $$ = new BinaryOp($1, $3, OP_INT_GT);
-    }
-    
-    ($$)->validAST() = ($1)->validAST() && ($3)->validAST() && comp;
-    ($$)->dataType().setPrimitive( TYPE_INT );
-    
-    if(!comp)
-    {
-        // Wrong type mismatch   
-        cat::parse::stmterror::incompboptype(_g_lineCount, ($1)->dataType(), ($3)->dataType(), OP_GT);
-    }
+    ($$) = createBinOpAst($1, $3, OP_GT, OP_INT_GT, OP_FLOAT_GT, _g_lineCount);
 }
 | relational_expression TOK_LEQ_OP additive_expression
 {
-   bool comp = binOpTypeCompatible(($1)->dataType(), ($3)->dataType(), OP_LE);
-    DataType tmp = getDominantType(($1)->dataType(), ($3)->dataType());
-    ExpAst* tmp1 = $1, *tmp2 = $3;
-    
-    if(tmp.getPrimitiveType() == TYPE_FLOAT)
-    {
-	
-	if(($1)->dataType().getPrimitiveType() == TYPE_INT)
-	{
-	  tmp1 = new UnaryOp($1, OP_TOFLT);
-	  tmp1->validAST() = ($1)->validAST();
-	}
-	
-	if(($3)->dataType().getPrimitiveType() == TYPE_INT)
-	{
-	  tmp2 = new UnaryOp($3, OP_TOFLT);
-	  tmp2->validAST() = ($3)->validAST();
-	}
-	
-	$$ = new BinaryOp(tmp1, tmp2, OP_FLOAT_LE);
-    }
-    else
-    {
-      $$ = new BinaryOp($1, $3, OP_INT_LE);
-    }
-    
-    ($$)->validAST() = ($1)->validAST() && ($3)->validAST() && comp;
-    ($$)->dataType().setPrimitive( TYPE_INT );
-    
-    if(!comp)
-    {
-        // Wrong assignment type mismatch   
-        cat::parse::stmterror::incompboptype(_g_lineCount, ($1)->dataType(), ($3)->dataType(), OP_LE);
-    }
+   ($$) = createBinOpAst($1, $3, OP_LE, OP_INT_LE, OP_FLOAT_LE, _g_lineCount);
 }
 | relational_expression TOK_GEQ_OP additive_expression
 {
-   bool comp = binOpTypeCompatible(($1)->dataType(), ($3)->dataType(), OP_GE);
-    DataType tmp = getDominantType(($1)->dataType(), ($3)->dataType());
-    ExpAst* tmp1 = $1, *tmp2 = $3;
-    
-    if(tmp.getPrimitiveType() == TYPE_FLOAT)
-    {
-	
-	if(($1)->dataType().getPrimitiveType() == TYPE_INT)
-	{
-	  tmp1 = new UnaryOp($1, OP_TOFLT);
-	  tmp1->validAST() = ($1)->validAST();
-	}
-	
-	if(($3)->dataType().getPrimitiveType() == TYPE_INT)
-	{
-	  tmp2 = new UnaryOp($3, OP_TOFLT);
-	  tmp2->validAST() = ($3)->validAST();
-	}
-	
-	$$ = new BinaryOp(tmp1, tmp2, OP_FLOAT_GE);
-    }
-    else
-    {
-      $$ = new BinaryOp($1, $3, OP_INT_GE);
-    }
-    
-    ($$)->validAST() = ($1)->validAST() && ($3)->validAST() && comp;
-    ($$)->dataType().setPrimitive( TYPE_INT );
-    
-    if(!comp)
-    {
-        // Wrong assignment type mismatch   
-        cat::parse::stmterror::incompboptype(_g_lineCount, ($1)->dataType(), ($3)->dataType(), OP_GE);
-    }
+   ($$) = createBinOpAst($1, $3, OP_GE, OP_INT_GE, OP_FLOAT_GE, _g_lineCount);
 }
 ;
+
 additive_expression   : multiplicative_expression
 {
     $$ = $1;
@@ -592,157 +401,32 @@ additive_expression   : multiplicative_expression
 | additive_expression '+' multiplicative_expression
 {
 
-    bool comp = binOpTypeCompatible(($1)->dataType(), ($3)->dataType(), OP_PLUS);
-    DataType tmp = getDominantType(($1)->dataType(), ($3)->dataType());
-    ExpAst* tmp1 = $1, *tmp2 = $3;
-    
-    if(tmp.getPrimitiveType() == TYPE_FLOAT)
-    {
-	
-	if(($1)->dataType().getPrimitiveType() == TYPE_INT)
-	{
-	  tmp1 = new UnaryOp($1, OP_TOFLT);
-	  tmp1->validAST() = ($1)->validAST();
-	}
-	
-	if(($3)->dataType().getPrimitiveType() == TYPE_INT)
-	{
-	  tmp2 = new UnaryOp($3, OP_TOFLT);
-	  tmp2->validAST() = ($3)->validAST();
-	}
-	
-	$$ = new BinaryOp(tmp1, tmp2, OP_FLOAT_PLUS);
-    }
-    else
-    {
-      $$ = new BinaryOp($1, $3, OP_INT_PLUS);
-    }
-    
-    ($$)->validAST() = ($1)->validAST() && ($3)->validAST() && comp;
-    ($$)->dataType() = getDominantType( ($1)->dataType(), ($3)->dataType());
-    
-    if(!comp)
-    {
-        // Wrong assignment type mismatch   
-        cat::parse::stmterror::incompboptype(_g_lineCount, ($1)->dataType(), ($3)->dataType(), OP_PLUS);
-    }
-    
+	cout<< "L1" << endl;
+	cout << ($3)->dataType().getString() << endl;
+	cout << "L2" << endl;
+	$$;
+	cout << "L3" << endl;
+	cout << ($3)->dataType().getString() << endl;
+	cout << "L4" << endl;
+    ($$) = createBinOpAst($1, $3, OP_PLUS, OP_INT_PLUS, OP_FLOAT_PLUS, _g_lineCount);
 }
 | additive_expression '-' multiplicative_expression
 {
-    bool comp = binOpTypeCompatible(($1)->dataType(), ($3)->dataType(), OP_MINUS);
-    DataType tmp = getDominantType(($1)->dataType(), ($3)->dataType());
-    ExpAst* tmp1 = $1, *tmp2 = $3;
-    
-    if(tmp.getPrimitiveType() == TYPE_FLOAT)
-    {
-	
-	if(($1)->dataType().getPrimitiveType() == TYPE_INT)
-	{
-	  tmp1 = new UnaryOp($1, OP_TOFLT);
-	  tmp1->validAST() = ($1)->validAST();
-	}
-	
-	if(($3)->dataType().getPrimitiveType() == TYPE_INT)
-	{
-	  tmp2 = new UnaryOp($3, OP_TOFLT);
-	  tmp2->validAST() = ($3)->validAST();
-	}
-	
-	$$ = new BinaryOp(tmp1, tmp2, OP_FLOAT_MINUS);
-    }
-    else
-    {
-      $$ = new BinaryOp($1, $3, OP_INT_MINUS);
-    }
-    
-    ($$)->validAST() = ($1)->validAST() && ($3)->validAST() && comp;
-    ($$)->dataType() = getDominantType( ($1)->dataType(), ($3)->dataType());
-    
-    if(!comp)
-    {
-        // Wrong assignment type mismatch   
-        cat::parse::stmterror::incompboptype(_g_lineCount, ($1)->dataType(), ($3)->dataType(), OP_MINUS);
-    }
+    ($$) = createBinOpAst($1, $3, OP_MINUS, OP_INT_MINUS, OP_FLOAT_MINUS, _g_lineCount);
 }
 ;
+
 multiplicative_expression  : unary_expression
 {
     $$ = $1;
 }
 | multiplicative_expression '*' unary_expression
 {
-    bool comp = binOpTypeCompatible(($1)->dataType(), ($3)->dataType(), OP_MULT);
-    DataType tmp = getDominantType(($1)->dataType(), ($3)->dataType());
-    ExpAst* tmp1 = $1, *tmp2 = $3;
-    
-    if(tmp.getPrimitiveType() == TYPE_FLOAT)
-    {
-	
-	if(($1)->dataType().getPrimitiveType() == TYPE_INT)
-	{
-	  tmp1 = new UnaryOp($1, OP_TOFLT);
-	  tmp1->validAST() = ($1)->validAST();
-	}
-	
-	if(($3)->dataType().getPrimitiveType() == TYPE_INT)
-	{
-	  tmp2 = new UnaryOp($3, OP_TOFLT);
-	  tmp2->validAST() = ($3)->validAST();
-	}
-	
-	$$ = new BinaryOp(tmp1, tmp2, OP_FLOAT_MULT);
-    }
-    else
-    {
-      $$ = new BinaryOp($1, $3, OP_INT_MULT);
-    }
-    
-    ($$)->validAST() = ($1)->validAST() && ($3)->validAST() && comp;
-    ($$)->dataType() = getDominantType( ($1)->dataType(), ($3)->dataType());
-    
-    if(!comp)
-    {
-        // Wrong assignment type mismatch   
-        cat::parse::stmterror::incompboptype(_g_lineCount, ($1)->dataType(), ($3)->dataType(), OP_MULT);
-    }
+    ($$) = createBinOpAst($1, $3, OP_MULT, OP_INT_MULT, OP_FLOAT_MULT, _g_lineCount);
 }
 | multiplicative_expression '/' unary_expression
 {
-    bool comp = binOpTypeCompatible(($1)->dataType(), ($3)->dataType(), OP_DIV);
-    DataType tmp = getDominantType(($1)->dataType(), ($3)->dataType());
-    ExpAst* tmp1 = $1, *tmp2 = $3;
-    
-    if(tmp.getPrimitiveType() == TYPE_FLOAT)
-    {
-	
-	if(($1)->dataType().getPrimitiveType() == TYPE_INT)
-	{
-	  tmp1 = new UnaryOp($1, OP_TOFLT);
-	  tmp1->validAST() = ($1)->validAST();
-	}
-	
-	if(($3)->dataType().getPrimitiveType() == TYPE_INT)
-	{
-	  tmp2 = new UnaryOp($3, OP_TOFLT);
-	  tmp2->validAST() = ($3)->validAST();
-	}
-	
-	$$ = new BinaryOp(tmp1, tmp2, OP_FLOAT_DIV);
-    }
-    else
-    {
-      $$ = new BinaryOp($1, $3, OP_INT_DIV);
-    }
-    
-    ($$)->validAST() = ($1)->validAST() && ($3)->validAST() && comp;
-    ($$)->dataType() = getDominantType( ($1)->dataType(), ($3)->dataType());
-    
-    if(!comp)
-    {
-        // Wrong assignment type mismatch   
-        cat::parse::stmterror::incompboptype(_g_lineCount, ($1)->dataType(), ($3)->dataType(), OP_DIV);
-    }
+    ($$) = createBinOpAst($1, $3, OP_DIV, OP_INT_DIV, OP_FLOAT_DIV, _g_lineCount);
 }
 ;
 unary_expression  : postfix_expression
@@ -751,38 +435,32 @@ unary_expression  : postfix_expression
 }
 | unary_operator postfix_expression
 {
-
+    ExpAst* res;
     bool comp = unaryOpCompatible($1, ($2)->dataType());
-    
     
     if($1 == OP_UMINUS)
     {
       if(($2)->dataType().getPrimitiveType() == TYPE_FLOAT)
       {
-	$$ = new UnaryOp($2, OP_FLOAT_UMINUS);
+	res = new UnaryOp($2, OP_FLOAT_UMINUS);
       }
       else
       {
-	$$ = new UnaryOp($2, OP_INT_UMINUS);
+	res = new UnaryOp($2, OP_INT_UMINUS);
       }
     }
     else // NOT case
     {
-      $$ = new UnaryOp($2, OP_NOT);
+      res = new UnaryOp($2, OP_NOT);
     }
-	
-    
-    
-    
-    ($$)->validAST() = ($2)->validAST() && comp;
-    ($$)->dataType() = comp? ($2)->dataType() : DataType(TYPE_WEAK);
-    
+    (res)->validAST() = ($2)->validAST() && comp;
+    (res)->dataType() = comp? ($2)->dataType() : DataType(TYPE_WEAK);
     if(!comp)
     {
         // Wrong assignment type mismatch   
         cat::parse::stmterror::invalidunop(_g_lineCount, $1, ($2)->dataType());
     }
-    
+    ($$) = res;
 }
 ;
 postfix_expression  : primary_expression
@@ -791,36 +469,37 @@ postfix_expression  : primary_expression
 }
 | TOK_IDENTIFIER '(' ')'
 {
-    $$ = new FunCall(nullptr);
+    FunCall* tmp = new FunCall(nullptr);
     // No args fun call  
-    ((FunCall*)($$))->setName($1);
-    ($$)->dataType().setPrimitive( TYPE_WEAK);
+    tmp->setName($1);
+    tmp->dataType().setPrimitive( TYPE_WEAK);
     
     FunctionSignature fsig($1, list<DataType>());
     
     if(_g_globalSymTable.existsSignature(fsig))
     {
         // Valid function call  
-        ($$)->validAST() = true;
-        ($$)->dataType() = _g_globalSymTable.getFuncTable(fsig).getReturnType();
+        tmp->validAST() = true;
+        tmp->dataType() = _g_globalSymTable.getFuncTable(fsig).getReturnType();
     }
     else
     {
-        ($$)->validAST() = false;
+        tmp->validAST() = false;
         cat::parse::fdecerror::badfcall(_g_lineCount, fsig);
     }
+    $$ = tmp;
 }
 | TOK_IDENTIFIER '(' expression_list ')'
 {
-    $$ = $3;
     ((FunCall*)($3))->setName($1);
-    ($$)->dataType().setPrimitive( TYPE_WEAK );
-    
+    ($3)->dataType().setPrimitive( TYPE_WEAK );
+    ($3)->validAST() = false;
+
     FunctionSignature fsig($1, ((FunCall*)($3))->getArgTypeList());
     if(($3)->validAST() && _g_globalSymTable.existsSignature(fsig))
     {
-        ($$)->validAST() = true;
-        ($$)->dataType() = _g_globalSymTable.getFuncTable(fsig).getReturnType();
+        ($3)->validAST() = true;
+        ($3)->dataType() = _g_globalSymTable.getFuncTable(fsig).getReturnType();
     }
     else if(($3)->validAST())
     {
@@ -828,20 +507,20 @@ postfix_expression  : primary_expression
 	FunctionSignature tmpsig = _g_globalSymTable.getCompatibleSignature(fsig, &wmcount);
 	if(wmcount == 0)
 	{
-	    ($$)->validAST() = false;
+	    ($3)->validAST() = false;
 	    cat::parse::fdecerror::badfcall(_g_lineCount, fsig);
 	}
 	else if(wmcount > 1)
 	{
-	    ($$)->validAST() = false;
+	    ($3)->validAST() = false;
 	    cat::parse::fdecerror::ambiguousfcall(_g_lineCount, fsig);
 	}
 	else
 	{
-	    ($$)->validAST() = true;
+	    ($3)->validAST() = true;
 	    
 	    auto it1 = tmpsig.arg_types.begin();
-	    auto it2 = ((FunCall*)$$)->list_exp_ast.begin();
+	    auto it2 = ((FunCall*)$3)->list_exp_ast.begin();
 	    for(; it1 != tmpsig.arg_types.end(); ++it1, ++it2)
 	    {
 		if((*it2)->dataType().isPrimitive()
@@ -866,25 +545,26 @@ postfix_expression  : primary_expression
         
     }
     
-    
+    $$ = $3;
       
 }
 | l_expression TOK_INCR_OP
 {
 
 
-    $$ = new UnaryOp($1, OP_PP);
+    ExpAst* tmp = new UnaryOp($1, OP_PP);
     
     bool comp = unaryOpCompatible(OP_PP, ($1)->dataType());
     
-    ($$)->validAST() = ($1)->validAST() && comp;
-    ($$)->dataType() = comp? ($1)->dataType() : TYPE_WEAK;
+    (tmp)->validAST() = ($1)->validAST() && comp;
+    (tmp)->dataType() = comp? ($1)->dataType() : TYPE_WEAK;
     
     if(!comp)
     {
         // Wrong assignment type mismatch   
         cat::parse::stmterror::invalidunop(_g_lineCount, OP_PP, ($1)->dataType());
     }
+    $$ = tmp;
     
 }
 ;
@@ -894,39 +574,7 @@ primary_expression  : l_expression
 }
 | l_expression '=' expression // added this production
 {
-    bool comp = binOpTypeCompatible(($1)->dataType(), ($3)->dataType(), OP_ASSIGN);
-    ExpAst* tmp;
-    tmp = $3;
-    
-    if((($1)->dataType() != ($3)->dataType()) && comp)
-    {
-      if(($1)->dataType().getPrimitiveType() == TYPE_FLOAT)
-      {
-        tmp = new UnaryOp(($3), OP_TOFLT);
-      }
-      else if(($1)->dataType().getPrimitiveType() == TYPE_INT)
-      {
-        tmp = new UnaryOp(($3), OP_TOINT);
-      }
-      else if(($1)->dataType().getPrimitiveType() != TYPE_WEAK)
-      {
-        cerr << "Bug in parser, should never come here";
-      }
-      tmp->validAST() = ($3)->validAST();
-    }
-
-    $$ = new BinaryOp($1, tmp, OP_ASSIGN);
-
-    ($$)->validAST() = ($1)->validAST() && ($3)->validAST() && comp;
-    ($$)->dataType() =  ($1)->dataType() ;
-    
-    if(!comp)
-    {
-        // Wrong assignment type mismatch   
-        cat::parse::stmterror::incompboptype(_g_lineCount, ($1)->dataType(), ($3)->dataType(), OP_ASSIGN);
-    }
-    
-    
+    ($$) = createBinOpAst($1, $3, OP_ASSIGN, OP_ASSIGN, OP_ASSIGN, _g_lineCount);
 }
 | TOK_INT_CONST
 {
@@ -974,19 +622,13 @@ l_expression  : TOK_IDENTIFIER
     if(($1)->validAST())
     {
       
-      
-      
-      
       Index* tmp = new Index($1, $3);
-      
-      
       bool canIndex = !(($1)->dataType().isPrimitive()) && ($3)->dataType().isPrimitive() 
 	    &&($3)->dataType().getPrimitiveType() == TYPE_INT;
       tmp->validAST() = ($1)->validAST() && ($3)->validAST() && canIndex;
       
       if(!canIndex)
       {
-        
 	    cat::parse::stmterror::arrayreferror(_g_lineCount, ((Index*)tmp)->getArrayName());
             (tmp)->dataType().setPrimitive( TYPE_WEAK );
       }
@@ -1006,8 +648,9 @@ l_expression  : TOK_IDENTIFIER
 ;
 expression_list  : expression
 {
-    $$ = new FunCall($1);
-    ($$)->validAST() = ($1)->validAST();
+    ExpAst *tmp = new FunCall($1);
+    (tmp)->validAST() = ($1)->validAST();
+    $$ = tmp;
 }
 | expression_list ',' expression
 {
@@ -1027,37 +670,40 @@ unary_operator  : '-'
 ;
 selection_statement  : TOK_IF_KW '(' expression ')' statement TOK_ELSE_KW statement
 {
-    ($$) = new If( ($3), ($5), ($7));
-    ($$)->validAST() = ($3)->validAST() && ($5)->validAST() && ($7)->validAST();
+    StmtAst* tmp = new If( ($3), ($5), ($7));
+    (tmp)->validAST() = ($3)->validAST() && ($5)->validAST() && ($7)->validAST();
     if(!(($3)->dataType().getPrimitiveType() == TYPE_INT || ($3)->dataType().getPrimitiveType() == TYPE_FLOAT) 
       || !(($3)->dataType().isPrimitive()))
     {
         cat::parse::stmterror::ifexprerror(_g_lineCount);
-        ($$)->validAST() = false;
+        (tmp)->validAST() = false;
     }
+    $$ = tmp;
 }
 ;
 iteration_statement  : TOK_WHILE_KW '(' expression ')' statement
 {
-    ($$) = new While( ($3), ($5));
-    ($$)->validAST() = ($3)->validAST() && ($5)->validAST();
+    StmtAst* tmp = new While( ($3), ($5));
+    (tmp)->validAST() = ($3)->validAST() && ($5)->validAST();
     if(!(($3)->dataType().getPrimitiveType() == TYPE_INT || ($3)->dataType().getPrimitiveType() == TYPE_FLOAT)
     || !(($3)->dataType().isPrimitive()))
     {
         cat::parse::stmterror::whileexprerror(_g_lineCount);
-        ($$)->validAST() = false;
+        (tmp)->validAST() = false;
     }
+    $$ = tmp;
 }
 | TOK_FOR_KW '(' expression ';' expression ';' expression ')' statement //modified this production
 {
-    ($$) = new For( ($3), ($5), ($7), ($9));
-    ($$)->validAST() = ($3)->validAST() && ($5)->validAST() && ($7)->validAST() && ($9)->validAST();
+    StmtAst* tmp = new For( ($3), ($5), ($7), ($9));
+    (tmp)->validAST() = ($3)->validAST() && ($5)->validAST() && ($7)->validAST() && ($9)->validAST();
     if(!(($5)->dataType().getPrimitiveType() == TYPE_INT || ($5)->dataType().getPrimitiveType() == TYPE_FLOAT)
     || !(($5)->dataType().isPrimitive()))
     {
         cat::parse::stmterror::forexprerror(_g_lineCount);
-        ($$)->validAST() = false;
+        (tmp)->validAST() = false;
     }
+    $$ = tmp;
 }
 ;
 declaration_list  : declaration    
@@ -1069,27 +715,26 @@ declaration  : type_specifier declarator_list';'  ;
 declarator_list  : declarator
 {
      
-    
+
     if(!_g_declarationError)
     {
-            
-	    VarDeclaration v;
-	    _g_varType.clearDimensions();
-	    v.setDeclType(LOCAL);
-	    v.setName(_g_currentId);
-	    v.setSize(_g_size);
-	    v.setOffset(_g_offset);
+
+            VarDeclaration v;
+            v.setDeclType(LOCAL);
+            v.setName(_g_currentId);
+            v.setSize(_g_size);
+            v.setOffset(_g_offset);
             v.setDataType(_g_varType);
-	    _g_funcTable.addLocal(v);
-	    if(_g_varType.isPrimitive()) _g_offset -= _g_size;
-	    else _g_offset -= SIZE_OF_PTR;
+            _g_funcTable.addLocal(v);
+            if(_g_varType.isPrimitive()) _g_offset -= _g_size;
+            else _g_offset -= SIZE_OF_PTR;
     }
-	
+
     if(_g_varType.getPrimitiveType() == TYPE_VOID){
       _g_declarationError = true;
       cat::parse::fdecerror::voidtype(_g_lineCount, _g_currentId);
     }
-    
+
     _g_varDecError = _g_varDecError || _g_declarationError;
     _g_declarationError = false;
 }
@@ -1100,9 +745,8 @@ declarator_list  : declarator
     
     if(!_g_declarationError)
     {
-        
+
         VarDeclaration v;
-        _g_varType.clearDimensions();
         v.setDeclType(LOCAL);
         v.setName(_g_currentId);
         v.setSize(_g_size);
@@ -1112,12 +756,12 @@ declarator_list  : declarator
         if(_g_varType.isPrimitive())_g_offset -= _g_size;
         else _g_offset -= SIZE_OF_PTR;
     }
-    
+
     if(_g_varType.getPrimitiveType() == TYPE_VOID){
       _g_declarationError = true;
       cat::parse::fdecerror::voidtype(_g_lineCount, _g_currentId);
     }
-    
+
     _g_varDecError = _g_varDecError || _g_declarationError;
     _g_declarationError = false;
 }
