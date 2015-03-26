@@ -71,14 +71,14 @@
     }
     else
     {
-      if(primitive_type != dt2.primitive_type)
-      {
-	return primitive_type < dt2.primitive_type;
-      }
-      else
-      {
-	return array_dims < dt2.array_dims;
-      }
+	if(isPrimitive())
+	{
+		return primitive_type < dt2.primitive_type;
+	}
+	else
+	{
+		return false;
+	}
     }
   }
   
@@ -138,7 +138,7 @@
     cout << fname << "( ";
     for(auto it = arg_types.begin(); it != arg_types.end(); ++it)
     {
-        cout << it->getString() << " ";
+        cout << it->getString() << ", ";
     }
     cout << ")";
   }
@@ -158,16 +158,7 @@
   
   bool FunctionSignature::operator==(const FunctionSignature& sig2) const
   {
-	  if(this->fname != sig2.fname ) return false;
-	  if(this->arg_types.size() != sig2.arg_types.size()) return false;
-	  
-	  auto it1 = this->arg_types.begin();
-	  auto it2 = sig2.arg_types.begin();
-	  for( ; it1 != this->arg_types.end(); it1++ , it2++)
-	  {
-		  if( *it1 != *it2) return false;
-	  }
-	  return true;
+	return !((*this) < sig2) && !(sig2 < (*this));
   }
   
   VarDeclaration FunctionTable::getVar(string var_name)
@@ -319,6 +310,7 @@
     auto weak_match = func_name_map.end();
     int weak_match_count = 0;
     
+
     for(auto itr = func_name_map.begin();
 	itr != func_name_map.end(); ++itr)
 	{
@@ -336,6 +328,7 @@
 	if(exact_match != func_name_map.end())
 	{
 	  *match_count = 1;
+	//exact_match->first.print();
 	  return exact_match->first;
 	}
 	else
@@ -348,9 +341,12 @@
 	  else
 	  {
 	    *match_count = weak_match_count;
+	//weak_match->first.print();
 	    return weak_match->first;
 	  }
 	}
+	
+	
 	
   }
   

@@ -1,11 +1,9 @@
-/* Test case for semantic checks */
 
-/* function declaration errors */
 
 int main(int a, float a)
 {
 	return a;
-} 
+}
 
 int f(int a[3][5], int b)
 {
@@ -24,15 +22,49 @@ float g(int a, int b)
 	return a[1][2];
 }
 
-/* Expression errors */
+
+void fa()
+{
+	;
+}
 
 void z()
 {
 	int x,y,z;
 	float a,b,c;
+	void q;
 	int p[100][300];
+	int pol;
 	
+	-x;
 	x = ((a + b) * (p[100] - p[100][2]) / (a[1])) * 3;
+	x = (a + b / z) + "Hello";
+	
+	x = fa();
+
+	if( fa() )
+	{
+		;
+	}
+	else
+	{
+		;
+	}
+	
+	while(fa())
+	{
+		x = x + 1;
+	}
+	
+	for( x = 0; fa(); x++)
+	{
+		x = x + 3;
+	}
+	
+	x && fa();
+
+	x && a || a && z;
+	
 	return x;
 }
 

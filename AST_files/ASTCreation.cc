@@ -32,7 +32,7 @@ ExpAst* createBinOpAst(ExpAst* lexp, ExpAst* rexp, OpType genop, OpType intop, O
     }
 
     res->validAST() = lexp->validAST() && rexp->validAST() && comp;
-    res->dataType().setPrimitive( TYPE_INT );
+    res->dataType() = tmp;
 
     if(!comp)
     {

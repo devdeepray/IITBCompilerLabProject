@@ -25,7 +25,7 @@ bool castTypeCompatible(DataType expReturnType, DataType actReturnType)
   // always allow casts
   if(!expReturnType.isPrimitive() || !actReturnType.isPrimitive() )
   {
-    return expReturnType == actReturnType;
+    return !expReturnType.isPrimitive() && !actReturnType.isPrimitive();
   }
   
   // If int to float or float to int, etc.
@@ -89,18 +89,20 @@ DataType getDominantType(DataType val1, DataType val2)
 
 bool unaryOpCompatible(OpType op, DataType val)
 {
-  if(val == TYPE_WEAK) return true;
+
+  if(val.getPrimitiveType() == TYPE_WEAK) return true;
+  if(!val.isPrimitive()) return false;
   
   if(op == OP_UMINUS || op == OP_PP)
   {
-    if(val == TYPE_INT || val == TYPE_FLOAT)
+    if(val.getPrimitiveType() == TYPE_INT || val.getPrimitiveType() == TYPE_FLOAT)
       return true;
     else
       return false;
   }
   else if(op == OP_NOT)
   {
-    if(val == TYPE_INT) return true;
+    if(val.getPrimitiveType() == TYPE_INT) return true;
     else return false;
   }
   return false;

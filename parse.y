@@ -401,13 +401,6 @@ additive_expression   : multiplicative_expression
 | additive_expression '+' multiplicative_expression
 {
 
-	cout<< "L1" << endl;
-	cout << ($3)->dataType().getString() << endl;
-	cout << "L2" << endl;
-	$$;
-	cout << "L3" << endl;
-	cout << ($3)->dataType().getString() << endl;
-	cout << "L4" << endl;
     ($$) = createBinOpAst($1, $3, OP_PLUS, OP_INT_PLUS, OP_FLOAT_PLUS, _g_lineCount);
 }
 | additive_expression '-' multiplicative_expression
@@ -493,7 +486,6 @@ postfix_expression  : primary_expression
 {
     ((FunCall*)($3))->setName($1);
     ($3)->dataType().setPrimitive( TYPE_WEAK );
-    ($3)->validAST() = false;
 
     FunctionSignature fsig($1, ((FunCall*)($3))->getArgTypeList());
     if(($3)->validAST() && _g_globalSymTable.existsSignature(fsig))
@@ -726,8 +718,8 @@ declarator_list  : declarator
             v.setOffset(_g_offset);
             v.setDataType(_g_varType);
             _g_funcTable.addLocal(v);
-            if(_g_varType.isPrimitive()) _g_offset -= _g_size;
-            else _g_offset -= SIZE_OF_PTR;
+           _g_offset -= _g_size;
+            
     }
 
     if(_g_varType.getPrimitiveType() == TYPE_VOID){
@@ -753,8 +745,7 @@ declarator_list  : declarator
         v.setOffset(_g_offset);
         v.setDataType(_g_varType);
         _g_funcTable.addLocal(v);
-        if(_g_varType.isPrimitive())_g_offset -= _g_size;
-        else _g_offset -= SIZE_OF_PTR;
+       	_g_offset -= _g_size;
     }
 
     if(_g_varType.getPrimitiveType() == TYPE_VOID){
