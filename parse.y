@@ -9,7 +9,7 @@
 	arrayRefPtr: ArrayRef*;
 	opType: OpType;
 	idAttr: std::string;
-%type <stmtAstPtr> assignment_statement statement
+%type <stmtAstPtr> assignment_statement statement compound_statement
 %type <stmtAstPtr> statement_list selection_statement iteration_statement 
 %type <expAstPtr> expression logical_and_expression equality_expression 
 %type <expAstPtr> relational_expression additive_expression constant_expression
@@ -50,6 +50,7 @@ fun_declarator compound_statement
     else 
     {
 	_g_globalSymTable.updateFuncTable(_g_funcTable);
+	_g_program->addFunctionDef($4);
     }
     
     // Set higher level error
@@ -57,6 +58,8 @@ fun_declarator compound_statement
     
 }
 ;
+
+
 type_specifier  : TOK_VOID_KW
 {
     _g_varType.reset();
@@ -196,16 +199,19 @@ constant_expression   : TOK_INT_CONST
 compound_statement  : '{' '}'   
 {
 	_g_stmtListError = false;
+	$$ = new Empty();
 }
 | '{' statement_list '}'
 {
     //($2)->print();
 	_g_stmtListError = ($2)->validAST();
+	$$ = $2;
 }
 | '{' declaration_list statement_list '}'
 {
     //($3)->print();
 	_g_stmtListError = _g_varDecError || ($3)->validAST();
+	$$ = $3;
 }
 ;
 statement_list  : statement
@@ -632,6 +638,11 @@ selection_statement  : TOK_IF_KW '(' expression ')' statement TOK_ELSE_KW statem
         cat::parse::stmterror::ifexprerror(_g_lineCount);
         (tmp)->validAST() = false;
     }
+	tmp->genCode();
+	for(auto it = codeArray.begin(); it != codeArray.end(); ++it)
+	{
+		cout << *it << endl;
+	}
     $$ = tmp;
 }
 ;

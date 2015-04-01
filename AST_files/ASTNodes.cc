@@ -7,7 +7,8 @@
 using namespace std;
 
 int tab_degree = 0;
-
+int labelId = 0;
+vector<string> codeArray;
 bool const& abstract_astnode::validAST() const { return valid; }
 bool& abstract_astnode::validAST()  { return valid; }
 
@@ -18,6 +19,16 @@ void indent_print(std::string s)
   for(int i = 1; i < tab_degree; ++i)
     std::cout << "  ";
   std::cout << s;
+}
+
+
+void ProgAst::addFunctionDef(StmtAst* funcDef)
+{
+	funcList.push_back(funcDef);
+}
+
+void ProgAst::print()
+{
 }
 
 DataType& ExpAst::dataType()
@@ -123,7 +134,15 @@ void Return::print()
 }
 
 
+ void ExpAst::genCode()
+{
+	codeArray.push_back("Code for Exp");
+}
 
+ void StmtAst::genCode()
+{
+	codeArray.push_back("Code for Stmt");
+}
 
 If::If(ExpAst* cond, StmtAst* if_stats, StmtAst* else_stats)
 {
@@ -144,6 +163,47 @@ void If::print()
   c3->print();
   cout << ")";
   tab_degree--;
+}
+
+void If::genCode(list<int> *nextList)
+{
+	// We assume that result of c1 is in eax
+	list<int> selfNextList; // Next list for the if statement
+	list<int> c1Tl, c1Fl, c2Nl, c3Nl;
+	c1->genCode(true, true, &c1Tl, &c1Fl); // Fall, isCond, truelist, falselist
+	if(c1Tl.size() == 0 && c1Fl.size() == 0)
+	{
+		// Case that inside if, we have arithmetic expr
+		codeArray.push_back("cmpi(0, eax);");
+		int failJumpLine = codeArray.size();
+		codeArray.push_back("je"); // Jump to else part
+		c2->genCode(&c2Nl);
+		selfNextList.push_back(codeArray.size());
+		codeArray.push_back("j"); // Jump over else part
+		codeArray.push_back("label"+to_string(labelId)+":");
+		codeArray.at(failJumpLine) = "je(label" + to_string(labelId) + ");";
+		++labelId;
+		c3->genCode(&c3Nl);
+	}
+	else
+	{
+		codeArray.push_back("label" + to_string(labelId) + ":");
+		int trueLabel = labelId;
+		++labelId;
+		c2->genCode(&c2Nl);
+		selfNextList.push_back(codeArray.size()); // Exit jump wala line
+		codeArray.push_back("j"); // Jump over else part
+		codeArray.push_back("label" + to_string(labelId) + ":");
+		int falseLabel = labelId;
+		++labelId;
+		c3->genCode(&c3Nl);
+		backPatch(c1Tl, trueLabel);
+		backPatch(c1Fl, falseLabel);
+	}
+
+	selfNextList.insert(selfNextList.end(), c2Nl.begin(), c2Nl.end());
+	selfNextList.insert(selfNextList.end(), c3Nl.begin(), c3Nl.end());
+	(*nextList) = selfNextList;
 }
 
 

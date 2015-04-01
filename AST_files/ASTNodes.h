@@ -12,6 +12,9 @@ using namespace std;
 
 extern int tab_degree;
 
+extern vector<string> codeArray;
+
+extern int labelId;
 
 void indent_print(std::string s);
 
@@ -41,6 +44,7 @@ public:
   // AstType astnode_type;
   DataType data_type;
   DataType& dataType();
+  virtual void genCode();
 };
 
 
@@ -48,7 +52,19 @@ class StmtAst : public abstract_astnode
 {
 private:
   // AstType astnode_type;
+public:
+	virtual void genCode();
 };
+
+class ProgAst : public abstract_astnode
+{
+private:
+	list<StmtAst*> funcList;
+public:
+	void addFunctionDef(StmtAst*);
+	void print();
+};
+
 
 class ArrayRef : public ExpAst
 {
@@ -123,6 +139,7 @@ private:
 public:
   If(ExpAst* cond, StmtAst* if_stats, StmtAst* else_stats);
   void print();
+  void genCode();
 };
 
 
