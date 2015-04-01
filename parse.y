@@ -277,44 +277,6 @@ statement  : '{' statement_list '}'
    ($$) = new Empty();
 }
 ;
-//assignment_statement  : ';'
-//{
- //   ($$) = new Empty();
-//}
-//| l_expression '=' expression ';'
-//{
-//    
-//    bool comp = binOpTypeCompatible(($1)->dataType(), ($3)->dataType(), OP_ASSIGN);
-//    ExpAst* tmp;
-//    tmp = $3;
-//    if((($1)->dataType() != ($3)->dataType()) && comp)
-//    {
-//      if(($1)->dataType().getPrimitiveType() == TYPE_FLOAT)
-//      {
-//	    tmp = new UnaryOp(($3), OP_TOFLT);
-//	    tmp->dataType().setPrimitive(TYPE_FLOAT);
-//      }
-//      else if(($1)->dataType().getPrimitiveType() == TYPE_INT)
-//      {
-//	    tmp = new UnaryOp(($3), OP_TOINT);
-//	    tmp->dataType().setPrimitive(TYPE_INT);
-//      }
-//      else if(($1)->dataType().getPrimitiveType() != TYPE_WEAK)
-//      {
-//	    cerr << "Bug in parser, should never come here"; 
-//      }
-//      tmp->validAST() = ($3)->validAST();
-//    }
-//    $$ = new Ass($1, tmp);
-//    ($$)->validAST() = ($1)->validAST() && ($3)->validAST() && comp;
-    
-//    if(!comp)
-//    {
-//        // Wrong assignment type mismatch   
-//        cat::parse::stmterror::incompasstype(_g_lineCount, ($1)->dataType(), ($3)->dataType());
-//    }
-//}
-//;
 expression  : logical_and_expression
 {
     ($$) = ($1);
@@ -734,7 +696,7 @@ declarator_list  : declarator
 {
 
     
-    
+    /* SEMANTIC CHECK PART */
     if(!_g_declarationError)
     {
 

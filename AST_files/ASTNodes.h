@@ -99,6 +99,7 @@ private:
 public:
   Ass(ExpAst* left_stmt, ExpAst* right_stmt);
   void print();
+  void gencode();
 };
 
 class Return : public StmtAst
