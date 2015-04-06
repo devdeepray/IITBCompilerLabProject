@@ -638,7 +638,9 @@ selection_statement  : TOK_IF_KW '(' expression ')' statement TOK_ELSE_KW statem
         cat::parse::stmterror::ifexprerror(_g_lineCount);
         (tmp)->validAST() = false;
     }
-	tmp->genCode();
+    list<int> nl;
+    currentFuncTable = _g_funcTable;
+	tmp->genCode(&nl);
 	for(auto it = codeArray.begin(); it != codeArray.end(); ++it)
 	{
 		cout << *it << endl;

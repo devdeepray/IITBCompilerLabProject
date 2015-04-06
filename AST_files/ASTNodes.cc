@@ -9,9 +9,18 @@ using namespace std;
 int tab_degree = 0;
 int labelId = 0;
 vector<string> codeArray;
+FunctionTable currentFuncTable;
+
 bool const& abstract_astnode::validAST() const { return valid; }
 bool& abstract_astnode::validAST()  { return valid; }
 
+void backPatch(list<int> indices, int label)
+{
+    for(auto it = indices.begin(); it != indices.end(); ++it)
+    {
+        codeArray[*it] += ("(label" + to_string(label) + ");");
+    }
+}
 
 // For printing with indentation
 void indent_print(std::string s) 
@@ -134,12 +143,12 @@ void Return::print()
 }
 
 
- void ExpAst::genCode()
+void ExpAst::genCode(bool fall, bool iscond, list<int>* tl, list<int>* fl)
 {
 	codeArray.push_back("Code for Exp");
 }
 
- void StmtAst::genCode()
+void StmtAst::genCode(list<int>* nl)
 {
 	codeArray.push_back("Code for Stmt");
 }
@@ -170,23 +179,8 @@ void If::genCode(list<int> *nextList)
 	// We assume that result of c1 is in eax
 	list<int> selfNextList; // Next list for the if statement
 	list<int> c1Tl, c1Fl, c2Nl, c3Nl;
-	c1->genCode(true, true, &c1Tl, &c1Fl); // Fall, isCond, truelist, falselist
-	if(c1Tl.size() == 0 && c1Fl.size() == 0)
-	{
-		// Case that inside if, we have arithmetic expr
-		codeArray.push_back("cmpi(0, eax);");
-		int failJumpLine = codeArray.size();
-		codeArray.push_back("je"); // Jump to else part
-		c2->genCode(&c2Nl);
-		selfNextList.push_back(codeArray.size());
-		codeArray.push_back("j"); // Jump over else part
-		codeArray.push_back("label"+to_string(labelId)+":");
-		codeArray.at(failJumpLine) = "je(label" + to_string(labelId) + ");";
-		++labelId;
-		c3->genCode(&c3Nl);
-	}
-	else
-	{
+	c1->genCode(true, true, &c1Tl, &c1Fl); // Fall, iscond, truelist, falselist
+	
 		codeArray.push_back("label" + to_string(labelId) + ":");
 		int trueLabel = labelId;
 		++labelId;
@@ -199,7 +193,7 @@ void If::genCode(list<int> *nextList)
 		c3->genCode(&c3Nl);
 		backPatch(c1Tl, trueLabel);
 		backPatch(c1Fl, falseLabel);
-	}
+	
 
 	selfNextList.insert(selfNextList.end(), c2Nl.begin(), c2Nl.end());
 	selfNextList.insert(selfNextList.end(), c3Nl.begin(), c3Nl.end());
@@ -235,7 +229,6 @@ void For::print()
 }
 
 
-
 While::While(ExpAst* guard, StmtAst* whilebody)
 {
   astnode_type = AST_WHILE;
@@ -268,6 +261,11 @@ void FloatConst::print()
   tab_degree--;
 }
 
+void FloatConst::genCode(bool fall, bool iscond, list<int>* tl, list<int>* fl)
+{
+	codeArray.push_back("addi(F, esp);");
+	codeArray.push_back("storef(" + to_string(val) + ", ind(esp, 0));");
+}
 
 BinaryOp::BinaryOp(ExpAst* left_exp , ExpAst* right_exp, OpType _op)
 {
@@ -288,6 +286,110 @@ void BinaryOp::print()
   tab_degree--;
 }
 
+void BinaryOp::genCode(bool fall,bool iscond, list<int> *truelist, list<int> *falselist)
+{
+    std::list<int> c1Tl, c1Fl, c2Tl, c2Fl;
+	switch(op)
+	{
+		case OP_OR:
+		case OP_AND:
+		{
+			
+			if(op == OP_OR)
+			{
+				c1->genCode(false, true, &c1Tl, &c1Fl);
+				codeArray.push_back("label" + to_string(labelId) + ":");
+				backPatch(c1Fl, labelId);
+				labelId++;
+				c2->genCode(fall || !iscond, true, &c2Tl, &c2Fl);
+				if(iscond)
+				{
+					(*truelist) = c1Tl;
+					truelist->insert(truelist->end(), c2Tl.begin(), c2Tl.end());
+					(*falselist) = c2Fl;
+				}
+				else
+				{
+					codeArray.push_back("label" + to_string(labelId) + ":");
+					backPatch(c1Tl, labelId);
+					backPatch(c2Tl, labelId);
+					labelId++;
+					codeArray.push_back("pushi(1);");
+					int pos = codeArray.size();
+					codeArray.push_back("j");
+					codeArray.push_back("label" + to_string(labelId) + ":");
+					backPatch(c2Fl, labelId);
+					labelId++;
+					codeArray.push_back("pushi(0);");
+					codeArray.push_back("label" + to_string(labelId) + ":");
+					codeArray[pos] = "j(label" + to_string(labelId) +");"; 
+					labelId++;
+				}
+			}
+			else
+			{
+				c1->genCode(true, true, &c1Tl, &c1Fl);
+				codeArray.push_back("label" + to_string(labelId) + ":");
+				backPatch(c1Tl, labelId);
+				labelId++;
+				c2->genCode(fall || !iscond, true, &c2Tl, &c2Fl);
+				if(iscond)
+				{
+				    (*truelist) = c2Tl;
+				    (*falselist) = c1Fl;
+				    falselist->insert(falselist->end(), c2Fl.begin(), c2Fl.end());
+				}
+				else
+				{
+				    codeArray.push_back("label" + to_string(labelId) + ":");
+					backPatch(c2Tl, labelId);
+					labelId++;
+					codeArray.push_back("pushi(1);");
+					int pos = codeArray.size();
+					codeArray.push_back("j");
+					codeArray.push_back("label" + to_string(labelId) + ":");
+					backPatch(c1Fl, labelId);
+					backPatch(c2Fl, labelId);
+					labelId++;
+					codeArray.push_back("pushi(0);");
+					codeArray.push_back("label" + to_string(labelId) + ":");
+					codeArray[pos] = "j(label" + to_string(labelId) +");"; 
+					labelId++;
+				}
+			}
+		}
+		break;
+		case OP_INT_PLUS:
+		{
+            c1->genCode(false /*garbage*/, false, &c1Tl, &c1Fl);
+            c2->genCode(false, false, &c2Tl, &c2Fl);
+            codeArray.push_back("loadi(ind(esp, 0), eax);");
+            codeArray.push_back("loadi(ind(esp, I), ebx);");
+            codeArray.push_back("addi(ebx, eax);");
+            
+            if(!iscond)
+            {
+                codeArray.push_back("storei(eax, ind(esp, I));");
+                codeArray.push_back("addi(I, esp);");
+            }
+            else
+            {
+                codeArray.push_back("addi( 2 * I, esp);");
+                codeArray.push_back("cmpi(0,eax);"); 
+                if(fall)
+                {
+                    falselist->push_back(codeArray.size());
+                    codeArray.push_back("je");
+                }
+                else
+                {
+                    truelist->push_back(codeArray.size());
+                    codeArray.push_back("jne");
+                }
+            }
+		}
+	}
+}
 
 UnaryOp::UnaryOp(ExpAst* exp, OpType _op)
 {
@@ -361,6 +463,34 @@ void IntConst::print()
   tab_degree--;
 }
 
+void IntConst::genCode(bool fall, bool iscond, list<int>* tl, list<int>* fl)
+{
+    if(!iscond)
+    {
+        codeArray.push_back("addi(-I, esp);");
+	    codeArray.push_back("storei(" + to_string(val) + ", ind(esp, 0));");
+	}
+	else
+	{
+	    if(val == 0)
+	    {
+	        if(fall)
+	        {
+	            fl->push_back(codeArray.size());
+	            codeArray.push_back("j");
+	        }
+	    }
+	    else
+	    {
+	        if(!fall)
+	        {
+	            tl->push_back(codeArray.size());
+	            codeArray.push_back("j");
+	        }
+	    }
+	}
+	
+}
 
 
 StringConst::StringConst(std::string _val)
@@ -376,9 +506,6 @@ void StringConst::print()
   tab_degree--;
 }
 
-
-
-
 Identifier::Identifier(std::string _val)
 {
   astnode_type = AST_IDENTIFIER;
@@ -392,7 +519,89 @@ void Identifier::print()
   tab_degree--;
 }
 
+void Identifier::genCode(bool fall, bool isCond, list <int> *tl, list <int> *fl)
+{
+    auto it = currentFuncTable.var_name_map.find(val);
+    VarDeclaration curVarDecl = *it;
+    int idOffset = curVarDecl.offset;
+    ValType idValType = curValDecl.data_type.getPrimitiveType();
+    
+    if(idValType == TYPE_INT)
+    {
+        codeArray.push_back("loadi(ind(ebp,"+itos(idOffset)+"),eax)");
+        if(!isCond)
+        {
+            codeArray.push_back("addi(-I, esp);");
+	        codeArray.push_back("storei(eax, ind(esp, 0));");
+        }
+        else
+        {
+            codeArray.push_back("cmpi(0,eax)");
+            if(fall)
+            {
+               fl->push_back(codeArray.size()); 
+               codeArray.push_back("je");     
+            }
+            else
+            {
+               tl->push_back(codeArray.size()); 
+               codeArray.push_back("jne");
+            }
+        }
+    }    
+    else if(idValType == TYPE_FLOAT)
+    {
+        codeArray.push_back("loadf(ind(ebp,"+itos(idOffset)+"),eax)");
+        if(!isCond)
+        {
+            codeArray.push_back("addi(-F, esp);");
+	        codeArray.push_back("storef(eax, ind(esp, 0));");
+        }
+        else
+        {
+            codeArray.push_back("cmpf(0,eax)");
+            if(fall)
+            {
+               fl->push_back(codeArray.size()); 
+               codeArray.push_back("je");     
+            }
+            else
+            {
+               tl->push_back(codeArray.size()); 
+               codeArray.push_back("jne");
+            }
+        }
+    }
+}
 
+void Identifier::genCode(int *idOffset , ValType *idValType, list <int> *remainingDim)
+{
+    auto it = currentFuncTable.var_name_map.find(val);
+    VarDeclaration curVarDecl = *it;
+    *idOffset = curVarDecl.offset;
+    *idValType = curValDecl.data_type.getPrimitiveType();
+    *remainingDim = curValDecl.data_type.array_dims;
+    codeArray.push_back("addi(-I, esp);");
+	codeArray.push_back("storei(0, ind(esp, 0));");
+}
+
+
+void Index::genCode(bool fall, bool iscond, list<int>* tl, list<int>* fl)
+{
+    int idOffset;
+    ValType idValType;
+    list <int> remainingDim;
+    list <int> c2Tl,c2Fl;
+    c1->genCode(&idOffset, &idValType, &remainingDim);
+    c2->genCode(false /*garbage*/, false, &c2Tl, &c2Fl);
+    
+    codeArray.push_back("loadi(ind(esp, I), eax);"); // getting the partial offset calculation
+    codeArray.push_back("loadi(ind(esp, 0), ebx);"); // loading the last index into ebx
+    codeArray.push_back("muli(" + to_string(remainingDim.front())+ ",eax);"); //multiplying with dimension, holding in eax
+    codeArray.push_back("addi(ebx,eax)"); //final offset from ebp
+
+    // clean the stack appropriately... and gen code as in pure identifier
+}
 
 Index::Index(ArrayRef* arrRef , ExpAst* expAst)
 {

@@ -16,6 +16,8 @@ extern vector<string> codeArray;
 
 extern int labelId;
 
+extern FunctionTable currentFuncTable;
+
 void indent_print(std::string s);
 
 class abstract_astnode
@@ -44,7 +46,7 @@ public:
   // AstType astnode_type;
   DataType data_type;
   DataType& dataType();
-  virtual void genCode();
+  virtual void genCode(bool fall, bool iscond, list<int>* tl, list<int>* fl);
 };
 
 
@@ -53,7 +55,7 @@ class StmtAst : public abstract_astnode
 private:
   // AstType astnode_type;
 public:
-	virtual void genCode();
+	virtual void genCode(list<int>*);
 };
 
 class ProgAst : public abstract_astnode
@@ -139,7 +141,7 @@ private:
 public:
   If(ExpAst* cond, StmtAst* if_stats, StmtAst* else_stats);
   void print();
-  void genCode();
+  void genCode(list<int> *nextlist);
 };
 
 
@@ -176,6 +178,7 @@ public:
   float val;
   FloatConst(float _val);
   void print();
+  void genCode(bool fall, bool iscond, list<int>* tl, list<int>* fl);
 };
 
 class BinaryOp : public ExpAst
@@ -188,6 +191,7 @@ private:
 public:
   BinaryOp(ExpAst* left_exp , ExpAst* right_exp, OpType _op);
   void print();
+  void genCode(bool fall, bool iscond, list<int>* tl, list<int>* fl);
 };
 
 class UnaryOp : public ExpAst
@@ -226,6 +230,7 @@ public:
   int val;
   IntConst(int _val);
   void print();
+  void genCode(bool fall, bool iscond, list<int>* tl, list<int>* fl);
 };
 
 class StringConst : public ExpAst
@@ -248,6 +253,8 @@ public:
   Identifier(std::string _val);
   std::string getArrayName();
   void print();
+  void genCode(bool fall, bool iscond, list<int>* tl, list<int>* fl);
+  void genCode(int *idOffset , ValType *idValType, list <int> *remainingDim);
 };
 
 class Index : public ArrayRef
@@ -260,6 +267,8 @@ public:
   Index(ArrayRef* arrRef , ExpAst* expAst);
   std::string getArrayName();
   void print();
+  void genCode(bool fall, bool iscond, list<int>* tl, list<int>* fl);
+  void genCode(int *idOffset , ValType *idValType, list <int> *remainingDim);
 };
 
 
