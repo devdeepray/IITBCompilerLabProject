@@ -73,7 +73,8 @@ class ArrayRef : public ExpAst
 private:
   // AstType astnode_type;
 public:
-   virtual std::string getArrayName(); 
+   virtual std::string getArrayName();
+   virtual void genLCode(int* offset, ValType* valtype) = 0; 
    virtual void genCode(bool fall, bool iscond, bool onstack, list<int>* tl, list<int>* fl) = 0;
    virtual void genCode(int*, ValType*, bool onstack,  list<int>*) = 0;
 };
@@ -119,7 +120,7 @@ private:
 public:
   Ass(ExpAst* left_stmt, ExpAst* right_stmt);
   void print();
-  void gencode();
+  void genCode(bool, bool, bool, list<int>*, list<int>*);
 };
 
 class Return : public StmtAst
@@ -255,6 +256,7 @@ public:
   Identifier(std::string _val);
   std::string getArrayName();
   void print();
+  void genLCode(int* offset, ValType* valtype);
   void genCode(bool fall, bool iscond, bool onstack, list<int>* tl, list<int>* fl);
   void genCode(int *idOffset , ValType *idValType, bool onstack, list <int> *remainingDim);
 };
@@ -269,6 +271,7 @@ public:
   Index(ArrayRef* arrRef , ExpAst* expAst);
   std::string getArrayName();
   void print();
+  void genLCode(int* offset, ValType* valtype);
   void genCode(bool fall, bool iscond, bool onstack, list<int>* tl, list<int>* fl);
   void genCode(int *idOffset , ValType *idValType, bool onstack, list <int> *remainingDim);
 };

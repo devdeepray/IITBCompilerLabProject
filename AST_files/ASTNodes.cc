@@ -89,6 +89,9 @@ void Block::insert(StmtAst* c)
 }
 
 
+
+
+
 // Assignment AST
 Ass::Ass(ExpAst* left_stmt, ExpAst* right_stmt)
 {
@@ -112,59 +115,7 @@ void Ass::print()
 
 void Ass::genCode(bool fall, bool iscond, bool onstack, list<int>* fl, list<int>* tl)
 {
-	ValType valtype;
-	int varoffset;
-	c1->genLCode(&varoffset, &valtype);
-	c2->genCode(false, false, true, &c2Tl, &c2Fl);
 	
-	
-	if(valtype == TYPE_INT)
-	{
-		codeArray.push_back("loadi(ind(esp, 0), eax);"); // Load rval
-		codeArray.push_back("loadi(ind(esp, I), ebx);"); // Load offset from var
-		codeArray.push_back("popi(2);");
-		codeArray.push_back("addi(ebp, ebx);");
-		codeArray.push_back("storei(eax, ind(ebx, " + to_string(varoffset) + "));"); 
-		
-	}
-	else
-	{
-		codeArray.push_back("loadf(ind(esp, 0), eax);"); // Load rval
-		codeArray.push_back("loadi(ind(esp, I), ebx);"); // Load offset from var
-		codeArray.push_back("popf(1);");
-		codeArray.push_back("popi(1);");
-		codeArray.push_back("addi(ebp, ebx);");
-		codeArray.push_back("storef(eax, ind(ebx, " + to_string(varoffset) + "));"); 
-	}
-
-	if(!iscond)
-	{
-		if(onstack)
-		{
-			if(valtype == TYPE_INT)
-			{
-				codeArray.push_back("pushi(eax);");
-			}
-			else
-			{
-				codeArray.push_back("pushf(eax);");
-			}
-		}
-	}
-	else
-	{
-		codeArray.push_back("cmpi(0,eax);"); 
-		if(fall)
-		{
-			*fl->push_back(codeArray.size());
-			codeArray.push_back("je");
-		}
-		else
-		{
-			*tl->push_back(codeArray.size());
-			codeArray.push_back("jne");
-		}
-	}
 }
 
 ExpStmt::ExpStmt(ExpAst* exp)
@@ -236,7 +187,7 @@ void If::genCode(list<int> *nextList)
 	// We assume that result of c1 is in eax
 	list<int> selfNextList; // Next list for the if statement
 	list<int> c1Tl, c1Fl, c2Nl, c3Nl;
-	c1->genCode(true, true, &c1Tl, &c1Fl); // Fall, iscond, truelist, falselist
+	c1->genCode(true, true, false,&c1Tl, &c1Fl); // Fall, iscond, truelist, falselist
 	
 		codeArray.push_back("label" + to_string(labelId) + ":");
 		int trueLabel = labelId;
@@ -497,6 +448,63 @@ void BinaryOp::genCode(bool fall,bool iscond, bool onstack, list<int> *truelist,
                 }
             }
 		}
+		break;
+		case OP_ASSIGN:
+		{
+		    ValType valtype;
+	        int varoffset;
+	        ((ArrayRef*)c1)->genLCode(&varoffset, &valtype);
+	        c2->genCode(false, false, true, &c2Tl, &c2Fl);
+	
+	
+	        if(valtype == TYPE_INT)
+	        {
+		        codeArray.push_back("loadi(ind(esp, 0), eax);"); // Load rval
+		        codeArray.push_back("loadi(ind(esp, I), ebx);"); // Load offset from var
+		        codeArray.push_back("popi(2);");
+		        codeArray.push_back("addi(ebp, ebx);");
+		        codeArray.push_back("storei(eax, ind(ebx, " + to_string(varoffset) + "));"); 
+		
+	        }
+	        else
+	        {
+		        codeArray.push_back("loadf(ind(esp, 0), eax);"); // Load rval
+		        codeArray.push_back("loadi(ind(esp, I), ebx);"); // Load offset from var
+		        codeArray.push_back("popf(1);");
+		        codeArray.push_back("popi(1);");
+		        codeArray.push_back("addi(ebp, ebx);");
+		        codeArray.push_back("storef(eax, ind(ebx, " + to_string(varoffset) + "));"); 
+	        }
+
+	        if(!iscond)
+	        {
+		        if(onstack)
+		        {
+			        if(valtype == TYPE_INT)
+			        {
+				        codeArray.push_back("pushi(eax);");
+			        }
+			        else
+			        {
+				        codeArray.push_back("pushf(eax);");
+			        }
+		        }
+	        }
+	        else
+	        {
+		        codeArray.push_back("cmpi(0,eax);"); 
+		        if(fall)
+		        {
+			        falselist->push_back(codeArray.size());
+			        codeArray.push_back("je");
+		        }
+		        else
+		        {
+			        truelist->push_back(codeArray.size());
+			        codeArray.push_back("jne");
+		        }
+	        }
+		}
 	}
 }
 
@@ -642,6 +650,12 @@ void Identifier::genCode(int *idOffset , ValType *idValType, bool onstack, list 
 	}
 }
 
+void Identifier::genLCode(int *offset, ValType *valtype)
+{
+    list<int> dummy;
+    genCode(offset, valtype, true, &dummy);
+}
+
 void Identifier::genCode(bool fall, bool iscond, bool onstack, list <int> *tl, list <int> *fl)
 {
 	// It is just an identifier, not an array reference.
@@ -708,6 +722,7 @@ void Identifier::genCode(bool fall, bool iscond, bool onstack, list <int> *tl, l
 
 
 
+
 void Index::genCode(int *idOffset, ValType *idValType, bool onstack, list<int>* remainingDim)
 {
 	list<int> c2Tl, c2Fl;
@@ -725,6 +740,23 @@ void Index::genCode(int *idOffset, ValType *idValType, bool onstack, list<int>* 
 		codeArray.push_back("pushi(eax)");
 	}
 
+}
+
+void Index::genLCode(int *offset, ValType *valtype)
+{
+    list<int> dimarray;
+    genCode(offset, valtype, true, &dimarray);
+    codeArray.push_back("loadi(ind(esp, 0), eax);");
+    if((*valtype) == TYPE_INT)
+    {
+        codeArray.push_back("muli(eax, I);");
+    }
+    else
+    {
+        codeArray.push_back("muli(eax, F);");
+    }
+    codeArray.push_back("storei(eax, ind(esp, 0));");
+    
 }
 
 void Index::genCode(bool fall, bool iscond, bool onstack, list<int>* tl, list<int>* fl)
