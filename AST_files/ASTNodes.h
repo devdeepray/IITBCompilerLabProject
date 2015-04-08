@@ -46,7 +46,7 @@ public:
   // AstType astnode_type;
   DataType data_type;
   DataType& dataType();
-  virtual void genCode(bool fall, bool iscond, list<int>* tl, list<int>* fl);
+  virtual void genCode(bool fall, bool iscond, bool onstack, list<int>* tl, list<int>* fl) ;
 };
 
 
@@ -74,6 +74,8 @@ private:
   // AstType astnode_type;
 public:
    virtual std::string getArrayName(); 
+   virtual void genCode(bool fall, bool iscond, bool onstack, list<int>* tl, list<int>* fl) = 0;
+   virtual void genCode(int*, ValType*, bool onstack,  list<int>*) = 0;
 };
 
 class Empty : public StmtAst
@@ -178,7 +180,7 @@ public:
   float val;
   FloatConst(float _val);
   void print();
-  void genCode(bool fall, bool iscond, list<int>* tl, list<int>* fl);
+  void genCode(bool fall, bool iscond, bool onstack, list<int>* tl, list<int>* fl);
 };
 
 class BinaryOp : public ExpAst
@@ -191,7 +193,7 @@ private:
 public:
   BinaryOp(ExpAst* left_exp , ExpAst* right_exp, OpType _op);
   void print();
-  void genCode(bool fall, bool iscond, list<int>* tl, list<int>* fl);
+  void genCode(bool fall, bool iscond, bool onstack, list<int>* tl, list<int>* fl);
 };
 
 class UnaryOp : public ExpAst
@@ -230,7 +232,7 @@ public:
   int val;
   IntConst(int _val);
   void print();
-  void genCode(bool fall, bool iscond, list<int>* tl, list<int>* fl);
+  void genCode(bool fall, bool iscond, bool onstack, list<int>* tl, list<int>* fl);
 };
 
 class StringConst : public ExpAst
@@ -253,8 +255,8 @@ public:
   Identifier(std::string _val);
   std::string getArrayName();
   void print();
-  void genCode(bool fall, bool iscond, list<int>* tl, list<int>* fl);
-  void genCode(int *idOffset , ValType *idValType, list <int> *remainingDim);
+  void genCode(bool fall, bool iscond, bool onstack, list<int>* tl, list<int>* fl);
+  void genCode(int *idOffset , ValType *idValType, bool onstack, list <int> *remainingDim);
 };
 
 class Index : public ArrayRef
@@ -267,8 +269,8 @@ public:
   Index(ArrayRef* arrRef , ExpAst* expAst);
   std::string getArrayName();
   void print();
-  void genCode(bool fall, bool iscond, list<int>* tl, list<int>* fl);
-  void genCode(int *idOffset , ValType *idValType, list <int> *remainingDim);
+  void genCode(bool fall, bool iscond, bool onstack, list<int>* tl, list<int>* fl);
+  void genCode(int *idOffset , ValType *idValType, bool onstack, list <int> *remainingDim);
 };
 
 

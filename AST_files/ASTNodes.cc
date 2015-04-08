@@ -110,6 +110,63 @@ void Ass::print()
   tab_degree--;
 }
 
+void Ass::genCode(bool fall, bool iscond, bool onstack, list<int>* fl, list<int>* tl)
+{
+	ValType valtype;
+	int varoffset;
+	c1->genLCode(&varoffset, &valtype);
+	c2->genCode(false, false, true, &c2Tl, &c2Fl);
+	
+	
+	if(valtype == TYPE_INT)
+	{
+		codeArray.push_back("loadi(ind(esp, 0), eax);"); // Load rval
+		codeArray.push_back("loadi(ind(esp, I), ebx);"); // Load offset from var
+		codeArray.push_back("popi(2);");
+		codeArray.push_back("addi(ebp, ebx);");
+		codeArray.push_back("storei(eax, ind(ebx, " + to_string(varoffset) + "));"); 
+		
+	}
+	else
+	{
+		codeArray.push_back("loadf(ind(esp, 0), eax);"); // Load rval
+		codeArray.push_back("loadi(ind(esp, I), ebx);"); // Load offset from var
+		codeArray.push_back("popf(1);");
+		codeArray.push_back("popi(1);");
+		codeArray.push_back("addi(ebp, ebx);");
+		codeArray.push_back("storef(eax, ind(ebx, " + to_string(varoffset) + "));"); 
+	}
+
+	if(!iscond)
+	{
+		if(onstack)
+		{
+			if(valtype == TYPE_INT)
+			{
+				codeArray.push_back("pushi(eax);");
+			}
+			else
+			{
+				codeArray.push_back("pushf(eax);");
+			}
+		}
+	}
+	else
+	{
+		codeArray.push_back("cmpi(0,eax);"); 
+		if(fall)
+		{
+			*fl->push_back(codeArray.size());
+			codeArray.push_back("je");
+		}
+		else
+		{
+			*tl->push_back(codeArray.size());
+			codeArray.push_back("jne");
+		}
+	}
+}
+
 ExpStmt::ExpStmt(ExpAst* exp)
 {
    c1 = exp;
@@ -143,7 +200,7 @@ void Return::print()
 }
 
 
-void ExpAst::genCode(bool fall, bool iscond, list<int>* tl, list<int>* fl)
+void ExpAst::genCode(bool fall, bool iscond, bool onstack, list<int>* tl, list<int>* fl)
 {
 	codeArray.push_back("Code for Exp");
 }
@@ -261,10 +318,33 @@ void FloatConst::print()
   tab_degree--;
 }
 
-void FloatConst::genCode(bool fall, bool iscond, list<int>* tl, list<int>* fl)
+void FloatConst::genCode(bool fall, bool iscond, bool onstack, list<int>* tl, list<int>* fl)
 {
-	codeArray.push_back("addi(F, esp);");
-	codeArray.push_back("storef(" + to_string(val) + ", ind(esp, 0));");
+	if(!iscond)
+    {
+		if(onstack)
+		codeArray.push_back("pushf(" + to_string(val) + ");");
+	}
+	else
+	{
+	    if(val == 0.0)
+	    {
+	        if(fall)
+	        {
+	            fl->push_back(codeArray.size());
+	            codeArray.push_back("j");
+	        }
+	    }
+	    else
+	    {
+	        if(!fall)
+	        {
+	            tl->push_back(codeArray.size());
+	            codeArray.push_back("j");
+	        }
+	    }
+	}
+	
 }
 
 BinaryOp::BinaryOp(ExpAst* left_exp , ExpAst* right_exp, OpType _op)
@@ -286,7 +366,7 @@ void BinaryOp::print()
   tab_degree--;
 }
 
-void BinaryOp::genCode(bool fall,bool iscond, list<int> *truelist, list<int> *falselist)
+void BinaryOp::genCode(bool fall,bool iscond, bool onstack, list<int> *truelist, list<int> *falselist)
 {
     std::list<int> c1Tl, c1Fl, c2Tl, c2Fl;
 	switch(op)
@@ -297,11 +377,11 @@ void BinaryOp::genCode(bool fall,bool iscond, list<int> *truelist, list<int> *fa
 			
 			if(op == OP_OR)
 			{
-				c1->genCode(false, true, &c1Tl, &c1Fl);
+				c1->genCode(false, true, false, &c1Tl, &c1Fl);
 				codeArray.push_back("label" + to_string(labelId) + ":");
 				backPatch(c1Fl, labelId);
 				labelId++;
-				c2->genCode(fall || !iscond, true, &c2Tl, &c2Fl);
+				c2->genCode(fall || !iscond, true, false, &c2Tl, &c2Fl);
 				if(iscond)
 				{
 					(*truelist) = c1Tl;
@@ -310,29 +390,40 @@ void BinaryOp::genCode(bool fall,bool iscond, list<int> *truelist, list<int> *fa
 				}
 				else
 				{
-					codeArray.push_back("label" + to_string(labelId) + ":");
-					backPatch(c1Tl, labelId);
-					backPatch(c2Tl, labelId);
-					labelId++;
-					codeArray.push_back("pushi(1);");
-					int pos = codeArray.size();
-					codeArray.push_back("j");
-					codeArray.push_back("label" + to_string(labelId) + ":");
-					backPatch(c2Fl, labelId);
-					labelId++;
-					codeArray.push_back("pushi(0);");
-					codeArray.push_back("label" + to_string(labelId) + ":");
-					codeArray[pos] = "j(label" + to_string(labelId) +");"; 
-					labelId++;
+					if(onstack)
+					{
+						codeArray.push_back("label" + to_string(labelId) + ":");
+						backPatch(c1Tl, labelId);
+						backPatch(c2Tl, labelId);
+						labelId++;
+						codeArray.push_back("pushi(1);");
+						int pos = codeArray.size();
+						codeArray.push_back("j");
+						codeArray.push_back("label" + to_string(labelId) + ":");
+						backPatch(c2Fl, labelId);
+						labelId++;
+						codeArray.push_back("pushi(0);");
+						codeArray.push_back("label" + to_string(labelId) + ":");
+						codeArray[pos] = "j(label" + to_string(labelId) +");"; 
+						labelId++;
+					}
+					else
+					{
+						codeArray.push_back("label" + to_string(labelId) + ":");
+						backPatch(c1Tl, labelId);
+						backPatch(c2Tl, labelId);
+						backPatch(c2Fl, labelId);
+						++labelId;
+					}
 				}
 			}
 			else
 			{
-				c1->genCode(true, true, &c1Tl, &c1Fl);
+				c1->genCode(true, true, false, &c1Tl, &c1Fl);
 				codeArray.push_back("label" + to_string(labelId) + ":");
 				backPatch(c1Tl, labelId);
 				labelId++;
-				c2->genCode(fall || !iscond, true, &c2Tl, &c2Fl);
+				c2->genCode(fall || !iscond, true, false, &c2Tl, &c2Fl);
 				if(iscond)
 				{
 				    (*truelist) = c2Tl;
@@ -341,40 +432,58 @@ void BinaryOp::genCode(bool fall,bool iscond, list<int> *truelist, list<int> *fa
 				}
 				else
 				{
-				    codeArray.push_back("label" + to_string(labelId) + ":");
-					backPatch(c2Tl, labelId);
-					labelId++;
-					codeArray.push_back("pushi(1);");
-					int pos = codeArray.size();
-					codeArray.push_back("j");
-					codeArray.push_back("label" + to_string(labelId) + ":");
-					backPatch(c1Fl, labelId);
-					backPatch(c2Fl, labelId);
-					labelId++;
-					codeArray.push_back("pushi(0);");
-					codeArray.push_back("label" + to_string(labelId) + ":");
-					codeArray[pos] = "j(label" + to_string(labelId) +");"; 
-					labelId++;
+					if(onstack)
+					{
+						codeArray.push_back("label" + to_string(labelId) + ":");
+						backPatch(c2Tl, labelId);
+						labelId++;
+						codeArray.push_back("pushi(1);");
+						int pos = codeArray.size();
+						codeArray.push_back("j");
+						codeArray.push_back("label" + to_string(labelId) + ":");
+						backPatch(c1Fl, labelId);
+						backPatch(c2Fl, labelId);
+						labelId++;
+						codeArray.push_back("pushi(0);");
+						codeArray.push_back("label" + to_string(labelId) + ":");
+						codeArray[pos] = "j(label" + to_string(labelId) +");"; 
+						labelId++;
+					}
+					else
+					{
+						codeArray.push_back("label" + to_string(labelId) + ":");
+						backPatch(c1Fl, labelId);
+						backPatch(c2Tl, labelId);
+						backPatch(c2Fl, labelId);
+						++labelId;
+					}
 				}
 			}
 		}
 		break;
 		case OP_INT_PLUS:
 		{
-            c1->genCode(false /*garbage*/, false, &c1Tl, &c1Fl);
-            c2->genCode(false, false, &c2Tl, &c2Fl);
-            codeArray.push_back("loadi(ind(esp, 0), eax);");
-            codeArray.push_back("loadi(ind(esp, I), ebx);");
-            codeArray.push_back("addi(ebx, eax);");
+            c1->genCode(false /*garbage*/, false, iscond | onstack, &c1Tl, &c1Fl);
+            c2->genCode(false, false, iscond | onstack, &c2Tl, &c2Fl);
+            
             
             if(!iscond)
             {
-                codeArray.push_back("storei(eax, ind(esp, I));");
-                codeArray.push_back("addi(I, esp);");
+				if(onstack)
+				{
+					codeArray.push_back("loadi(ind(esp, 0), eax);");
+					codeArray.push_back("loadi(ind(esp, I), ebx);");
+					codeArray.push_back("addi(ebx, eax);");
+					codeArray.push_back("popi(2);");
+					codeArray.push_back("pushi(eax);");
+				}
             }
             else
             {
-                codeArray.push_back("addi( 2 * I, esp);");
+				codeArray.push_back("loadi(ind(esp, 0), eax);");
+				codeArray.push_back("loadi(ind(esp, I), ebx);");
+				codeArray.push_back("addi(ebx, eax);");
+                codeArray.push_back("popi(2);");
                 codeArray.push_back("cmpi(0,eax);"); 
                 if(fall)
                 {
@@ -463,12 +572,12 @@ void IntConst::print()
   tab_degree--;
 }
 
-void IntConst::genCode(bool fall, bool iscond, list<int>* tl, list<int>* fl)
+void IntConst::genCode(bool fall, bool iscond, bool onstack, list<int>* tl, list<int>* fl)
 {
     if(!iscond)
     {
-        codeArray.push_back("addi(-I, esp);");
-	    codeArray.push_back("storei(" + to_string(val) + ", ind(esp, 0));");
+		if(onstack)
+			codeArray.push_back("pushi(" + to_string(val) + ");");
 	}
 	else
 	{
@@ -519,23 +628,42 @@ void Identifier::print()
   tab_degree--;
 }
 
-void Identifier::genCode(bool fall, bool isCond, list <int> *tl, list <int> *fl)
+void Identifier::genCode(int *idOffset , ValType *idValType, bool onstack, list <int> *remainingDim)
 {
+	// This is called by the arrayref AST.
     auto it = currentFuncTable.var_name_map.find(val);
-    VarDeclaration curVarDecl = *it;
+    VarDeclaration curVarDecl = it->second;
+    *idOffset = curVarDecl.offset;
+    *idValType = curVarDecl.data_type.getPrimitiveType();
+    *remainingDim = curVarDecl.data_type.array_dims;
+    if(onstack)
+    {
+		codeArray.push_back("pushi(0);");
+	}
+}
+
+void Identifier::genCode(bool fall, bool iscond, bool onstack, list <int> *tl, list <int> *fl)
+{
+	// It is just an identifier, not an array reference.
+    auto it = currentFuncTable.var_name_map.find(val);
+    VarDeclaration curVarDecl = it->second;
     int idOffset = curVarDecl.offset;
-    ValType idValType = curValDecl.data_type.getPrimitiveType();
+    ValType idValType = curVarDecl.data_type.getPrimitiveType();
     
     if(idValType == TYPE_INT)
     {
-        codeArray.push_back("loadi(ind(ebp,"+itos(idOffset)+"),eax)");
-        if(!isCond)
+        
+        if(!iscond)
         {
-            codeArray.push_back("addi(-I, esp);");
-	        codeArray.push_back("storei(eax, ind(esp, 0));");
+			if(onstack)
+			{
+				codeArray.push_back("loadi(ind(ebp,"+to_string(idOffset)+"),eax)");
+				codeArray.push_back("pushi(eax);");
+			}
         }
         else
         {
+			codeArray.push_back("loadi(ind(ebp,"+to_string(idOffset)+"),eax)");
             codeArray.push_back("cmpi(0,eax)");
             if(fall)
             {
@@ -551,14 +679,18 @@ void Identifier::genCode(bool fall, bool isCond, list <int> *tl, list <int> *fl)
     }    
     else if(idValType == TYPE_FLOAT)
     {
-        codeArray.push_back("loadf(ind(ebp,"+itos(idOffset)+"),eax)");
-        if(!isCond)
+        
+        if(!iscond)
         {
-            codeArray.push_back("addi(-F, esp);");
-	        codeArray.push_back("storef(eax, ind(esp, 0));");
+			if(onstack)
+			{
+				codeArray.push_back("loadf(ind(ebp,"+to_string(idOffset)+"),eax)");
+				codeArray.push_back("pushf(eax);");
+			}
         }
         else
         {
+			codeArray.push_back("loadf(ind(ebp,"+to_string(idOffset)+"),eax)");
             codeArray.push_back("cmpf(0,eax)");
             if(fall)
             {
@@ -574,34 +706,110 @@ void Identifier::genCode(bool fall, bool isCond, list <int> *tl, list <int> *fl)
     }
 }
 
-void Identifier::genCode(int *idOffset , ValType *idValType, list <int> *remainingDim)
+
+
+void Index::genCode(int *idOffset, ValType *idValType, bool onstack, list<int>* remainingDim)
 {
-    auto it = currentFuncTable.var_name_map.find(val);
-    VarDeclaration curVarDecl = *it;
-    *idOffset = curVarDecl.offset;
-    *idValType = curValDecl.data_type.getPrimitiveType();
-    *remainingDim = curValDecl.data_type.array_dims;
-    codeArray.push_back("addi(-I, esp);");
-	codeArray.push_back("storei(0, ind(esp, 0));");
+	list<int> c2Tl, c2Fl;
+	c1->genCode(idOffset, idValType, onstack, remainingDim);
+	c2->genCode(false, false, onstack, &c2Tl, &c2Fl);
+	int curdim = remainingDim->front();
+	remainingDim->pop_front();
+	if(onstack)
+	{
+		codeArray.push_back("loadi(ind(esp, I), eax);");
+		codeArray.push_back("loadi(ind(esp, 0), ebx);");
+		codeArray.push_back("muli(" + to_string(curdim) + ", eax);");
+		codeArray.push_back("addi(ebx, eax);");
+		codeArray.push_back("popi(2);");
+		codeArray.push_back("pushi(eax)");
+	}
+
 }
 
-
-void Index::genCode(bool fall, bool iscond, list<int>* tl, list<int>* fl)
+void Index::genCode(bool fall, bool iscond, bool onstack, list<int>* tl, list<int>* fl)
 {
     int idOffset;
     ValType idValType;
     list <int> remainingDim;
     list <int> c2Tl,c2Fl;
-    c1->genCode(&idOffset, &idValType, &remainingDim);
-    c2->genCode(false /*garbage*/, false, &c2Tl, &c2Fl);
+    c1->genCode(&idOffset, &idValType, onstack | iscond, &remainingDim);
+    c2->genCode(false /*garbage*/, false, onstack | iscond, &c2Tl, &c2Fl);
     
-    codeArray.push_back("loadi(ind(esp, I), eax);"); // getting the partial offset calculation
-    codeArray.push_back("loadi(ind(esp, 0), ebx);"); // loading the last index into ebx
-    codeArray.push_back("muli(" + to_string(remainingDim.front())+ ",eax);"); //multiplying with dimension, holding in eax
-    codeArray.push_back("addi(ebx,eax)"); //final offset from ebp
+    if(onstack | iscond)
+    {
+		codeArray.push_back("loadi(ind(esp, I), eax);"); // getting the partial offset calculation
+		codeArray.push_back("loadi(ind(esp, 0), ebx);"); // loading the last index into ebx
+		codeArray.push_back("muli(" + to_string(remainingDim.front())+ ",eax);"); //multiplying with dimension, holding in eax
+		codeArray.push_back("addi(ebx,eax)"); //final offset from ebp
+		codeArray.push_back("muli(" + string(((idValType == TYPE_INT)?"I" : "F")) + ", eax);");
+		codeArray.push_back("addi(ebp, eax);");
+		codeArray.push_back("popi(2);");
+	}
 
-    // clean the stack appropriately... and gen code as in pure identifier
+	if(idValType == TYPE_INT)
+	{
+		
+		if(iscond)
+		{
+			codeArray.push_back("loadi(ind(eax, "+ to_string(idOffset) + "), eax);");
+			codeArray.push_back("cmpi(0, eax);");
+			if(fall)
+			{
+				fl->push_back(codeArray.size());
+				codeArray.push_back("je");
+			}
+			else
+			{
+				tl->push_back(codeArray.size());
+				codeArray.push_back("jne");
+			}
+		}
+		else
+		{
+			if(onstack)
+			{
+				codeArray.push_back("loadi(ind(eax, "+ to_string(idOffset) + "), eax);");
+				codeArray.push_back("pushi(eax);");
+			}
+		}
+	}
+	
+	else if(idValType == TYPE_FLOAT)
+	{
+		
+		if(iscond)
+		{
+			codeArray.push_back("loadf(ind(eax, "+ to_string(idOffset) + "), eax);");
+			codeArray.push_back("cmpf(0, eax);");
+			if(fall)
+			{
+				fl->push_back(codeArray.size());
+				codeArray.push_back("je");
+			}
+			else
+			{
+				tl->push_back(codeArray.size());
+				codeArray.push_back("jne");
+			}
+		}
+		else
+		{
+			if(onstack)
+			{
+				codeArray.push_back("loadf(ind(eax, "+ to_string(idOffset) + "), eax);");
+				codeArray.push_back("pushf(eax);");
+			}
+		}
+	}
+	else
+	{
+		cerr << "BUG IN CODE" << endl;
+	}
 }
+
+
+
 
 Index::Index(ArrayRef* arrRef , ExpAst* expAst)
 {
