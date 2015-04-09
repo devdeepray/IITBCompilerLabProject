@@ -13,6 +13,7 @@ FunctionTable currentFuncTable;
 
 bool const& abstract_astnode::validAST() const { return valid; }
 bool& abstract_astnode::validAST()  { return valid; }
+void abstract_astnode::genCode() { ;}
 
 void backPatch(list<int> indices, int label)
 {
@@ -38,6 +39,15 @@ void ProgAst::addFunctionDef(StmtAst* funcDef)
 
 void ProgAst::print()
 {
+}
+
+void ProgAst::genCode()
+{
+
+    for(auto it = funcList.begin(); it != funcList.end(); ++it)
+    {
+        (*it)->genCode();
+    }
 }
 
 DataType& ExpAst::dataType()
@@ -88,6 +98,13 @@ void Block::insert(StmtAst* c)
   clist.push_back(c);
 }
 
+void Block::genCode()
+{
+    for(auto it = clist.begin(); it != clist.end(); ++it)
+    {
+        (*it)->genCode();
+    }
+}
 
 
 
@@ -132,6 +149,12 @@ void ExpStmt::print()
   tab_degree--;
 }
 
+void ExpStmt::genCode()
+{
+    list<int> dummytl, dummyfl;
+    c1->genCode(false, false, false, &dummytl, &dummyfl);
+}
+
 // Return statement AST
 Return::Return(ExpAst* ret_exp)
 {
@@ -156,9 +179,9 @@ void ExpAst::genCode(bool fall, bool iscond, bool onstack, list<int>* tl, list<i
 	codeArray.push_back("Code for Exp");
 }
 
-void StmtAst::genCode(list<int>* nl)
+void StmtAst::genCode()
 {
-	codeArray.push_back("Code for Stmt");
+	;
 }
 
 If::If(ExpAst* cond, StmtAst* if_stats, StmtAst* else_stats)
@@ -182,30 +205,28 @@ void If::print()
   tab_degree--;
 }
 
-void If::genCode(list<int> *nextList)
+void If::genCode()
 {
 	// We assume that result of c1 is in eax
 	list<int> selfNextList; // Next list for the if statement
-	list<int> c1Tl, c1Fl, c2Nl, c3Nl;
+	list<int> c1Tl, c1Fl;
 	c1->genCode(true, true, false,&c1Tl, &c1Fl); // Fall, iscond, truelist, falselist
 	
 		codeArray.push_back("label" + to_string(labelId) + ":");
 		int trueLabel = labelId;
 		++labelId;
-		c2->genCode(&c2Nl);
+		c2->genCode();
 		selfNextList.push_back(codeArray.size()); // Exit jump wala line
 		codeArray.push_back("j"); // Jump over else part
 		codeArray.push_back("label" + to_string(labelId) + ":");
 		int falseLabel = labelId;
 		++labelId;
-		c3->genCode(&c3Nl);
+		c3->genCode();
 		backPatch(c1Tl, trueLabel);
 		backPatch(c1Fl, falseLabel);
-	
-
-	selfNextList.insert(selfNextList.end(), c2Nl.begin(), c2Nl.end());
-	selfNextList.insert(selfNextList.end(), c3Nl.begin(), c3Nl.end());
-	(*nextList) = selfNextList;
+    	codeArray.push_back("label" + to_string(labelId) + ":");
+    	backPatch(selfNextList, labelId);
+    	labelId++;
 }
 
 
@@ -300,6 +321,7 @@ void FloatConst::genCode(bool fall, bool iscond, bool onstack, list<int>* tl, li
 
 BinaryOp::BinaryOp(ExpAst* left_exp , ExpAst* right_exp, OpType _op)
 {
+    
   astnode_type = AST_BINOP;
   op= _op;
   c1=left_exp;
@@ -319,6 +341,8 @@ void BinaryOp::print()
 
 void BinaryOp::genCode(bool fall,bool iscond, bool onstack, list<int> *truelist, list<int> *falselist)
 {
+
+    
     std::list<int> c1Tl, c1Fl, c2Tl, c2Fl;
 	switch(op)
 	{
@@ -451,6 +475,7 @@ void BinaryOp::genCode(bool fall,bool iscond, bool onstack, list<int> *truelist,
 		break;
 		case OP_ASSIGN:
 		{
+		
 		    ValType valtype;
 	        int varoffset;
 	        ((ArrayRef*)c1)->genLCode(&varoffset, &valtype);
@@ -640,8 +665,12 @@ void Identifier::genCode(int *idOffset , ValType *idValType, bool onstack, list 
 {
 	// This is called by the arrayref AST.
     auto it = currentFuncTable.var_name_map.find(val);
+    
+    
     VarDeclaration curVarDecl = it->second;
+    
     *idOffset = curVarDecl.offset;
+    
     *idValType = curVarDecl.data_type.getPrimitiveType();
     *remainingDim = curVarDecl.data_type.array_dims;
     if(onstack)

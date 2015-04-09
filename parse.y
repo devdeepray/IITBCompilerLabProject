@@ -205,18 +205,34 @@ compound_statement  : '{' '}'
 {
     //($2)->print();
 	_g_stmtListError = ($2)->validAST();
+	
+    currentFuncTable = _g_funcTable;
+	($2)->genCode();
+	for(auto it = codeArray.begin(); it != codeArray.end(); ++it)
+	{
+	    cout << *it << endl;
+	}
 	$$ = $2;
 }
 | '{' declaration_list statement_list '}'
 {
     //($3)->print();
 	_g_stmtListError = _g_varDecError || ($3)->validAST();
+	
+    currentFuncTable = _g_funcTable;
+	($3)->genCode();
+	for(auto it = codeArray.begin(); it != codeArray.end(); ++it)
+	{
+	    cout << *it << endl;
+	}
+	
 	$$ = $3;
 }
 ;
 statement_list  : statement
 {
     ($$) = new Block($1); // New list of statements  
+    
     ($$)->validAST() = ($1)->validAST(); // Valid if each stmt is valid
 }
 | statement_list statement
@@ -638,13 +654,7 @@ selection_statement  : TOK_IF_KW '(' expression ')' statement TOK_ELSE_KW statem
         cat::parse::stmterror::ifexprerror(_g_lineCount);
         (tmp)->validAST() = false;
     }
-    list<int> nl;
-    currentFuncTable = _g_funcTable;
-	tmp->genCode(&nl);
-	for(auto it = codeArray.begin(); it != codeArray.end(); ++it)
-	{
-		cout << *it << endl;
-	}
+
     $$ = tmp;
 }
 ;

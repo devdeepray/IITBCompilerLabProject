@@ -24,27 +24,22 @@ class abstract_astnode
 {
   
 private:
-  
   bool valid = true;
 public:
-   AstType astnode_type;
+  AstType astnode_type;
+  
   virtual void print () = 0;
   bool& validAST();
   bool const& validAST() const;
-  //virtual std::string generate_code(const symbolTable&) = 0;
-  //virtual basic_types getType() = 0;
-  //virtual bool checkTypeofAST() = 0;
-protected:
-  //virtual void setType(basic_types) = 0;
-
+  virtual void genCode();
 };
 
 
 class ExpAst : public abstract_astnode
 {
 public:
-  // AstType astnode_type;
   DataType data_type;
+  
   DataType& dataType();
   virtual void genCode(bool fall, bool iscond, bool onstack, list<int>* tl, list<int>* fl) ;
 };
@@ -52,10 +47,8 @@ public:
 
 class StmtAst : public abstract_astnode
 {
-private:
-  // AstType astnode_type;
 public:
-	virtual void genCode(list<int>*);
+	virtual void genCode();
 };
 
 class ProgAst : public abstract_astnode
@@ -64,6 +57,7 @@ private:
 	list<StmtAst*> funcList;
 public:
 	void addFunctionDef(StmtAst*);
+	void genCode();
 	void print();
 };
 
@@ -74,8 +68,8 @@ private:
   // AstType astnode_type;
 public:
    virtual std::string getArrayName();
-   virtual void genLCode(int* offset, ValType* valtype) = 0; 
-   virtual void genCode(bool fall, bool iscond, bool onstack, list<int>* tl, list<int>* fl) = 0;
+   virtual void genLCode(int* offset, ValType* valtype) = 0; // genCode for lvalue
+   virtual void genCode(bool fall, bool iscond, bool onstack, list<int>* tl, list<int>* fl) = 0; 
    virtual void genCode(int*, ValType*, bool onstack,  list<int>*) = 0;
 };
 
@@ -98,6 +92,7 @@ public:
   Block(StmtAst* _c);
   void print();
   void insert(StmtAst* c);
+  void genCode();
 };
 
 
@@ -107,6 +102,7 @@ class ExpStmt : public StmtAst
      // AstType astnode_type;
      ExpAst* c1;
 public:
+    void genCode();
   ExpStmt(ExpAst* exp);
   void print();
 };
@@ -144,7 +140,7 @@ private:
 public:
   If(ExpAst* cond, StmtAst* if_stats, StmtAst* else_stats);
   void print();
-  void genCode(list<int> *nextlist);
+  void genCode();
 };
 
 
