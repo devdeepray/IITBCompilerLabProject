@@ -628,7 +628,96 @@ void BinaryOp::genCode(bool fall,bool iscond, bool onstack, list<int> *truelist,
 		        }
 	        }
 		}
-	}
+		case OP_INT_LT:
+		{
+			 c1->genCode(false /*garbage*/, false, iscond | onstack, &c1Tl, &c1Fl);
+			 c2->genCode(false, false, iscond | onstack, &c2Tl, &c2Fl);
+            
+            
+				if(!iscond)
+				{
+					if(onstack)
+					{
+						//assume intrn is a < b
+						codeArray.push_back("loadi(ind(esp, 0), eax);"); // eax contains b
+						codeArray.push_back("loadi(ind(esp, I), ebx);"); // ebx contains a
+						codeArray.push_back("cmpi(ebx, eax);");
+						codeArray.push_back("popi(2);");
+						
+						int trueLabel = labelId;
+						++labelId;
+						int nextLabel = labelId;
+						++labelId;
+						codeArray.push_back("jl(label"+to_string(trueLabel)+");");
+						codeArray.push_back("pushi(0);");
+						codeArray.push_back("j(label"+to_string(nextLabel)+");");
+						codeArray.push_back("label" + to_string(trueLabel) + ":");
+						codeArray.push_back("pushi(1);");
+						codeArray.push_back("label" + to_string(nextLabel) +":");
+					}
+				}
+				else
+				{
+						codeArray.push_back("loadi(ind(esp, 0), eax);");
+						codeArray.push_back("loadi(ind(esp, I), ebx);");
+						codeArray.push_back("cmpi(ebx, eax);");
+						codeArray.push_back("popi(2);");
+										 
+						if(fall)
+						{
+								falselist->push_back(codeArray.size());
+								codeArray.push_back("jge");
+						}
+						else
+						{
+								truelist->push_back(codeArray.size());
+								codeArray.push_back("jl");
+						}
+				}
+		}
+		break;	
+		
+		case OP_INT_MINUS:
+		{
+			  c1->genCode(false /*garbage*/, false, iscond | onstack, &c1Tl, &c1Fl);
+			  c2->genCode(false, false, iscond | onstack, &c2Tl, &c2Fl);
+            
+				if(!iscond)
+				{
+					if(onstack)
+					{
+						//assume intrn is a - b
+						codeArray.push_back("loadi(ind(esp, 0), eax);"); // eax contains b
+						codeArray.push_back("loadi(ind(esp, I), ebx);"); // ebx contains a
+						codeArray.push_back("muli(-1, eax);"); // eax contains -b
+						codeArray.push_back("addi(ebx, eax);"); // eax contains a-b
+						codeArray.push_back("popi(2);");
+						codeArray.push_back("pushi(eax);");
+					}
+				}
+				else
+				{
+						codeArray.push_back("loadi(ind(esp, 0), eax);");
+						codeArray.push_back("loadi(ind(esp, I), ebx);");
+						codeArray.push_back("muli(-1, eax);"); // eax contains -b
+						codeArray.push_back("addi(ebx, eax);"); // eax contains a-b
+						codeArray.push_back("popi(2);");
+						codeArray.push_back("cmpi(0,eax);");				 
+						if(fall)
+						{
+								falselist->push_back(codeArray.size());
+								codeArray.push_back("je");
+						}
+						else
+						{
+								truelist->push_back(codeArray.size());
+								codeArray.push_back("jne");
+						}
+				}
+		}
+		break;
+		
+		}
 }
 
 UnaryOp::UnaryOp(ExpAst* exp, OpType _op)
@@ -647,6 +736,72 @@ void UnaryOp::print()
   tab_degree--;
 }
 
+void UnaryOp::genCode(bool fall,bool iscond, bool onstack, list<int> *truelist, list<int> *falselist)
+{
+	std::list<int> c1Tl, c1Fl;
+	switch(op)
+	{
+		case OP_PP:
+		{
+			  ValType valtype;
+				int varoffset;
+				((ArrayRef*)c1)->genLCode(&varoffset, &valtype); // getting the address of the l_expression
+
+
+				if(valtype == TYPE_INT)
+				{
+					//assume instrn is x++
+					codeArray.push_back("loadi(ind(esp, 0), eax);"); // contains addr of x[i] relative to x
+					codeArray.push_back("popi(1);"); // clean the stack
+					codeArray.push_back("addi(ebp, eax);"); // add ebp
+					codeArray.push_back("loadi(ebx, ind(eax, " + to_string(varoffset) + "));");  // value of x is in ebx
+					codeArray.push_back("addi(1,ebx);"); // ebx is x + 1
+					codeArray.push_back("storei(ebx, ind(eax, " + to_string(varoffset) + "));");
+				}
+				else
+				{
+					//assume instrn is x++
+					codeArray.push_back("loadi(ind(esp, 0), eax);"); // contains addr of x[i] relative to x
+					codeArray.push_back("popi(1);"); // clean the stack
+					codeArray.push_back("addi(ebp, eax);"); // add ebp
+					codeArray.push_back("loadf(ebx, ind(eax, " + to_string(varoffset) + "));");  // value of x is in ebx
+					codeArray.push_back("addi(1,ebx);"); // ebx is x + 1
+					codeArray.push_back("storef(ebx, ind(eax, " + to_string(varoffset) + "));");
+				}
+
+				if(!iscond)
+				{
+					if(onstack)
+					{
+						if(valtype == TYPE_INT)
+						{
+							codeArray.push_back("pushi(ebx);");
+						}
+						else
+						{
+							codeArray.push_back("pushf(ebx);");
+						}
+					}
+				}
+				else
+				{
+					codeArray.push_back("cmpi(0,ebx);"); 
+					if(fall)
+					{
+						falselist->push_back(codeArray.size());
+						codeArray.push_back("je");
+					}
+					else
+					{
+						truelist->push_back(codeArray.size());
+						codeArray.push_back("jne");
+					}
+				}
+		}
+		break;
+	
+	}
+}
 
 
 FunCall::FunCall(ExpAst* _exp_ast)

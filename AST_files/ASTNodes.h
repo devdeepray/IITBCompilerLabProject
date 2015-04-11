@@ -208,6 +208,7 @@ private:
 public:
   UnaryOp(ExpAst* exp, OpType _op);
   void print();
+  void genCode(bool fall,bool iscond, bool onstack, list<int> *truelist, list<int> *falselist);
 };
 
 class FunCall : public ExpAst
