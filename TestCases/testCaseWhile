@@ -1,0 +1,12 @@
+int main()
+{
+  int i,x;
+  while(i)
+  {
+    i = 2;
+    while(x)
+    {
+      x =10;
+    }
+  }
+}

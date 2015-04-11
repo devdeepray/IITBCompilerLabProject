@@ -49,6 +49,7 @@ class StmtAst : public abstract_astnode
 {
 public:
 	virtual void genCode();
+	virtual void genCode(list <int> *nextList);
 };
 
 class ProgAst : public abstract_astnode
@@ -93,6 +94,7 @@ public:
   void print();
   void insert(StmtAst* c);
   void genCode();
+  void genCode(list <int> *nextList);
 };
 
 
@@ -102,7 +104,8 @@ class ExpStmt : public StmtAst
      // AstType astnode_type;
      ExpAst* c1;
 public:
-    void genCode();
+    virtual void genCode();
+    virtual void genCode(list<int> *nextList);
   ExpStmt(ExpAst* exp);
   void print();
 };
@@ -140,7 +143,7 @@ private:
 public:
   If(ExpAst* cond, StmtAst* if_stats, StmtAst* else_stats);
   void print();
-  void genCode();
+  void genCode(list <int> *nextList);
 };
 
 
@@ -155,6 +158,8 @@ private:
 public:
   For(ExpAst* initialize, ExpAst* guard, ExpAst* update, StmtAst* forbody);
   void print();
+  void genCode(list <int> *nextList);
+  
 };
 
 class While : public StmtAst
@@ -166,6 +171,7 @@ private:
 public:
   While(ExpAst* guard, StmtAst* whilebody);
   void print();
+  void genCode(list <int> *nextList);
 };
 
 class FloatConst : public ExpAst

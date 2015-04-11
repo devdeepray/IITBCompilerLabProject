@@ -102,12 +102,33 @@ void Block::genCode()
 {
     for(auto it = clist.begin(); it != clist.end(); ++it)
     {
-        (*it)->genCode();
+				list<int> nextList;
+        (*it)->genCode(&nextList);
+        if(nextList.size() != 0)
+        {	
+					codeArray.push_back("label"+to_string(labelId)+":");
+					backPatch(nextList,labelId);
+					labelId++;
+				}	
     }
 }
 
-
-
+void Block::genCode(list <int> *nextList)
+{
+		list<int> newNextList;
+		for(auto it = clist.begin(); it != clist.end();)
+    {	
+				newNextList.clear();
+        (*it)->genCode(&newNextList);
+        if(++it != clist.end() && newNextList.size()!=0)
+        {	
+					codeArray.push_back("label"+to_string(labelId)+":");
+					backPatch(newNextList,labelId);
+					labelId++;
+				}
+    }
+    *nextList = newNextList;
+}
 
 // Assignment AST
 Ass::Ass(ExpAst* left_stmt, ExpAst* right_stmt)
@@ -155,6 +176,12 @@ void ExpStmt::genCode()
     c1->genCode(false, false, false, &dummytl, &dummyfl);
 }
 
+void ExpStmt::genCode(list <int> *nextList)
+{
+    list<int> dummytl, dummyfl;
+    c1->genCode(false /*garbage*/, false, false, &dummytl, &dummyfl);
+}
+
 // Return statement AST
 Return::Return(ExpAst* ret_exp)
 {
@@ -184,6 +211,11 @@ void StmtAst::genCode()
 	;
 }
 
+void StmtAst::genCode(list <int> *nextList)
+{
+	;
+}
+
 If::If(ExpAst* cond, StmtAst* if_stats, StmtAst* else_stats)
 {
   astnode_type = AST_IF;
@@ -205,32 +237,72 @@ void If::print()
   tab_degree--;
 }
 
-void If::genCode()
+void If::genCode(list <int> *nextList)
 {
-	// We assume that result of c1 is in eax
-	list<int> selfNextList; // Next list for the if statement
 	list<int> c1Tl, c1Fl;
-	c1->genCode(true, true, false,&c1Tl, &c1Fl); // Fall, iscond, truelist, falselist
+	list<int> c2Nl;
+	list<int> c3Nl;
+	c1->genCode(true, true, false /*garbage*/,&c1Tl, &c1Fl); // Fall, iscond, onstack,truelist, falselist
+	cout << "HERE" << endl;
+	codeArray.push_back("label" + to_string(labelId) + ":");
+	int trueLabel = labelId;
+	++labelId;
+	c2->genCode(&c2Nl);
 	
-		codeArray.push_back("label" + to_string(labelId) + ":");
-		int trueLabel = labelId;
-		++labelId;
-		c2->genCode();
-		selfNextList.push_back(codeArray.size()); // Exit jump wala line
-		codeArray.push_back("j"); // Jump over else part
-		codeArray.push_back("label" + to_string(labelId) + ":");
-		int falseLabel = labelId;
-		++labelId;
-		c3->genCode();
-		backPatch(c1Tl, trueLabel);
-		backPatch(c1Fl, falseLabel);
-    	codeArray.push_back("label" + to_string(labelId) + ":");
-    	backPatch(selfNextList, labelId);
-    	labelId++;
+	nextList->push_back(codeArray.size()); // Exit jump wala line
+	codeArray.push_back("j"); // Jump over else part
+	codeArray.push_back("label" + to_string(labelId) + ":");
+	
+	int falseLabel = labelId;
+	++labelId;
+	c3->genCode(&c3Nl);
+	
+	backPatch(c1Tl, trueLabel);
+	backPatch(c1Fl, falseLabel);
+	
+	nextList->insert(nextList->end(), c2Nl.begin(), c2Nl.end());
+	nextList->insert(nextList->end(), c3Nl.begin(), c3Nl.end());
 }
 
 
-
+void For::genCode(list <int> *nextList)
+{
+	list <int> c4Nl;
+	list<int> c1Tl, c1Fl;
+	list<int> c2Tl, c2Fl;
+	list<int> c3Tl, c3Fl;
+	
+	//Initiallization
+	c1->genCode(false /*garbage*/, false, false,&c1Tl, &c1Fl); // Fall, iscond, onstack,truelist, falselist
+	
+	//Condition
+	codeArray.push_back("label" + to_string(labelId)+ ":");
+	int conditionLabel = labelId;
+	++labelId;
+	c2->genCode(true, true, false /*garbage*/,&c2Tl,&c2Fl);
+	
+	//Start of FOR body
+	codeArray.push_back("label" + to_string(labelId) + ":");
+	int forBodyLabel = labelId;
+	++labelId;
+	c4->genCode(&c4Nl);
+	
+	//Update Body
+	codeArray.push_back("label" + to_string(labelId) + ":");
+	int updateLabel = labelId;
+	++labelId;
+	c3->genCode(false /*garbage*/, false, false ,&c3Tl,&c3Fl);
+	
+	// Jumping to condition check
+	codeArray.push_back("j(label"+to_string(conditionLabel)+");");
+	
+	//Backpatching true list and false list of condition
+	backPatch(c2Tl,forBodyLabel);
+	*nextList = c2Fl;
+	
+	//Backpatching nextlist of the for body
+	backPatch(c4Nl,updateLabel);
+}
 
 For::For(ExpAst* initialize, ExpAst* guard, ExpAst* update, StmtAst* forbody)
 {
@@ -243,8 +315,6 @@ For::For(ExpAst* initialize, ExpAst* guard, ExpAst* update, StmtAst* forbody)
 void For::print()
 {
   tab_degree++;
-  
-  
   indent_print( "(For\n" );
   c1->print();
   indent_print( "\n" );
@@ -275,6 +345,34 @@ void While::print()
   tab_degree--;
 }
 
+void While::genCode(list <int> *nextList)
+{
+
+	list<int> c1Tl, c1Fl;
+	list <int> c2Nl;
+		
+	//Condition
+	codeArray.push_back("label" + to_string(labelId) + ":");
+	int conditionLabel = labelId;
+	++labelId;
+	c1->genCode(true, true, false /*garbage*/,&c1Tl, &c1Fl); // Fall, iscond, onstack,truelist, falselist
+	
+	//Body
+	codeArray.push_back("label" + to_string(labelId) + ":");
+	int bodyLabel = labelId;
+	++labelId;
+	c2->genCode(&c2Nl);
+	
+	//Unconditional jump to condition
+	codeArray.push_back("j(label" + to_string(conditionLabel) + ");");
+	
+	//Backpatching TL and FL of condition
+	backPatch(c1Tl,bodyLabel);
+	*nextList=c1Fl;
+	
+	//Backpatching next list of body
+	backPatch(c2Nl,conditionLabel);
+}
 
 FloatConst::FloatConst(float _val)
 {
@@ -700,14 +798,14 @@ void Identifier::genCode(bool fall, bool iscond, bool onstack, list <int> *tl, l
         {
 			if(onstack)
 			{
-				codeArray.push_back("loadi(ind(ebp,"+to_string(idOffset)+"),eax)");
+				codeArray.push_back("loadi(ind(ebp,"+to_string(idOffset)+"),eax);");
 				codeArray.push_back("pushi(eax);");
 			}
         }
         else
         {
-			codeArray.push_back("loadi(ind(ebp,"+to_string(idOffset)+"),eax)");
-            codeArray.push_back("cmpi(0,eax)");
+			codeArray.push_back("loadi(ind(ebp,"+to_string(idOffset)+"),eax);");
+            codeArray.push_back("cmpi(0,eax);");
             if(fall)
             {
                fl->push_back(codeArray.size()); 
@@ -727,14 +825,14 @@ void Identifier::genCode(bool fall, bool iscond, bool onstack, list <int> *tl, l
         {
 			if(onstack)
 			{
-				codeArray.push_back("loadf(ind(ebp,"+to_string(idOffset)+"),eax)");
+				codeArray.push_back("loadf(ind(ebp,"+to_string(idOffset)+"),eax);");
 				codeArray.push_back("pushf(eax);");
 			}
         }
         else
         {
-			codeArray.push_back("loadf(ind(ebp,"+to_string(idOffset)+"),eax)");
-            codeArray.push_back("cmpf(0,eax)");
+			codeArray.push_back("loadf(ind(ebp,"+to_string(idOffset)+"),eax);");
+            codeArray.push_back("cmpf(0,eax);");
             if(fall)
             {
                fl->push_back(codeArray.size()); 
