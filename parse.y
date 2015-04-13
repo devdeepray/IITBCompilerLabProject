@@ -31,7 +31,9 @@ function_definition  : type_specifier
     
     // Begin new function
     _g_offset = 4;
-    _g_funcTable.reset(); 
+    _g_funcTable.reset();
+    _g_funcTable.setUniqName(_g_uniqLabelGen);
+    _g_uniqLabelGen++; 
     _g_funcTable.setReturnType(_g_varType); 
     _g_functionStartLno = _g_lineCount;
     _g_varType.reset();
@@ -207,11 +209,34 @@ compound_statement  : '{' '}'
 	_g_stmtListError = ($2)->validAST();
 	
     currentFuncTable = _g_funcTable;
-	($2)->genCode();
+    list<int> nextlist;
+    
+    // setting up the label for function
+    codeArray.push_back("void " + _g_funcTable.uniq_fname + "(){");
+    codeArray.push_back("pushi(ebp);"); // storing the callers ebp
+    codeArray.push_back("move(esp,ebp);");
+    
+	($2)->genCode(&nextlist);
+	codeArray.push_back("label" + to_string(labelId) + ":");
+	backPatch(nextlist, labelId);
+	labelId++;
+	
+	// GENERATE CODE FOR RETURN //
+	
+	codeArray.push_back("move(ebp,esp);");
+	codeArray.push_back("addi(I,esp);");
+	codeArray.push_back("loadi(ind(ebp, 0), ebp);");
+	codeArray.push_back("return;");
+	
+	
+	
+	codeArray.push_back("}");
 	for(auto it = codeArray.begin(); it != codeArray.end(); ++it)
 	{
-	    cout << *it << endl;
+		cout << *it << endl;
 	}
+	codeArray.clear();
+	
 	$$ = $2;
 }
 | '{' declaration_list statement_list '}'
@@ -220,12 +245,30 @@ compound_statement  : '{' '}'
 	_g_stmtListError = _g_varDecError || ($3)->validAST();
 	
     currentFuncTable = _g_funcTable;
-	($3)->genCode();
+    list<int> nextlist;
+    
+     // setting up the label for function
+    codeArray.push_back("void " + _g_funcTable.uniq_fname + "(){");
+    codeArray.push_back("pushi(ebp);"); // storing the callers ebp
+    codeArray.push_back("move(esp,ebp);");
+    
+	($3)->genCode(&nextlist);
+	codeArray.push_back("label" + to_string(labelId) + ":");
+	backPatch(nextlist, labelId);
+	labelId++;
+	
+	// GENERATE CODE FOR RETURN //
+	codeArray.push_back("move(ebp,esp);");
+	codeArray.push_back("addi(I,esp);");
+	codeArray.push_back("loadi(ind(ebp, 0), ebp);");
+	codeArray.push_back("return;");
+	
+	codeArray.push_back("}");
 	for(auto it = codeArray.begin(); it != codeArray.end(); ++it)
 	{
-	    cout << *it << endl;
+		cout << *it << endl;
 	}
-	
+	codeArray.clear();
 	$$ = $3;
 }
 ;
@@ -476,6 +519,7 @@ postfix_expression  : primary_expression
     {
         ($3)->validAST() = true;
         ($3)->dataType() = _g_globalSymTable.getFuncTable(fsig).getReturnType();
+        ((FunCall*)($3))->uniq_fname = _g_globalSymTable.getFuncTable(fsig).uniq_fname;
     }
     else if(($3)->validAST())
     {
@@ -494,7 +538,7 @@ postfix_expression  : primary_expression
 	else
 	{
 	    ($3)->validAST() = true;
-	    
+	    ((FunCall*)($3))->uniq_fname = _g_globalSymTable.getFuncTable(tmpsig).uniq_fname;
 	    auto it1 = tmpsig.arg_types.begin();
 	    auto it2 = ((FunCall*)$3)->list_exp_ast.begin();
 	    for(; it1 != tmpsig.arg_types.end(); ++it1, ++it2)

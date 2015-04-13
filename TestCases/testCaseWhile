@@ -1,12 +1,8 @@
 int main()
 {
-  int i,x;
+  int i;
   while(i)
   {
-    i = 2;
-    while(x)
-    {
-      x =10;
-    }
+    i = 1;
   }
 }

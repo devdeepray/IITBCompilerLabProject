@@ -7,77 +7,69 @@
 #include "SymbolTable.h"
 #include "../Util/catter.h"
 #include "TypeChecks.h"
+#include <stack>
 using namespace std;
 
-
 extern int tab_degree;
-
 extern vector<string> codeArray;
-
 extern int labelId;
-
 extern FunctionTable currentFuncTable;
+extern stack<string> reg_stack;
 
 void indent_print(std::string s);
+void backPatch(list<int>, int);
 
 class abstract_astnode
 {
-  
-private:
-  bool valid = true;
 public:
+  bool valid = true;
   AstType astnode_type;
   
-  virtual void print () = 0;
+  virtual void print ();
   bool& validAST();
-  bool const& validAST() const;
-  virtual void genCode();
 };
-
 
 class ExpAst : public abstract_astnode
 {
 public:
-  DataType data_type;
+  int reg_label; // Sethi ullman labels
+  bool is_cond; // Whether exp is part of cond or not
+  bool need_val; // Whether the result value is needed or not
+  bool fall; // For fall through code
+  DataType data_type;  // Data type of expr
   
   DataType& dataType();
-  virtual void genCode(bool fall, bool iscond, bool onstack, list<int>* tl, list<int>* fl) ;
+  virtual void genCode(list<int>* tl, list<int>* fl);
+  virtual void calcLabel(); // Calculates sethi-ullman labels
+  virtual void calcAttributes(); // calculate is_cond and need_val
 };
 
 
 class StmtAst : public abstract_astnode
 {
 public:
-	virtual void genCode();
 	virtual void genCode(list <int> *nextList);
 };
 
 class ProgAst : public abstract_astnode
 {
-private:
-	list<StmtAst*> funcList;
 public:
+	list<StmtAst*> funcList;
+
 	void addFunctionDef(StmtAst*);
 	void genCode();
 	void print();
 };
 
 
-class ArrayRef : public ExpAst
-{
-private:
-  // AstType astnode_type;
-public:
-   virtual std::string getArrayName();
-   virtual void genLCode(int* offset, ValType* valtype) = 0; // genCode for lvalue
-   virtual void genCode(bool fall, bool iscond, bool onstack, list<int>* tl, list<int>* fl) = 0; 
-   virtual void genCode(int*, ValType*, bool onstack,  list<int>*) = 0;
-};
 
+
+/* *********************************************************************
+ * Inherit from StmtAst
+ **********************************************************************/
+ 
 class Empty : public StmtAst
 {
-private:
-  // AstType astnode_type;
 public:
   Empty();
   void print();
@@ -86,61 +78,40 @@ public:
 
 class Block : public StmtAst
 {
-private:
-  // AstType astnode_type;
-  std::list<StmtAst*> clist;
 public:
+  std::list<StmtAst*> clist;
   Block(StmtAst* _c);
   void print();
   void insert(StmtAst* c);
-  void genCode();
   void genCode(list <int> *nextList);
 };
 
 
 class ExpStmt : public StmtAst
 {
-   private:
-     // AstType astnode_type;
-     ExpAst* c1;
 public:
-    virtual void genCode();
-    virtual void genCode(list<int> *nextList);
+  ExpAst* c1;
+  void genCode(list<int> *nextList);
   ExpStmt(ExpAst* exp);
   void print();
 };
 
-class Ass : public StmtAst
-{
-private:
-  // AstType astnode_type;
-  ExpAst* c1;
-  ExpAst* c2;
-public:
-  Ass(ExpAst* left_stmt, ExpAst* right_stmt);
-  void print();
-  void genCode(bool, bool, bool, list<int>*, list<int>*);
-};
-
 class Return : public StmtAst
 {
-private:
-  // AstType astnode_type;
-  ExpAst* c1;
 public:
+  ExpAst* c1;
   Return(ExpAst* ret_exp);
   void print();
+  void genCode(list<int> *nextList);
 };
 
 
 class If : public StmtAst
 {
-private:
-  // AstType astnode_type;
+public:
   ExpAst* c1;
   StmtAst* c2;
   StmtAst* c3;
-public:
   If(ExpAst* cond, StmtAst* if_stats, StmtAst* else_stats);
   void print();
   void genCode(list <int> *nextList);
@@ -149,13 +120,11 @@ public:
 
 class For : public StmtAst
 {
-private:
-  // AstType astnode_type;
+public:
   ExpAst* c1;
   ExpAst* c2;
   ExpAst* c3;
   StmtAst* c4;
-public:
   For(ExpAst* initialize, ExpAst* guard, ExpAst* update, StmtAst* forbody);
   void print();
   void genCode(list <int> *nextList);
@@ -164,119 +133,141 @@ public:
 
 class While : public StmtAst
 {
-private:
-  // AstType astnode_type;
+public:
   ExpAst* c1;
   StmtAst* c2;
-public:
   While(ExpAst* guard, StmtAst* whilebody);
   void print();
   void genCode(list <int> *nextList);
 };
 
+
+/* *********************************************************************
+ * Inherit from ExpAst
+ **********************************************************************/
+
+
 class FloatConst : public ExpAst
-{
-private:
-  // AstType astnode_type;
-  
+{ 
 public:
   float val;
   FloatConst(float _val);
   void print();
-  void genCode(bool fall, bool iscond, bool onstack, list<int>* tl, list<int>* fl);
+  void genCode(list<int>* tl, list<int>* fl);
+  void calcLabel();
+  void calcAttributes();
 };
+
+
+class IntConst : public ExpAst
+{  
+public:
+  int val;
+  IntConst(int _val);
+  void print();
+  void genCode(list<int>* tl, list<int>* fl);
+  void calcLabel();
+  void calcAttributes();
+};
+
 
 class BinaryOp : public ExpAst
 {
-private:
-  // AstType astnode_type;
+public:
   ExpAst* c1;
   ExpAst* c2;
   OpType op;
-public:
   BinaryOp(ExpAst* left_exp , ExpAst* right_exp, OpType _op);
   void print();
-  void genCode(bool fall, bool iscond, bool onstack, list<int>* tl, list<int>* fl);
+  void genCode(list<int>* tl, list<int>* fl);
+  void calcLabel();
+  void calcAttributes();
 };
+
+
+class ArrayRef : public ExpAst
+{
+public:
+   virtual std::string getArrayName();
+   virtual void genLCode(int* offset, ValType* valtype, bool* isParam); // genCode for lvalue
+   virtual void genCode(list<int>* tl, list<int>* fl); 
+   virtual void genCode(int*, ValType*, bool* isParam, bool onstack,  list<int>*);
+   virtual void calcLabel(); 
+   virtual void calcAttributes();
+};
+
 
 class UnaryOp : public ExpAst
 {
-private:
-  // AstType astnode_type;
+public:
   ExpAst* c1;
   OpType op;
-public:
   UnaryOp(ExpAst* exp, OpType _op);
   void print();
-  void genCode(bool fall,bool iscond, bool onstack, list<int> *truelist, list<int> *falselist);
+  void genCode(list<int> *truelist, list<int> *falselist);
+  void calcLabel();
+  void calcAttributes();
 };
 
 class FunCall : public ExpAst
 {
-private:
-  // AstType astnode_type;
-  
-  string func_name;
 public:
+  string func_name;
   list<ExpAst*> list_exp_ast;
+  std::string uniq_fname;
   FunCall(ExpAst* _exp_ast);
   void setName(string fname);
   void print();
   std::list<DataType> getArgTypeList();
   void insert(ExpAst* e);
+  void calcLabel();
+  void calcAttributes();
+  void genCode(list<int>*, list<int>*);
 };
 
 
-class IntConst : public ExpAst
-{
-private:
-  // AstType astnode_type;
-  
-public:
-  int val;
-  IntConst(int _val);
-  void print();
-  void genCode(bool fall, bool iscond, bool onstack, list<int>* tl, list<int>* fl);
-};
 
 class StringConst : public ExpAst
 {
-private:
-  // AstType astnode_type;
-  std::string val;
 public:
+  std::string val;
   StringConst(std::string _val);
   void print();
 };
 
 
+/* *********************************************************************
+ * Inherit from ArrayRef
+ **********************************************************************/
+
 class Identifier : public ArrayRef
 {
-private:
-  // AstType astnode_type;
-  std::string val;
 public:
+  std::string val;
   Identifier(std::string _val);
   std::string getArrayName();
   void print();
-  void genLCode(int* offset, ValType* valtype);
-  void genCode(bool fall, bool iscond, bool onstack, list<int>* tl, list<int>* fl);
-  void genCode(int *idOffset , ValType *idValType, bool onstack, list <int> *remainingDim);
+  void genLCode(int* offset, ValType* valtype, bool* isParam);
+  void genCode(list<int>* tl, list<int>* fl);
+  void genCode(int *idOffset , ValType *idValType, bool* isParam, bool onstack, list <int> *remainingDim);
+  void calcLabel();
+  void calcAttributes();
+  
 };
 
 class Index : public ArrayRef
 {
-private:
-  // AstType astnode_type;
+public:
   ArrayRef* c1;
   ExpAst* c2;
-public:
   Index(ArrayRef* arrRef , ExpAst* expAst);
   std::string getArrayName();
   void print();
-  void genLCode(int* offset, ValType* valtype);
-  void genCode(bool fall, bool iscond, bool onstack, list<int>* tl, list<int>* fl);
-  void genCode(int *idOffset , ValType *idValType, bool onstack, list <int> *remainingDim);
+  void genLCode(int* offset, ValType* valtype, bool* isParam);
+  void genCode(list<int>* tl, list<int>* fl);
+  void genCode(int *idOffset , ValType *idValType, bool* isParam, bool onstack, list <int> *remainingDim);
+  void calcLabel();
+  void calcAttributes();
 };
 
 

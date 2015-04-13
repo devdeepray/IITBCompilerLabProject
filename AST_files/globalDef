@@ -6,6 +6,7 @@ bool _g_functionDecError = false;
 bool _g_declarationError = false;
 bool _g_varDecError = false;
 int _g_offset = 0;
+int _g_uniqLabelGen = 0;
 FunctionTable _g_funcTable;
 SymTab _g_globalSymTable;
 int _g_width=0;

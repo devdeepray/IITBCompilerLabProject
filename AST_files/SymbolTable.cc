@@ -246,6 +246,10 @@
     cout << endl;	
   }
 
+	void FunctionTable::setUniqName(int label)
+	{
+		uniq_fname = "func_" + to_string(label);
+	}
 
 
   void SymTab::addFuncTable(FunctionTable _funcTable)

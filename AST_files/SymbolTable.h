@@ -65,6 +65,7 @@ struct FunctionTable
 {
   
   std::string fname;
+  std::string uniq_fname;
   std::map< std::string, VarDeclaration > var_name_map;
   std::map< int, std::string > var_offset_map;
   DataType return_type;
@@ -79,6 +80,7 @@ struct FunctionTable
   DataType getReturnType();
   void setName( std::string _fname);
   std::string getName();
+  void setUniqName(int);
   void reset();
   void print();
 };

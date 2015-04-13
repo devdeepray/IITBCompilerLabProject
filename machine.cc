@@ -363,7 +363,7 @@ private:
 };
 
 class CMachine: public CMachineBase {
-#include "code.asm"
+#include "./TestCases/sum.asm"
 };
 
 int main() {
