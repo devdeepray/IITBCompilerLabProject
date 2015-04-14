@@ -18,7 +18,7 @@ addi(ebx, eax);
 popi(2);
 pushi(eax);
 func_0();
-popi();
+popi(1);
 loadi(ind(esp, 0), eax);
 loadi(ind(esp, I), ebx);
 addi(ebx, eax);
@@ -26,8 +26,8 @@ popi(2);
 pushi(eax);
 loadi(ind(esp, 0), eax);
 storei(eax, ind(ebp,8));
-move(ebp,esp)
-addi(I,esp)
+move(ebp,esp);
+addi(I,esp);
 loadi(ind(ebp, 0), ebp);
 return;
 j(label2);
@@ -35,8 +35,8 @@ label1:
 pushi(0);
 loadi(ind(esp, 0), eax);
 storei(eax, ind(ebp,8));
-move(ebp,esp)
-addi(I,esp)
+move(ebp,esp);
+addi(I,esp);
 loadi(ind(ebp, 0), ebp);
 return;
 label2:
@@ -45,14 +45,17 @@ addi(I,esp);
 loadi(ind(ebp, 0), ebp);
 return;
 }
+
 void main(){
 pushi(ebp);
 move(esp,ebp);
 pushi(0);
 pushi(10);
 func_0();
-popi();
-popi();
+popi(1);
+loadi(ind(esp, 0), eax);
+print_int(eax);
+popi(1);
 label3:
 move(ebp,esp);
 addi(I,esp);

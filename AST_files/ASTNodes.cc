@@ -334,8 +334,8 @@ void Return::genCode(list<int>* nextList)
 	}
 	
 	// shrink stack
-	codeArray.push_back("move(ebp,esp)");
-	codeArray.push_back("addi(I,esp)");
+	codeArray.push_back("move(ebp,esp);");
+	codeArray.push_back("addi(I,esp);");
 	
 	// restore ebp
 	codeArray.push_back("loadi(ind(ebp, 0), ebp);");
