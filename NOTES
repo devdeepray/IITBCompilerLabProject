@@ -1,0 +1,36 @@
+NOTES
+
+For assignment:
+
+if left side is array, we need the computation. Hence, registers reqd, 
+and will finally give index. On the other hand, if left side is identifier,
+in that case, we can directly store. Hence reg requirement is zero. 
+How will this be done?? 
+
+For identifier: 
+
+If it is an lvalue, no register requirement
+If it is an rvalue, one register requirement
+I think it is easier for now to just assume genLCode for id or array
+actually puts the exact address .
+
+For array:
+Whether lvalue or rvalue, same register requirement
+
+
+
+Gencode:
+Gencode is never called on const trees
+
+
+For identifier:
+
+Value:
+either local array -> internal offset + ebp
+or param array -> need to load onto reg
+or primitive -> direct calc is okay
+
+LValue:
+either local arary
+or param array
+or primitive

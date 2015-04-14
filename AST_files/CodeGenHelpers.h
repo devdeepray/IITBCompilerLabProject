@@ -1,0 +1,2 @@
+bool eitherIsNonZero(int, float);
+

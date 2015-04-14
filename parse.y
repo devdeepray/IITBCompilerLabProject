@@ -172,7 +172,7 @@ declarator  : TOK_IDENTIFIER
         _g_declarationError = true;
         cat::parse::declaratorerror::baddimarray(_g_lineCount, _g_currentId);
     }
-    else if(((IntConst*)($3))->val == 0)
+    else if(($3)->int_val == 0)
     {
     
 	_g_declarationError = true;
@@ -181,7 +181,7 @@ declarator  : TOK_IDENTIFIER
     int size = 0;
     if(!_g_declarationError)
     {
-      size = ((IntConst*)($3))->val ;
+      size = ($3)->int_val ;
     }
     _g_varType.addDimension(size);
     _g_size *= (size);
@@ -215,7 +215,7 @@ compound_statement  : '{' '}'
     codeArray.push_back("void " + _g_funcTable.uniq_fname + "(){");
     codeArray.push_back("pushi(ebp);"); // storing the callers ebp
     codeArray.push_back("move(esp,ebp);");
-    
+    init_reg_stack();
 	($2)->genCode(&nextlist);
 	codeArray.push_back("label" + to_string(labelId) + ":");
 	backPatch(nextlist, labelId);
@@ -251,7 +251,7 @@ compound_statement  : '{' '}'
     codeArray.push_back("void " + _g_funcTable.uniq_fname + "(){");
     codeArray.push_back("pushi(ebp);"); // storing the callers ebp
     codeArray.push_back("move(esp,ebp);");
-    
+    init_reg_stack();
 	($3)->genCode(&nextlist);
 	codeArray.push_back("label" + to_string(labelId) + ":");
 	backPatch(nextlist, labelId);

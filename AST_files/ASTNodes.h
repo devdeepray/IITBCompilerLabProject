@@ -18,6 +18,7 @@ extern stack<string> reg_stack;
 
 void indent_print(std::string s);
 void backPatch(list<int>, int);
+void init_reg_stack();
 
 class abstract_astnode
 {
@@ -32,16 +33,22 @@ public:
 class ExpAst : public abstract_astnode
 {
 public:
-  int reg_label; // Sethi ullman labels
-  bool is_cond; // Whether exp is part of cond or not
-  bool need_val; // Whether the result value is needed or not
-  bool fall; // For fall through code
+  int reg_label = 0; // Sethi ullman labels
+  bool is_cond = false; // Whether exp is part of cond or not
+  bool need_val = false; // Whether the result value is needed or not
+  bool fall = false; // For fall through code
+  
+  bool dir_const = false; // Whether constant can be used directly
+  bool is_const = false; // For constants, synth attr
+  int int_val = 0; // Synth attr
+  double float_val = 0; // Synth attr
   DataType data_type;  // Data type of expr
   
   DataType& dataType();
   virtual void genCode(list<int>* tl, list<int>* fl);
   virtual void calcLabel(); // Calculates sethi-ullman labels
   virtual void calcAttributes(); // calculate is_cond and need_val
+  virtual void pruneAST(); // Prune constant subtrees
 };
 
 
@@ -150,24 +157,24 @@ public:
 class FloatConst : public ExpAst
 { 
 public:
-  float val;
   FloatConst(float _val);
   void print();
   void genCode(list<int>* tl, list<int>* fl);
   void calcLabel();
   void calcAttributes();
+  void pruneAST();
 };
 
 
 class IntConst : public ExpAst
 {  
 public:
-  int val;
   IntConst(int _val);
   void print();
   void genCode(list<int>* tl, list<int>* fl);
   void calcLabel();
   void calcAttributes();
+  void pruneAST();
 };
 
 
@@ -182,6 +189,7 @@ public:
   void genCode(list<int>* tl, list<int>* fl);
   void calcLabel();
   void calcAttributes();
+  void pruneAST();
 };
 
 
@@ -189,9 +197,7 @@ class ArrayRef : public ExpAst
 {
 public:
    virtual std::string getArrayName();
-   virtual void genLCode(int* offset, ValType* valtype, bool* isParam); // genCode for lvalue
    virtual void genCode(list<int>* tl, list<int>* fl); 
-   virtual void genCode(int*, ValType*, bool* isParam, bool onstack,  list<int>*);
    virtual void calcLabel(); 
    virtual void calcAttributes();
 };
@@ -247,9 +253,7 @@ public:
   Identifier(std::string _val);
   std::string getArrayName();
   void print();
-  void genLCode(int* offset, ValType* valtype, bool* isParam);
   void genCode(list<int>* tl, list<int>* fl);
-  void genCode(int *idOffset , ValType *idValType, bool* isParam, bool onstack, list <int> *remainingDim);
   void calcLabel();
   void calcAttributes();
   
@@ -263,9 +267,9 @@ public:
   Index(ArrayRef* arrRef , ExpAst* expAst);
   std::string getArrayName();
   void print();
-  void genLCode(int* offset, ValType* valtype, bool* isParam);
+  void genOffset(list<int>* dims);
   void genCode(list<int>* tl, list<int>* fl);
-  void genCode(int *idOffset , ValType *idValType, bool* isParam, bool onstack, list <int> *remainingDim);
+  
   void calcLabel();
   void calcAttributes();
 };
