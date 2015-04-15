@@ -252,10 +252,10 @@ void ExpStmt::genCode(list <int> *nextList)
     c1->fall = false;
     c1->is_cond = false;
     c1->need_val = false;
-    c1->dir_const = false;
+    c1->dir_const = true;
     c1->calcAttributes(); // Calculates the attributes recursively
+	c1->pruneAST(); // Prunes the constant exp trees 
 	c1->calcLabel(); // Calculates all labels in the exp tree
-	c1->pruneAST();
 	// Generate code for the expression
     c1->genCode(NULL, NULL); // No tl, fl for is_cond == false
 }
@@ -289,19 +289,9 @@ void Return::genCode(list<int>* nextList)
 {
 	//! CLEAN ENOUGH FOR MY LIKING
 	//! SETHI-ULLMAN version
-	// Leave the nextlist as is
-	c1->fall = false; 
-	c1->is_cond = false;
-	c1->need_val = true;
-	c1->calcAttributes();
-	c1->calcLabel();
-	c1->genCode(NULL, NULL);
 	
 	// Need to put return val, and clean stack
 	int returnValueAdd;
-	
-	ValType returnType = 
-			currentFuncTable.getReturnType().getPrimitiveType();
 	
 	if((currentFuncTable.var_offset_map.rbegin() 
 							== currentFuncTable.var_offset_map.rend())
@@ -318,20 +308,47 @@ void Return::genCode(list<int>* nextList)
 		int size = currentFuncTable.var_name_map[vName].size;
 		returnValueAdd = offset + size;
 	}
-	
-	if(returnType == TYPE_INT)
+	ValType returnType = 
+				currentFuncTable.getReturnType().getPrimitiveType();
+				
+	// Leave the nextlist as is
+	c1->fall = false; 
+	c1->is_cond = false;
+	c1->need_val = true;
+	c1->dir_const = true;
+	c1->calcAttributes();
+	c1->pruneAST();
+	c1->calcLabel();
+	if(!c1->dir_const)
 	{
-		string reg_name = reg_stack.top();
-		codeArray.push_back("storei(" + reg_name + ", ind(ebp," 
-									+ to_string(returnValueAdd) +"));");
+		c1->genCode(NULL, NULL);
+		
+		if(returnType == TYPE_INT)
+		{
+			string reg_name = reg_stack.top();
+			codeArray.push_back("storei(" + reg_name + ", ind(ebp," 
+										+ to_string(returnValueAdd) +"));");
+		}
+		else if(returnType == TYPE_FLOAT)
+		{
+			string reg_name = reg_stack.top();
+			codeArray.push_back("storef(" + reg_name + ", ind(ebp," 
+										+ to_string(returnValueAdd) +"));");
+		}
 	}
-	else if(returnType == TYPE_FLOAT)
+	else
 	{
-		string reg_name = reg_stack.top();
-		codeArray.push_back("storef(" + reg_name + ", ind(ebp," 
-									+ to_string(returnValueAdd) +"));");
+		if(returnType == TYPE_INT)
+		{
+			codeArray.push_back("storei(" + to_string(c1->int_val) + ", ind(ebp,"
+									+ to_string(returnValueAdd) + "));");
+		}
+		else
+		{
+			codeArray.push_back("storef(" + to_string(c1->float_val) + ", ind(ebp,"
+									+ to_string(returnValueAdd) + "));");
+		}
 	}
-	
 	// shrink stack
 	codeArray.push_back("move(ebp,esp);");
 	codeArray.push_back("addi(I,esp);");
@@ -386,7 +403,9 @@ void If::genCode(list <int> *nextList)
 	c1->fall = true;
 	c1->is_cond = true;
 	c1->need_val = false;
+	c1->dir_const = false;
 	c1->calcAttributes();
+	c1->pruneAST();
 	c1->calcLabel();
 	c1->genCode(&c1Tl, &c1Fl); 
 	
@@ -434,7 +453,9 @@ void For::genCode(list <int> *nextList)
 	c1->fall = false;
 	c1->is_cond = false;
 	c1->need_val = false;
+	c1->dir_const = false;
 	c1->calcAttributes();
+	c1->pruneAST();
 	c1->calcLabel();
 	c1->genCode(&c1Tl, &c1Fl); 
 	
@@ -446,7 +467,9 @@ void For::genCode(list <int> *nextList)
 	c2->fall = true;
 	c2->is_cond = true;
 	c2->need_val = false;
+	c2->dir_const = false;
 	c2->calcAttributes(); 
+	c1->pruneAST();
 	c2->calcLabel();
 	c2->genCode(&c2Tl, &c2Fl);
 	
@@ -464,6 +487,10 @@ void For::genCode(list <int> *nextList)
 	c3->fall = false;
 	c3->is_cond = false;
 	c3->need_val = false;
+	c3->dir_const = false;
+	c3->calcAttributes();
+	c3->pruneAST();
+	c3->calcLabel();
 	c3->genCode(&c3Tl, &c3Fl);
 	
 	// Jumping to condition check
@@ -543,7 +570,9 @@ void While::genCode(list <int> *nextList)
 	c1->fall = true;
 	c1->is_cond = true;
 	c1->need_val = false;
+	c1->dir_const = false;
 	c1->calcAttributes();
+	c1->pruneAST();
 	c1->calcLabel();
 	c1->genCode(&c1Tl, &c1Fl); 
 	
@@ -803,104 +832,12 @@ void BinaryOp::calcLabel()
 	{
 		case OP_INT_PLUS:
 		case OP_FLOAT_PLUS:
-		case OP_INT_MINUS:
-		case OP_FLOAT_MINUS:
 		case OP_INT_MULT:
 		case OP_FLOAT_MULT:
-		case OP_INT_DIV:
+		case OP_INT_MINUS:
+		case OP_FLOAT_MINUS:
+		case OP_INT_DIV: // HANDLE dir_const
 		case OP_FLOAT_DIV:
-		// Case for simple binary operators
-		if(is_cond)
-		{
-			if(is_const)
-			{
-				// Is compile time constant
-				reg_label = 0;
-			}
-			else
-			{
-				// Needs to compute from l and r
-				if(c1->reg_label == c2->reg_label)
-				{
-					// L and R are same, need one more
-					reg_label = c1->reg_label + 1;
-				}
-				else
-				{
-					// L and R are different
-					reg_label = max(c1->reg_label, c2->reg_label);
-				}
-			}
-		}
-		else
-		{
-			if(need_val)
-			{
-				if(is_const)
-				{
-					// It is a compile time constant
-					if(dir_const) reg_label = 0;
-					else reg_label = 1;
-				}
-				else
-				{
-					// Needs to compute from l and r
-					if(c1->reg_label == c2->reg_label)
-					{
-						reg_label = c1->reg_label + 1;
-					}
-					else
-					{
-						reg_label = max(c1->reg_label, c2->reg_label);
-					}
-				}
-			}
-			else
-			{
-				// Dont need val, just eval l and r.
-				reg_label = max(c1->reg_label, c2->reg_label);
-			}
-		}
-		break;
-		case OP_OR:
-		case OP_AND:
-		// Case for boolean logical operators
-		if(is_cond)
-		{
-			if(is_const)
-			{
-				// Is compile time constant
-				reg_label = 0;
-			}
-			else
-			{
-				// L and R are different
-				reg_label = max(c1->reg_label, c2->reg_label);
-			}
-		}
-		else
-		{
-			if(need_val)
-			{
-				if(is_const)
-				{
-					// It is a compile time constant
-					if(dir_const) reg_label = 0;
-					else reg_label = 1;
-				}
-				else
-				{
-					reg_label = max(c1->reg_label, c2->reg_label);
-					if(reg_label == 0) reg_label = 1;
-				}
-			}
-			else
-			{
-				// Dont need val, just eval l and r.
-				reg_label = max(c1->reg_label, c2->reg_label);
-			}
-		}
-		break;
 		case OP_INT_EQ:
 		case OP_FLOAT_EQ:
 		case OP_INT_LT:
@@ -911,109 +848,50 @@ void BinaryOp::calcLabel()
 		case OP_FLOAT_GT:
 		case OP_INT_GE:
 		case OP_FLOAT_GE:
-		// Case for comparison operators
-		
-		if(is_cond)
+		// Case for binary operators
+		reg_label = max(c1->reg_label, c2->reg_label);
+		if(need_val || is_cond)
 		{
-			if(is_const)
-			{
-				// Is compile time constant
-				reg_label = 0;
-			}
-			else
-			{
-				// Needs to compute from l and r
-				if(c1->reg_label == c2->reg_label)
-				{
-					// L and R are same, need one more
-					reg_label = c1->reg_label + 1;
-				}
-				else
-				{
-					// L and R are different
-					reg_label = max(c1->reg_label, c2->reg_label);
-				}
-			}
+			if(reg_label == c1->reg_label)
+			++reg_label;
+		}
+		break;
+		
+		case OP_OR:
+		case OP_AND:
+		// Case for boolean logical operators
+		reg_label = max(c1->reg_label, c2->reg_label);
+		// ^ guaranteed to be non-zero
+		break;
+
+		case OP_ASSIGN:
+		// Left side: IF id: then 0
+		// IF Index: then no. of reg for offset
+		// Rightside: if const: 0
+		// Otherwise: no of regs to eval the right
+		if(c1->astnode_type == AST_IDENTIFIER)
+		{
+			reg_label = c2->reg_label;
 		}
 		else
 		{
-			if(need_val)
+			reg_label = max(c1->reg_label, c2->reg_label); 
+			if(c1->reg_label == c2->reg_label)
 			{
-				if(is_const)
-				{
-					// It is a compile time constant
-					if(dir_const) reg_label = 0;
-					else reg_label = 1;
-				}
-				else
-				{
-					// Needs to compute from l and r
-					if(c1->reg_label == c2->reg_label)
-					{
-						reg_label = c1->reg_label + 1;
-					}
-					else
-					{
-						reg_label = max(c1->reg_label, c2->reg_label);
-					}
-				}
-			}
-			else
-			{
-				// Dont need val, just eval l and r.
-				reg_label = max(c1->reg_label, c2->reg_label);
+				reg_label++;
 			}
 		}
 		break;
-		case OP_ASSIGN:
-		if(is_cond)
-		{
-			if(is_const)
-			{
-				// NOT YET IMPLEMENTED. WILL NEVER COMEHERE
-				cerr << "OPASSIGN calcLabel error" << endl;
-			}
-			else
-			{
-				if(c1->reg_label == c2->reg_label)
-				{
-					reg_label = c1->reg_label + 1;
-				}
-				else
-				{
-					c1->reg_label = max(c1->reg_label, c2->reg_label);
-				}
-			}
-		}
-		else
-		{
-			if(is_const)
-			{
-				// NOT YET IMPLEMENTED. WILL NEVER COMEHERE
-				cerr << "OPASSIGN calcLabel error" << endl;
-			}
-			else
-			{
-				if(c1->reg_label == c2->reg_label)
-				{
-					reg_label = c1->reg_label + 1;
-				}
-				else
-				{
-					c1->reg_label = max(c1->reg_label, c2->reg_label);
-				}
-			}
-		}
 	}
 }
 void BinaryOp::calcAttributes()
 {
-	cout << "Calc binop attr" << endl;
 	switch(op)
 	{
 		case OP_OR:
+		case OP_AND:
 			c1->is_cond = true;
-			c1->fall = false;
+			c1->fall = (op == OP_AND);
 			c1->need_val = false;
 			c1->dir_const = false;
 			
@@ -1028,30 +906,32 @@ void BinaryOp::calcAttributes()
 			if(c1->is_const && c2->is_const)
 			{
 				is_const = true;
-				int_val = c1->int_val && c2->int_val;
-			}
-			break;
-		case OP_AND:
-			c1->is_cond = true;
-			c1->fall = true;
-			c1->need_val = false;
-			c1->dir_const = false;
-			
-			c2->is_cond = true;
-			c2->fall = fall || !is_cond; // Make fall true for easy evaluation
-			c2->need_val = false;
-			c2->dir_const = false;
-			
-			c1->calcAttributes();
-			c2->calcAttributes();
-			
-			if(c1->is_const && c2->is_const)
-			{
-				is_const = true;
-				int_val = c1->int_val || c2->int_val;
+				if(op == OP_OR)
+				{
+					int_val = c1->int_val || c2->int_val;
+				}
+				else
+				{
+					int_val = c1->int_val && c2->int_val;
+				}
 			}
 			break;
 		case OP_INT_PLUS:
+		case OP_FLOAT_PLUS:
+		case OP_INT_MULT:
+		case OP_FLOAT_MULT:
+		case OP_INT_MINUS:
+		case OP_FLOAT_MINUS:
+		case OP_INT_EQ:
+		case OP_FLOAT_EQ:
+		case OP_INT_LT:
+		case OP_FLOAT_LT:
+		case OP_INT_LE:
+		case OP_FLOAT_LE:
+		case OP_INT_GT:
+		case OP_FLOAT_GT:
+		case OP_INT_GE:
+		case OP_FLOAT_GE:
 			c1->is_cond = false;
 			c1->fall = false;
 			c1->need_val = is_cond || need_val;
@@ -1066,9 +946,88 @@ void BinaryOp::calcAttributes()
 			if(c1->is_const && c2->is_const)
 			{
 				is_const = true;
-				int_val = c1->int_val + c2->int_val;
+				switch(op)
+				{
+					case OP_INT_PLUS:
+						int_val = c1->int_val + c2->int_val;
+						break;
+					case OP_FLOAT_PLUS:
+						float_val = c1->float_val + c2->float_val;
+						break;
+					case OP_INT_MULT:
+						int_val = c1->int_val * c2->int_val;
+						break;
+					case OP_FLOAT_MULT:
+						float_val = c1->float_val * c2->float_val;
+						break;
+					case OP_INT_MINUS:
+						int_val = c1->int_val - c2->int_val;
+						break;
+					case OP_FLOAT_MINUS:
+						float_val = c1->float_val - c2->float_val;
+						break;
+					case OP_INT_EQ:
+						int_val = c1->int_val == c2->int_val;
+						break;
+					case OP_FLOAT_EQ:
+						int_val = c1->float_val == c2->float_val;
+						break;
+					case OP_INT_LT:
+						int_val = c1->int_val < c2->int_val;
+						break;
+					case OP_FLOAT_LT:
+						int_val = c1->float_val < c2->float_val;
+						break;
+					case OP_INT_LE:
+						int_val = c1->int_val <= c2->int_val;
+						break;
+					case OP_FLOAT_LE:
+						int_val = c1->float_val <= c2->float_val;
+						break;
+					case OP_INT_GT:
+						int_val = c1->int_val > c2->int_val;
+						break;
+					case OP_FLOAT_GT:
+						int_val = c1->float_val > c2->float_val;
+						break;
+					case OP_INT_GE:
+						int_val = c1->int_val >= c2->int_val;
+						break;
+					case OP_FLOAT_GE:
+						int_val = c1->float_val >= c2->float_val;
+						break;
+				}
 			}
 			break;
+		case OP_INT_DIV:
+		case OP_FLOAT_DIV:
+			c1->is_cond = false;
+			c1->fall = false;
+			c1->need_val = is_cond || need_val;
+			c1->dir_const = true;
+		
+			c2->is_cond = false;
+			c2->fall = false;
+			c2->need_val = is_cond || need_val;
+			c2->dir_const = false;
+			
+			c1->calcAttributes();
+			c2->calcAttributes();
+			
+			if(c1->is_const && c2->is_const)
+			{
+				is_const = true;
+				if(op == OP_INT_DIV)
+				{
+					int_val = c1->int_val / c2->int_val;
+				}
+				else
+				{
+					float_val = c1->float_val / c2->float_val;
+				}
+			}
+			break;
+			
 		case OP_ASSIGN:
 			c1->is_cond = false;
 			c1->fall = false;
@@ -1083,49 +1042,7 @@ void BinaryOp::calcAttributes()
 			c1->calcAttributes();
 			c2->calcAttributes();
 			
-			is_const = false;
-			
-			// TODO: CONST OPTIMIZATION FOR ASSIGN
-			break;
-		case OP_INT_LT:
-			c1->is_cond = false;
-			c1->fall = false;
-			c1->need_val = is_cond || need_val;
-			c1->dir_const = true;
-			
-			c2->is_cond = false;
-			c2->fall = false;
-			c2->need_val = is_cond || need_val;
-			c2->dir_const = true;
-			
-			c1->calcAttributes();
-			c2->calcAttributes();
-			
-			if(c1->is_const && c2->is_const)
-			{
-				is_const = true;
-				int_val = (c1->int_val < c1->int_val);
-			}
-			break;
-		case OP_INT_MINUS:
-			c1->is_cond = false;
-			c1->fall = false;
-			c1->need_val = is_cond || need_val;
-			c1->dir_const = true;
-			
-			c2->is_cond = false;
-			c2->fall = false;
-			c2->need_val = is_cond || need_val;
-			c2->dir_const = false;
-			
-			c1->calcAttributes();
-			c2->calcAttributes();
-			
-			if(c1->is_const && c2->is_const)
-			{
-				is_const = true;
-				int_val = c1->int_val - c2->int_val;
-			}
+			// NOT DOING CONST OPTIMIZATION FOR ASSIGN
 			break;
 	}
 }
@@ -1182,7 +1099,7 @@ void BinaryOp::genCode(list<int> *truelist, list<int> *falselist)
     std::list<int> c1Tl, c1Fl, c2Tl, c2Fl;
 	switch(op)
 	{
-		case OP_OR:
+		case OP_OR: // The boolean operators case
 		case OP_AND:
 		{
 			
@@ -1275,18 +1192,38 @@ void BinaryOp::genCode(list<int> *truelist, list<int> *falselist)
 		}
 		break;
 		case OP_INT_PLUS:
+		case OP_FLOAT_PLUS:
+		case OP_INT_MULT:
+		case OP_FLOAT_MULT:
 		{
 			string reg1, reg2;
+			string opStr, typeStr, c1val, c2val;
+			if(op == OP_INT_PLUS) opStr = "add";
+			else if(op == OP_INT_MULT) opStr = "mul";
+			else if(op == OP_FLOAT_PLUS) opStr = "add";
+			else opStr = "mul";
+			if(data_type.getPrimitiveType() == TYPE_INT)
+			{
+				typeStr = "i";
+				c1val = to_string(c1->int_val);
+				c2val = to_string(c2->int_val);
+			}
+			else
+			{
+				typeStr = "f";
+				c1val = to_string(c1->float_val);
+				c2val = to_string(c2->float_val);
+			}
 			if(need_val || is_cond)
 			{
 				// Need the value of + on reg top
 				if(c1->is_const){ // Second is not constant
 					c2->genCode(&c2Tl, &c2Fl);
-					codeArray.push_back("addi(" + to_string(c1->int_val) + ", " + reg_stack.top() + ");");
+					codeArray.push_back(opStr + typeStr + "(" + c1val + ", " + reg_stack.top() + ");");
 				}
 				else if(c2->is_const){ // First is not const
 					c1->genCode(&c1Tl, &c1Fl);
-					codeArray.push_back("addi(" + to_string(c2->int_val) + ", " + reg_stack.top() + ");");
+					codeArray.push_back(opStr + typeStr + "(" + c2val + ", " + reg_stack.top() + ");");
 				}
 				else{
 					// Need to eval both
@@ -1302,14 +1239,14 @@ void BinaryOp::genCode(list<int> *truelist, list<int> *falselist)
 						reg_stack.pop();
 						reg_stack.pop();
 						if(c2->reg_label > reg_stack.size() + 1){
-							codeArray.push_back("pushi(" + reg1 + ");");
+							codeArray.push_back("push" + typeStr +"(" + reg1 + ");");
 							reg_stack.push(reg1);
 							reg_stack.push(reg2);
 							c2->genCode(&c2Tl, &c2Fl);
 							reg_stack.pop();
 							reg_stack.pop();
-							codeArray.push_back("loadi(ind(esp,0), " + reg1 + ");");
-							codeArray.push_back("popi(1);");
+							codeArray.push_back("load" + typeStr + "(ind(esp,0), " + reg1 + ");");
+							codeArray.push_back("pop"+typeStr+"(1);");
 						}
 						else{
 							reg_stack.push(reg2);
@@ -1327,14 +1264,14 @@ void BinaryOp::genCode(list<int> *truelist, list<int> *falselist)
 						
 						if(c1->reg_label > reg_stack.size() + 1)
 						{
-							codeArray.push_back("pushi(" + reg2 + ");");
+							codeArray.push_back("push"+typeStr+"(" + reg2 + ");");
 							reg_stack.push(reg2);
 							reg_stack.push(reg1);
 							c1->genCode(&c1Tl, &c1Fl);
 							reg_stack.pop();
 							reg_stack.pop();
-							codeArray.push_back("loadi(ind(esp,0), " + reg2 + ");");
-							codeArray.push_back("popi(1);");
+							codeArray.push_back("load" + typeStr + "(ind(esp,0), " + reg2 + ");");
+							codeArray.push_back("pop"+typeStr+"(1);");
 						}
 						else
 						{
@@ -1343,7 +1280,7 @@ void BinaryOp::genCode(list<int> *truelist, list<int> *falselist)
 							reg_stack.pop();
 						}
 					}
-					codeArray.push_back("addi(" + reg2 + ", " + reg1 + ");");
+					codeArray.push_back(opStr+typeStr+"(" + reg2 + ", " + reg1 + ");");
 					reg_stack.push(reg2);
 					reg_stack.push(reg1);
 				}
@@ -1356,7 +1293,7 @@ void BinaryOp::genCode(list<int> *truelist, list<int> *falselist)
 			
 			if(is_cond)
 			{
-				codeArray.push_back("cmpi(0," + reg1 + ");"); 
+				codeArray.push_back("cmp"+typeStr+"(0," + reg1 + ");");
 		        if(fall)
 		        {
 			        falselist->push_back(codeArray.size());
@@ -1372,18 +1309,171 @@ void BinaryOp::genCode(list<int> *truelist, list<int> *falselist)
 		break;
 		case OP_ASSIGN: // NEED TO DO
 		{
-			
 			string idName = ((ArrayRef*)c1)->getArrayName();
 			VarDeclaration vdecl = currentFuncTable.getVar(idName);
 			int offset = vdecl.offset;
-			
+	        string reg1, reg2, reg3;
+	        if(c1->astnode_type == AST_IDENTIFIER){
+				string curInstr;
+				if(c2->is_const){
+					if(data_type.getPrimitiveType() == TYPE_INT){
+						curInstr = "storei(" + to_string(c2->int_val);
+					}
+					else{
+						curInstr = "storef(" + to_string(c2->float_val);
+					}
+				}
+				else{
+					c2->genCode(NULL, NULL);
+					if(data_type.getPrimitiveType() == TYPE_INT){
+						curInstr = "storei(" + reg_stack.top();
+					}
+					else{
+						curInstr = "storef(" + reg_stack.top();
+					}
+				}
+				codeArray.push_back(curInstr + ", ind(ebp, " + to_string(offset) + "));");
+			}
+			else
+			{
+				if(c2->is_const)
+				{
+					list<int> dims;
+					((Index*)c1)->genOffset(&dims);
+					if(vdecl.decl_type == PARAM)
+					{
+						
+						reg1 = reg_stack.top();
+						reg_stack.pop();
+						reg2 = reg_stack.top();
+						reg_stack.pop();
+						codeArray.push_back("loadi(ind(ebp, " + to_string(offset) + "), " + reg2 + ");");
+						codeArray.push_back("addi(" + reg2 + ", " + reg1 +");");
+						if(data_type.getPrimitiveType() == TYPE_INT)
+						{
+							codeArray.push_back("storei(" + to_string(c2->int_val) + ", ind(" + reg1 + ", 0));"); 
+						}
+						else
+						{
+							codeArray.push_back("storef(" + to_string(c2->float_val) + ", ind(" + reg1 + ", 0));");
+						}
+					}
+					else
+					{
+						codeArray.push_back("addi(ebp, " + reg_stack.top() + ");");
+						if(data_type.getPrimitiveType() == TYPE_INT)
+						{
+							codeArray.push_back("storei(" + to_string(c2->int_val) + ", ind(" + reg_stack.top() + ", " + to_string(offset) + "));");
+						}
+						else
+						{
+							codeArray.push_back("storef(" + to_string(c2->float_val) + ", ind(" + reg_stack.top() + ", " + to_string(offset) + "));");
+						}
+					}
+				}
+				else
+				{
+					reg1 = reg_stack.top();
+					reg_stack.pop();
+					reg2 = reg_stack.top();
+					reg_stack.pop();
+					if(c1->reg_label > c2->reg_label){
+						reg_stack.push(reg1);
+						reg_stack.push(reg2);
+						list<int> dims;
+						((Index*)c1)->genOffset(&dims);
+						reg_stack.pop();
+						reg_stack.pop();
+						if(vdecl.decl_type == PARAM)
+						{
+							codeArray.push_back("loadi(ind(ebp, " + to_string(offset) + "), " + reg1 + ");");
+							codeArray.push_back("addi(" + reg1 + ", " + reg2 + ");");
+						}
+						else
+						{
+							codeArray.push_back("addi(ebp, " + reg2 + ");");
+						}
+						if(c2->reg_label > reg_stack.size() + 1){
+							codeArray.push_back("pushi(" + reg2 + ");");
+							reg_stack.push(reg2);
+							reg_stack.push(reg1);
+							c2->genCode(&c2Tl, &c2Fl);
+							reg_stack.pop();
+							reg_stack.pop();
+							codeArray.push_back("loadi(ind(esp,0), " + reg2 + ");");
+							codeArray.push_back("popi(1);");
+						}
+						else{
+							reg_stack.push(reg1);
+							c2->genCode(&c2Tl, &c2Fl);
+							reg_stack.pop();
+						}	
+					}
+					else
+					{
+						reg_stack.push(reg2);
+						reg_stack.push(reg1);
+						c2->genCode(&c2Tl, &c2Fl);
+						reg_stack.pop();
+						reg_stack.pop();
+						
+						if(c1->reg_label > reg_stack.size() + 1)
+						{
+							codeArray.push_back("pushi(" + reg1 + ");");
+							reg_stack.push(reg1);
+							reg_stack.push(reg2);
+							list<int> dims;
+							((Index*)c1)->genOffset(&dims);
+							reg_stack.pop();
+							reg_stack.pop();
+							if(vdecl.decl_type == PARAM)
+							{
+								codeArray.push_back("loadi(ind(ebp, " + to_string(offset) + "), " + reg1 + ");");
+								codeArray.push_back("addi(" + reg1 + ", " + reg2 + ");");
+							}
+							else
+							{
+								codeArray.push_back("addi(ebp, " + reg2 + ");");
+							}
+							codeArray.push_back("loadi(ind(esp,0), " + reg1 + ");");
+							codeArray.push_back("popi(1);");
+						}
+						else
+						{
+							reg_stack.push(reg2);
+							list<int> dims;
+							((Index*)c1)->genOffset(&dims); // reg2 holds the offset
+							reg_stack.pop();
+							
+							//reg1 contains the value to be stored
+							if(vdecl.decl_type == PARAM)
+							{
+								reg3 = reg_stack.top(); // it is guaranteed that we have one more register
+								codeArray.push_back("loadi(ind(ebp, " + to_string(offset) + "), " + reg3 + ");");
+								codeArray.push_back("addi(" + reg3 + ", " + reg2 + ");"); // reg2 contains the final offset
+							}
+							else
+							{
+								codeArray.push_back("addi(ebp, " + reg2 + ");"); //reg2 contains the final offset 
+							}
+							
+						}
+					}
+					if(vdecl.decl_type == PARAM)
+					{
+						if( data_type.getPrimitiveType() == TYPE_INT) codeArray.push_back("storei(" + reg1 + ", ind(" + reg2 + ",0));");
+						else codeArray.push_back("storef(" + reg1 + ", ind(" + reg2 + ",0));");						
+					}
+					else
+					{	
+						if( data_type.getPrimitiveType() == TYPE_INT) codeArray.push_back("storei(" + reg1 + ", ind(" + reg2 + ","+to_string(offset)+"));");
+						else codeArray.push_back("storef(" + reg1 + ", ind(" + reg2 + ","+to_string(offset)+"));");
+					}
+					reg_stack.push(reg2);
+					reg_stack.push(reg1);
+				}
+			}
 	        
-	        c2->genCode(&c2Tl, &c2Fl); // R value
-			// Assuming identifier
-			codeArray.push_back("storei(" + reg_stack.top() + ", ind(ebp, " 
-									+ to_string(offset) + ");" );
-			
-
 	        if(!is_cond)
 	        {
 		        if(need_val)
@@ -1937,7 +2027,7 @@ void Index::genOffset(list<int>* dimensions)
 {
 	
 	// Generates the internal offset for an array
-	if(need_val) // Actually need the offset
+	if(need_val || is_cond) // Actually need the offset
 	{
 		auto it = currentFuncTable.var_name_map.find(c1->getArrayName());
 		VarDeclaration curVarDecl = it->second;
@@ -1948,7 +2038,7 @@ void Index::genOffset(list<int>* dimensions)
 			
 			*dimensions = dt.array_dims;
 			dimensions->pop_front(); // Drop first dimension
-			int multFactor;
+			int multFactor = 1;
 			for(auto it = dimensions->begin();
 				it != dimensions->end(); ++it)
 			{
@@ -1983,8 +2073,8 @@ void Index::genOffset(list<int>* dimensions)
 			{
 				
 				((Index*)c1)->genOffset(dimensions);
-				int multFactor;
-				
+				dimensions->pop_front();
+				int multFactor = 1;
 				for(auto it = dimensions->begin();
 					it != dimensions->end(); ++it)
 				{
@@ -2057,7 +2147,7 @@ void Index::genOffset(list<int>* dimensions)
 						reg_stack.pop();
 					}
 				}
-				int multFactor;
+				int multFactor = 1;
 				
 				for(auto it = dimensions->begin();
 					it != dimensions->end(); ++it)
@@ -2198,13 +2288,14 @@ void Index::calcAttributes()
 	c1->is_cond = false;
 	c1->fall = false;
 	c1->need_val = is_cond || need_val;
+	c1->dir_const = false;
 	c2->is_cond = false;
 	c2->fall = false;
 	c2->need_val = is_cond || need_val;
+	c2->dir_const = true;
 	c1->calcAttributes();
 	c2->calcAttributes();
-	c1->is_const = false;
-	c2->is_const = false;
+	is_const = false;
 }
 
 void Index::calcLabel()
@@ -2221,7 +2312,7 @@ void Index::calcLabel()
 		{
 			reg_label = max(c1->reg_label, c2->reg_label);
 		}
-		if(reg_label <2) reg_label = 2;
+		if(reg_label <2) reg_label = 2; // For param array computation
 	}
 	else
 	{
