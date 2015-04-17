@@ -1369,9 +1369,17 @@ void BinaryOp::genCode(list<int> *truelist, list<int> *falselist)
 				if(c2->is_const){
 					if(data_type.getPrimitiveType() == TYPE_INT){
 						curInstr = "storei(" + to_string(c2->int_val);
+						if(is_cond || need_val)
+						{
+							codeArray.push_back("move(" + to_string(c2->int_val) + ", " + reg_stack.back() + ");");
+						}
 					}
 					else{
 						curInstr = "storef(" + to_string(c2->float_val);
+						if(is_cond || need_val)
+						{
+							codeArray.push_back("move(" + to_string(c2->float_val) + ", " + reg_stack.back() + ");");
+						}
 					}
 				}
 				else{
@@ -1384,6 +1392,7 @@ void BinaryOp::genCode(list<int> *truelist, list<int> *falselist)
 					}
 				}
 				codeArray.push_back(curInstr + ", ind(ebp, " + to_string(offset) + "));");
+				
 			}
 			else
 			{
@@ -1403,12 +1412,14 @@ void BinaryOp::genCode(list<int> *truelist, list<int> *falselist)
 						if(data_type.getPrimitiveType() == TYPE_INT)
 						{
 							codeArray.push_back("storei(" + to_string(c2->int_val) + ", ind(" + reg1 + ", 0));"); 
-							codeArray.push_back("move(" + to_string(c2->int_val) + ", " + reg1 + ");");
+							if(is_cond || need_val)
+								codeArray.push_back("move(" + to_string(c2->int_val) + ", " + reg1 + ");");
 						}
 						else
 						{
 							codeArray.push_back("storef(" + to_string(c2->float_val) + ", ind(" + reg1 + ", 0));");
-							codeArray.push_back("move(" + to_string(c2->float_val) + ", " + reg1 + ");");
+							if(is_cond || need_val)
+								codeArray.push_back("move(" + to_string(c2->float_val) + ", " + reg1 + ");");
 						}
 						
 						reg_stack.push_back(reg2);
@@ -1420,12 +1431,14 @@ void BinaryOp::genCode(list<int> *truelist, list<int> *falselist)
 						if(data_type.getPrimitiveType() == TYPE_INT)
 						{
 							codeArray.push_back("storei(" + to_string(c2->int_val) + ", ind(" + reg_stack.back() + ", " + to_string(offset) + "));");
-							codeArray.push_back("move(" + to_string(c2->int_val) + ", " + reg_stack.back() + ");");
+							if(is_cond || need_val)
+								codeArray.push_back("move(" + to_string(c2->int_val) + ", " + reg_stack.back() + ");");
 						}
 						else
 						{
 							codeArray.push_back("storef(" + to_string(c2->float_val) + ", ind(" + reg_stack.back() + ", " + to_string(offset) + "));");
-							codeArray.push_back("move(" + to_string(c2->float_val) + ", " + reg_stack.back() + ");");
+							if(is_cond || need_val)
+								codeArray.push_back("move(" + to_string(c2->float_val) + ", " + reg_stack.back() + ");");
 						}
 						
 					}
@@ -1896,54 +1909,54 @@ void BinaryOp::genCode(list<int> *truelist, list<int> *falselist)
 					reg2 = reg_stack.back();
 					reg_stack.pop_back();
 					if(c1->reg_label > c2->reg_label){
-						reg_stack.push_back(reg2);
 						reg_stack.push_back(reg1);
+						reg_stack.push_back(reg2);
 						c1->genCode(&c1Tl, &c1Fl);
 						reg_stack.pop_back();
 						reg_stack.pop_back();
 						if(c2->reg_label > reg_stack.size() + 1){
-							codeArray.push_back("push" + typeStr +"(" + reg1 + ");");
-							reg_stack.push_back(reg1);
+							codeArray.push_back("push" + typeStr +"(" + reg2 + ");");
 							reg_stack.push_back(reg2);
+							reg_stack.push_back(reg1);
 							c2->genCode(&c2Tl, &c2Fl);
 							reg_stack.pop_back();
 							reg_stack.pop_back();
-							codeArray.push_back("load" + typeStr + "(ind(esp,0), " + reg1 + ");");
+							codeArray.push_back("load" + typeStr + "(ind(esp,0), " + reg2 + ");");
 							codeArray.push_back("pop"+typeStr+"(1);");
 						}
 						else{
-							reg_stack.push_back(reg2);
+							reg_stack.push_back(reg1);
 							c2->genCode(&c2Tl, &c2Fl);
 							reg_stack.pop_back();
 						}	
 					}
 					else
 					{
-						reg_stack.push_back(reg1);
 						reg_stack.push_back(reg2);
+						reg_stack.push_back(reg1);
 						c2->genCode(&c2Tl, &c2Fl);
 						reg_stack.pop_back();
 						reg_stack.pop_back();
 						
 						if(c1->reg_label > reg_stack.size() + 1)
 						{
-							codeArray.push_back("push"+typeStr+"(" + reg2 + ");");
-							reg_stack.push_back(reg2);
+							codeArray.push_back("push"+typeStr+"(" + reg1 + ");");
 							reg_stack.push_back(reg1);
+							reg_stack.push_back(reg2);
 							c1->genCode(&c1Tl, &c1Fl);
 							reg_stack.pop_back();
 							reg_stack.pop_back();
-							codeArray.push_back("load" + typeStr + "(ind(esp,0), " + reg2 + ");");
+							codeArray.push_back("load" + typeStr + "(ind(esp,0), " + reg1 + ");");
 							codeArray.push_back("pop"+typeStr+"(1);");
 						}
 						else
 						{
-							reg_stack.push_back(reg1);
+							reg_stack.push_back(reg2);
 							c1->genCode(&c1Tl, &c1Fl);
 							reg_stack.pop_back();
 						}
 					}
-					codeArray.push_back("div"+typeStr+"(" + reg1 + ", " + reg2 + ");");
+					codeArray.push_back("div"+typeStr+"(" + reg2 + ", " + reg1 + ");");
 					reg_stack.push_back(reg2);
 					reg_stack.push_back(reg1);
 				}
@@ -2925,25 +2938,25 @@ void Index::genOffset(list<int>* dimensions)
 						reg_stack.pop_back();
 					}
 				}
-				int multFactor = 1;
-				
-				for(auto it = dimensions->begin();
-					it != dimensions->end(); ++it)
-				{
-					multFactor *= (*it);
-				}
-				string typeSize;
-				if(dt.getPrimitiveType() == TYPE_INT)
-				{
-					typeSize = "I";
-				}
-				else
-				{
-					typeSize = "F";
-				}
 				dimensions->pop_front();
-				codeArray.push_back("muli(" + typeSize + "*" + to_string(multFactor)
-									+ ", " + reg2 + ");");
+					int multFactor = 1;
+					
+					for(auto it = dimensions->begin();
+						it != dimensions->end(); ++it)
+					{
+						multFactor *= (*it);
+					}
+					string typeSize;
+					if(dt.getPrimitiveType() == TYPE_INT)
+					{
+						typeSize = "I";
+					}
+					else
+					{
+						typeSize = "F";
+					}
+					codeArray.push_back("muli(" + typeSize + "*" + to_string(multFactor)
+										+ ", " + reg2 + ");");
 				codeArray.push_back("addi(" + reg2 + ", " + reg1 + ");");
 				reg_stack.push_back(reg2);
 				reg_stack.push_back(reg1);
