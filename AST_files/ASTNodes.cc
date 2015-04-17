@@ -15,7 +15,8 @@ int tab_degree = 0; // Number of tabs, for pretty printing
 int labelId = 0; // Global for generating unique labels
 vector<string> codeArray; // Array of generated code
 FunctionTable currentFuncTable; // Function table of the current function
-stack<string> reg_stack;
+vector<string> reg_stack;
+map<string, string> reg_info;
 
 /* *********************************************************************
  * BEGIN
@@ -37,11 +38,16 @@ void indent_print(std::string s)
   std::cout << s;
 }
 void init_reg_stack()
-{		
-	reg_stack.push("edx");
-	reg_stack.push("ecx");
-	reg_stack.push("ebx");
-	reg_stack.push("eax");
+{	
+	reg_stack.clear();
+	reg_stack.push_back("edx");
+	reg_stack.push_back("ecx");
+	reg_stack.push_back("ebx");
+	reg_stack.push_back("eax");
+	reg_info.insert(pair<string, string>("eax", "e"));
+	reg_info.insert(pair<string, string>("ebx", "e"));
+	reg_info.insert(pair<string, string>("ecx", "e"));
+	reg_info.insert(pair<string, string>("edx", "e"));
 }
 /* *********************************************************************
  * END
@@ -248,14 +254,21 @@ void ExpStmt::print()
 }
 void ExpStmt::genCode(list <int> *nextList)
 {   
+	//~ init_reg_stack();
     // Calc code generation attributes
     c1->fall = false;
     c1->is_cond = false;
     c1->need_val = false;
     c1->dir_const = true;
     c1->calcAttributes(); // Calculates the attributes recursively
+    //c1->print();
+    cout.flush();
 	c1->pruneAST(); // Prunes the constant exp trees 
+	//c1->print();
+	cout.flush();
 	c1->calcLabel(); // Calculates all labels in the exp tree
+	//c1->print();
+	cout.flush();
 	// Generate code for the expression
     c1->genCode(NULL, NULL); // No tl, fl for is_cond == false
 }
@@ -287,6 +300,7 @@ void Return::print()
 }
 void Return::genCode(list<int>* nextList)
 {
+	//~ init_reg_stack();
 	//! CLEAN ENOUGH FOR MY LIKING
 	//! SETHI-ULLMAN version
 	
@@ -319,19 +333,19 @@ void Return::genCode(list<int>* nextList)
 	c1->calcAttributes();
 	c1->pruneAST();
 	c1->calcLabel();
-	if(!c1->dir_const)
+	if(!c1->is_const)
 	{
 		c1->genCode(NULL, NULL);
 		
 		if(returnType == TYPE_INT)
 		{
-			string reg_name = reg_stack.top();
+			string reg_name = reg_stack.back();
 			codeArray.push_back("storei(" + reg_name + ", ind(ebp," 
 										+ to_string(returnValueAdd) +"));");
 		}
 		else if(returnType == TYPE_FLOAT)
 		{
-			string reg_name = reg_stack.top();
+			string reg_name = reg_stack.back();
 			codeArray.push_back("storef(" + reg_name + ", ind(ebp," 
 										+ to_string(returnValueAdd) +"));");
 		}
@@ -395,6 +409,7 @@ void If::print()
 }
 void If::genCode(list <int> *nextList)
 {
+	//~ init_reg_stack();
 	//! CLEAN ENOUGH FOR MY LIKING
 	//! SETHI-ULLMAN version
 	list<int> c1Tl, c1Fl, c2Nl, c3Nl;
@@ -445,6 +460,7 @@ void If::genCode(list <int> *nextList)
  
 void For::genCode(list <int> *nextList)
 {
+	//~ init_reg_stack();
 	//! CLEAN ENOUGH FOR MY LIKING
 	//! SETHI-ULLMAN version
 	list <int> c4Nl, c1Tl, c1Fl, c2Tl, c2Fl, c3Tl, c3Fl;
@@ -556,7 +572,7 @@ void While::print()
 }
 void While::genCode(list <int> *nextList)
 {
-
+	//~ init_reg_stack();
 	//! CLEAN ENOUGH FOR MY LIKING
 	//! SETHI-ULLMAN version
 	list<int> c1Tl, c1Fl;
@@ -610,6 +626,7 @@ FloatConst::FloatConst(float _val)
 {
   astnode_type = AST_FLOAT;
   float_val = _val;
+  data_type.setPrimitive(TYPE_FLOAT);
 }
 void FloatConst::print()
 {
@@ -627,7 +644,7 @@ void FloatConst::genCode(list<int>* tl, list<int>* fl)
 		if(need_val)
 		{
 			// Value is needed
-			string reg_name = reg_stack.top();
+			string reg_name = reg_stack.back();
 			codeArray.push_back("move(" + to_string(float_val) + ", " + reg_name + ");");
 		}
 		else
@@ -656,6 +673,7 @@ void FloatConst::genCode(list<int>* tl, list<int>* fl)
 	        }
 	    }
 	}
+	reg_info[reg_stack.back()] = "f";
 }
 void FloatConst::calcLabel()
 {	
@@ -695,6 +713,7 @@ IntConst::IntConst(int _val)
 {
   astnode_type = AST_INT;
   int_val = _val;
+  data_type.setPrimitive(TYPE_INT);
 }
 void IntConst::print()
 {
@@ -712,7 +731,7 @@ void IntConst::genCode(list<int>* tl, list<int>* fl)
 		if(need_val)
 		{
 			// Value is needed
-			string reg_name = reg_stack.top();
+			string reg_name = reg_stack.back();
 			codeArray.push_back("move(" + to_string(int_val) + ", " + reg_name + ");");
 		}
 		else
@@ -741,6 +760,7 @@ void IntConst::genCode(list<int>* tl, list<int>* fl)
 	        }
 	    }
 	}
+	reg_info[reg_stack.back()] = "i";
 	
 }
 
@@ -792,6 +812,21 @@ void StringConst::print()
   tab_degree--;
 }
 
+void StringConst::calcLabel()
+{
+	reg_label = 0;
+	return;
+}
+
+void StringConst::calcAttributes()
+{
+	return;
+}
+
+void StringConst::pruneAST()
+{
+	return;
+}
 /* *********************************************************************
  * END
  * Constants
@@ -840,6 +875,8 @@ void BinaryOp::calcLabel()
 		case OP_FLOAT_DIV:
 		case OP_INT_EQ:
 		case OP_FLOAT_EQ:
+		case OP_INT_NE:
+		case OP_FLOAT_NE:
 		case OP_INT_LT:
 		case OP_FLOAT_LT:
 		case OP_INT_LE:
@@ -924,6 +961,8 @@ void BinaryOp::calcAttributes()
 		case OP_FLOAT_MINUS:
 		case OP_INT_EQ:
 		case OP_FLOAT_EQ:
+		case OP_INT_NE:
+		case OP_FLOAT_NE:
 		case OP_INT_LT:
 		case OP_FLOAT_LT:
 		case OP_INT_LE:
@@ -971,6 +1010,12 @@ void BinaryOp::calcAttributes()
 						break;
 					case OP_FLOAT_EQ:
 						int_val = c1->float_val == c2->float_val;
+						break;
+					case OP_INT_NE:
+						int_val = c1->int_val != c2->int_val;
+						break;
+					case OP_FLOAT_NE:
+						int_val = c1->float_val != c2->float_val;
 						break;
 					case OP_INT_LT:
 						int_val = c1->int_val < c2->int_val;
@@ -1041,7 +1086,7 @@ void BinaryOp::calcAttributes()
 			
 			c1->calcAttributes();
 			c2->calcAttributes();
-			
+			is_const = false;
 			// NOT DOING CONST OPTIMIZATION FOR ASSIGN
 			break;
 	}
@@ -1069,10 +1114,13 @@ void BinaryOp::pruneAST()
 		newc1->is_const = c1->is_const;
 		c1 = newc1;
 	}
+	else
+	{
+		c1->pruneAST();
+	}
 	
 	if(c2->is_const)
 	{
-		ExpAst* tmp = c2;
 		ExpAst* newc2;
 		if(c2->data_type.getPrimitiveType() == TYPE_FLOAT)
 		{
@@ -1090,19 +1138,21 @@ void BinaryOp::pruneAST()
 		newc2->is_const = c2->is_const;
 		c2 = newc2;
 	}
+	else
+	{
+		c2->pruneAST();
+	}
 }
 
 void BinaryOp::genCode(list<int> *truelist, list<int> *falselist)
-{
-
-    
+{  
     std::list<int> c1Tl, c1Fl, c2Tl, c2Fl;
 	switch(op)
 	{
 		case OP_OR: // The boolean operators case
 		case OP_AND:
 		{
-			
+			//TODO if left is const do optimiztion
 			if(op == OP_OR)
 			{
 				
@@ -1126,13 +1176,13 @@ void BinaryOp::genCode(list<int> *truelist, list<int> *falselist)
 						backPatch(c1Tl, labelId);
 						backPatch(c2Tl, labelId);
 						labelId++;
-						codeArray.push_back("move(1, " + reg_stack.top() + ");");
+						codeArray.push_back("move(1, " + reg_stack.back() + ");");
 						int pos = codeArray.size();
 						codeArray.push_back("j");
 						codeArray.push_back("label" + to_string(labelId) + ":");
 						backPatch(c2Fl, labelId);
 						labelId++;
-						codeArray.push_back("move(0, " + reg_stack.top() + ");");
+						codeArray.push_back("move(0, " + reg_stack.back() + ");");
 						codeArray.push_back("label" + to_string(labelId) + ":");
 						codeArray[pos] = "j(label" + to_string(labelId) +");"; 
 						labelId++;
@@ -1167,14 +1217,14 @@ void BinaryOp::genCode(list<int> *truelist, list<int> *falselist)
 						codeArray.push_back("label" + to_string(labelId) + ":");
 						backPatch(c2Tl, labelId);
 						labelId++;
-						codeArray.push_back("move(1, " + reg_stack.top() + ");");
+						codeArray.push_back("move(1, " + reg_stack.back() + ");");
 						int pos = codeArray.size();
 						codeArray.push_back("j");
 						codeArray.push_back("label" + to_string(labelId) + ":");
 						backPatch(c1Fl, labelId);
 						backPatch(c2Fl, labelId);
 						labelId++;
-						codeArray.push_back("move(0, " + reg_stack.top() + ");");
+						codeArray.push_back("move(0, " + reg_stack.back() + ");");
 						codeArray.push_back("label" + to_string(labelId) + ":");
 						codeArray[pos] = "j(label" + to_string(labelId) +");"; 
 						labelId++;
@@ -1219,70 +1269,70 @@ void BinaryOp::genCode(list<int> *truelist, list<int> *falselist)
 				// Need the value of + on reg top
 				if(c1->is_const){ // Second is not constant
 					c2->genCode(&c2Tl, &c2Fl);
-					codeArray.push_back(opStr + typeStr + "(" + c1val + ", " + reg_stack.top() + ");");
+					codeArray.push_back(opStr + typeStr + "(" + c1val + ", " + reg_stack.back() + ");");
 				}
 				else if(c2->is_const){ // First is not const
 					c1->genCode(&c1Tl, &c1Fl);
-					codeArray.push_back(opStr + typeStr + "(" + c2val + ", " + reg_stack.top() + ");");
+					codeArray.push_back(opStr + typeStr + "(" + c2val + ", " + reg_stack.back() + ");");
 				}
 				else{
 					// Need to eval both
 					
-					reg1 = reg_stack.top();
-					reg_stack.pop();
-					reg2 = reg_stack.top();
-					reg_stack.pop();
+					reg1 = reg_stack.back();
+					reg_stack.pop_back();
+					reg2 = reg_stack.back();
+					reg_stack.pop_back();
 					if(c1->reg_label > c2->reg_label){
-						reg_stack.push(reg2);
-						reg_stack.push(reg1);
+						reg_stack.push_back(reg2);
+						reg_stack.push_back(reg1);
 						c1->genCode(&c1Tl, &c1Fl);
-						reg_stack.pop();
-						reg_stack.pop();
+						reg_stack.pop_back();
+						reg_stack.pop_back();
 						if(c2->reg_label > reg_stack.size() + 1){
 							codeArray.push_back("push" + typeStr +"(" + reg1 + ");");
-							reg_stack.push(reg1);
-							reg_stack.push(reg2);
+							reg_stack.push_back(reg1);
+							reg_stack.push_back(reg2);
 							c2->genCode(&c2Tl, &c2Fl);
-							reg_stack.pop();
-							reg_stack.pop();
+							reg_stack.pop_back();
+							reg_stack.pop_back();
 							codeArray.push_back("load" + typeStr + "(ind(esp,0), " + reg1 + ");");
 							codeArray.push_back("pop"+typeStr+"(1);");
 						}
 						else{
-							reg_stack.push(reg2);
+							reg_stack.push_back(reg2);
 							c2->genCode(&c2Tl, &c2Fl);
-							reg_stack.pop();
+							reg_stack.pop_back();
 						}	
 					}
 					else
 					{
-						reg_stack.push(reg1);
-						reg_stack.push(reg2);
+						reg_stack.push_back(reg1);
+						reg_stack.push_back(reg2);
 						c2->genCode(&c2Tl, &c2Fl);
-						reg_stack.pop();
-						reg_stack.pop();
+						reg_stack.pop_back();
+						reg_stack.pop_back();
 						
 						if(c1->reg_label > reg_stack.size() + 1)
 						{
 							codeArray.push_back("push"+typeStr+"(" + reg2 + ");");
-							reg_stack.push(reg2);
-							reg_stack.push(reg1);
+							reg_stack.push_back(reg2);
+							reg_stack.push_back(reg1);
 							c1->genCode(&c1Tl, &c1Fl);
-							reg_stack.pop();
-							reg_stack.pop();
+							reg_stack.pop_back();
+							reg_stack.pop_back();
 							codeArray.push_back("load" + typeStr + "(ind(esp,0), " + reg2 + ");");
 							codeArray.push_back("pop"+typeStr+"(1);");
 						}
 						else
 						{
-							reg_stack.push(reg1);
+							reg_stack.push_back(reg1);
 							c1->genCode(&c1Tl, &c1Fl);
-							reg_stack.pop();
+							reg_stack.pop_back();
 						}
 					}
 					codeArray.push_back(opStr+typeStr+"(" + reg2 + ", " + reg1 + ");");
-					reg_stack.push(reg2);
-					reg_stack.push(reg1);
+					reg_stack.push_back(reg2);
+					reg_stack.push_back(reg1);
 				}
 			}
 			else
@@ -1305,9 +1355,10 @@ void BinaryOp::genCode(list<int> *truelist, list<int> *falselist)
 			        codeArray.push_back("jne");
 		        }
 			}
+			
 		}
 		break;
-		case OP_ASSIGN: // NEED TO DO
+		case OP_ASSIGN:
 		{
 			string idName = ((ArrayRef*)c1)->getArrayName();
 			VarDeclaration vdecl = currentFuncTable.getVar(idName);
@@ -1326,10 +1377,10 @@ void BinaryOp::genCode(list<int> *truelist, list<int> *falselist)
 				else{
 					c2->genCode(NULL, NULL);
 					if(data_type.getPrimitiveType() == TYPE_INT){
-						curInstr = "storei(" + reg_stack.top();
+						curInstr = "storei(" + reg_stack.back();
 					}
 					else{
-						curInstr = "storef(" + reg_stack.top();
+						curInstr = "storef(" + reg_stack.back();
 					}
 				}
 				codeArray.push_back(curInstr + ", ind(ebp, " + to_string(offset) + "));");
@@ -1343,47 +1394,55 @@ void BinaryOp::genCode(list<int> *truelist, list<int> *falselist)
 					if(vdecl.decl_type == PARAM)
 					{
 						
-						reg1 = reg_stack.top();
-						reg_stack.pop();
-						reg2 = reg_stack.top();
-						reg_stack.pop();
+						reg1 = reg_stack.back();
+						reg_stack.pop_back();
+						reg2 = reg_stack.back();
+						reg_stack.pop_back();
 						codeArray.push_back("loadi(ind(ebp, " + to_string(offset) + "), " + reg2 + ");");
 						codeArray.push_back("addi(" + reg2 + ", " + reg1 +");");
 						if(data_type.getPrimitiveType() == TYPE_INT)
 						{
 							codeArray.push_back("storei(" + to_string(c2->int_val) + ", ind(" + reg1 + ", 0));"); 
+							codeArray.push_back("move(" + to_string(c2->int_val) + ", " + reg1 + ");");
 						}
 						else
 						{
 							codeArray.push_back("storef(" + to_string(c2->float_val) + ", ind(" + reg1 + ", 0));");
+							codeArray.push_back("move(" + to_string(c2->float_val) + ", " + reg1 + ");");
 						}
+						
+						reg_stack.push_back(reg2);
+						reg_stack.push_back(reg1);
 					}
 					else
 					{
-						codeArray.push_back("addi(ebp, " + reg_stack.top() + ");");
+						codeArray.push_back("addi(ebp, " + reg_stack.back() + ");");
 						if(data_type.getPrimitiveType() == TYPE_INT)
 						{
-							codeArray.push_back("storei(" + to_string(c2->int_val) + ", ind(" + reg_stack.top() + ", " + to_string(offset) + "));");
+							codeArray.push_back("storei(" + to_string(c2->int_val) + ", ind(" + reg_stack.back() + ", " + to_string(offset) + "));");
+							codeArray.push_back("move(" + to_string(c2->int_val) + ", " + reg_stack.back() + ");");
 						}
 						else
 						{
-							codeArray.push_back("storef(" + to_string(c2->float_val) + ", ind(" + reg_stack.top() + ", " + to_string(offset) + "));");
+							codeArray.push_back("storef(" + to_string(c2->float_val) + ", ind(" + reg_stack.back() + ", " + to_string(offset) + "));");
+							codeArray.push_back("move(" + to_string(c2->float_val) + ", " + reg_stack.back() + ");");
 						}
+						
 					}
 				}
 				else
 				{
-					reg1 = reg_stack.top();
-					reg_stack.pop();
-					reg2 = reg_stack.top();
-					reg_stack.pop();
+					reg1 = reg_stack.back();
+					reg_stack.pop_back();
+					reg2 = reg_stack.back();
+					reg_stack.pop_back();
 					if(c1->reg_label > c2->reg_label){
-						reg_stack.push(reg1);
-						reg_stack.push(reg2);
+						reg_stack.push_back(reg1);
+						reg_stack.push_back(reg2);
 						list<int> dims;
 						((Index*)c1)->genOffset(&dims);
-						reg_stack.pop();
-						reg_stack.pop();
+						reg_stack.pop_back();
+						reg_stack.pop_back();
 						if(vdecl.decl_type == PARAM)
 						{
 							codeArray.push_back("loadi(ind(ebp, " + to_string(offset) + "), " + reg1 + ");");
@@ -1395,37 +1454,37 @@ void BinaryOp::genCode(list<int> *truelist, list<int> *falselist)
 						}
 						if(c2->reg_label > reg_stack.size() + 1){
 							codeArray.push_back("pushi(" + reg2 + ");");
-							reg_stack.push(reg2);
-							reg_stack.push(reg1);
+							reg_stack.push_back(reg2);
+							reg_stack.push_back(reg1);
 							c2->genCode(&c2Tl, &c2Fl);
-							reg_stack.pop();
-							reg_stack.pop();
+							reg_stack.pop_back();
+							reg_stack.pop_back();
 							codeArray.push_back("loadi(ind(esp,0), " + reg2 + ");");
 							codeArray.push_back("popi(1);");
 						}
 						else{
-							reg_stack.push(reg1);
+							reg_stack.push_back(reg1);
 							c2->genCode(&c2Tl, &c2Fl);
-							reg_stack.pop();
+							reg_stack.pop_back();
 						}	
 					}
 					else
 					{
-						reg_stack.push(reg2);
-						reg_stack.push(reg1);
+						reg_stack.push_back(reg2);
+						reg_stack.push_back(reg1);
 						c2->genCode(&c2Tl, &c2Fl);
-						reg_stack.pop();
-						reg_stack.pop();
+						reg_stack.pop_back();
+						reg_stack.pop_back();
 						
 						if(c1->reg_label > reg_stack.size() + 1)
 						{
 							codeArray.push_back("pushi(" + reg1 + ");");
-							reg_stack.push(reg1);
-							reg_stack.push(reg2);
+							reg_stack.push_back(reg1);
+							reg_stack.push_back(reg2);
 							list<int> dims;
 							((Index*)c1)->genOffset(&dims);
-							reg_stack.pop();
-							reg_stack.pop();
+							reg_stack.pop_back();
+							reg_stack.pop_back();
 							if(vdecl.decl_type == PARAM)
 							{
 								codeArray.push_back("loadi(ind(ebp, " + to_string(offset) + "), " + reg1 + ");");
@@ -1440,15 +1499,15 @@ void BinaryOp::genCode(list<int> *truelist, list<int> *falselist)
 						}
 						else
 						{
-							reg_stack.push(reg2);
+							reg_stack.push_back(reg2);
 							list<int> dims;
 							((Index*)c1)->genOffset(&dims); // reg2 holds the offset
-							reg_stack.pop();
+							reg_stack.pop_back();
 							
 							//reg1 contains the value to be stored
 							if(vdecl.decl_type == PARAM)
 							{
-								reg3 = reg_stack.top(); // it is guaranteed that we have one more register
+								reg3 = reg_stack.back(); // it is guaranteed that we have one more register
 								codeArray.push_back("loadi(ind(ebp, " + to_string(offset) + "), " + reg3 + ");");
 								codeArray.push_back("addi(" + reg3 + ", " + reg2 + ");"); // reg2 contains the final offset
 							}
@@ -1469,8 +1528,8 @@ void BinaryOp::genCode(list<int> *truelist, list<int> *falselist)
 						if( data_type.getPrimitiveType() == TYPE_INT) codeArray.push_back("storei(" + reg1 + ", ind(" + reg2 + ","+to_string(offset)+"));");
 						else codeArray.push_back("storef(" + reg1 + ", ind(" + reg2 + ","+to_string(offset)+"));");
 					}
-					reg_stack.push(reg2);
-					reg_stack.push(reg1);
+					reg_stack.push_back(reg2);
+					reg_stack.push_back(reg1);
 				}
 			}
 	        
@@ -1483,7 +1542,7 @@ void BinaryOp::genCode(list<int> *truelist, list<int> *falselist)
 	        }
 	        else
 	        {
-		        codeArray.push_back("cmpi(0," + reg_stack.top() + ");"); 
+		        codeArray.push_back("cmpi(0," + reg_stack.back() + ");"); 
 		        if(fall)
 		        {
 			        falselist->push_back(codeArray.size());
@@ -1498,95 +1557,426 @@ void BinaryOp::genCode(list<int> *truelist, list<int> *falselist)
 		}
 		break;
 		case OP_INT_LT: // NEED TO DO
+		case OP_FLOAT_LT:
+		case OP_INT_GT:
+		case OP_FLOAT_GT:
+		case OP_INT_LE:
+		case OP_FLOAT_LE:
+		case OP_INT_GE:
+		case OP_FLOAT_GE:
+		case OP_INT_EQ:
+		case OP_FLOAT_EQ:
+		case OP_INT_NE:
+		case OP_FLOAT_NE:
 		{
-			 c1->genCode(&c1Tl, &c1Fl);
-			 c2->genCode(&c2Tl, &c2Fl);
-            
-            
-				if(!is_cond)
-				{
-					if(need_val)
+			string reg1, reg2;
+			string true_jump, false_jump, typeStr, c1val, c2val;
+			if(op == OP_INT_LT || op == OP_FLOAT_LT) 
+			{
+				true_jump = "jl";
+				false_jump = "jge";
+			}
+			else if(op == OP_INT_GT || op == OP_FLOAT_GT) 
+			{
+				true_jump = "jg";
+				false_jump = "jle";
+			}
+			else if(op == OP_INT_LE || op == OP_FLOAT_LE) 
+			{
+				true_jump = "jle";
+				false_jump = "jg";
+			}
+			else if(op == OP_INT_GE || op == OP_FLOAT_GE) 
+			{
+				true_jump = "jge";
+				false_jump = "jl";
+			}
+			else if(op == OP_INT_EQ || op == OP_FLOAT_EQ) 
+			{
+				true_jump = "je";
+				false_jump = "jne";
+			}
+			else if(op == OP_INT_NE || op == OP_FLOAT_NE) 
+			{
+				true_jump = "jne";
+				false_jump = "je";
+			}
+			
+			if(c1->data_type.getPrimitiveType() == TYPE_INT)
+			{
+				typeStr = "i";
+				c1val = to_string(c1->int_val);
+				c2val = to_string(c2->int_val);
+			}
+			else
+			{
+				typeStr = "f";
+				c1val = to_string(c1->float_val);
+				c2val = to_string(c2->float_val);
+			}
+			if(need_val || is_cond)
+			{
+				// Need the value of + on reg top
+				if(c1->is_const){ // Second is not constant
+					c2->genCode(NULL, NULL);
+					codeArray.push_back("cmp" + typeStr + "(" + c1val + ", " + reg_stack.back() + ");");
+				}
+				else if(c2->is_const){ // First is not const
+					c1->genCode(NULL, NULL);
+					codeArray.push_back("cmp" + typeStr + "(" + c2val + ", " + reg_stack.back() + ");");
+					
+					// Flip statements
+					if(op == OP_INT_LT || op == OP_FLOAT_LT) 
 					{
-						//assume intrn is a < b
-						codeArray.push_back("loadi(ind(esp, 0), eax);"); // eax contains b
-						codeArray.push_back("loadi(ind(esp, I), ebx);"); // ebx contains a
-						codeArray.push_back("cmpi(ebx, eax);");
-						codeArray.push_back("popi(2);");
+						true_jump = "jg";
+						false_jump = "jle";
+					}
+					else if(op == OP_INT_GT || op == OP_FLOAT_GT) 
+					{
+						true_jump = "jl";
+						false_jump = "jge";
+					}
+					else if(op == OP_INT_LE || op == OP_FLOAT_LE) 
+					{
+						true_jump = "jge";
+						false_jump = "jl";
+					}
+					else if(op == OP_INT_GE || op == OP_FLOAT_GE) 
+					{
+						true_jump = "jle";
+						false_jump = "jg";
+					}
+				}
+				else{
+					// Need to eval both
+					
+					reg1 = reg_stack.back();
+					reg_stack.pop_back();
+					reg2 = reg_stack.back();
+					reg_stack.pop_back();
+					if(c1->reg_label > c2->reg_label){
+						reg_stack.push_back(reg2);
+						reg_stack.push_back(reg1);
+						c1->genCode(NULL, NULL);
+						reg_stack.pop_back();
+						reg_stack.pop_back();
+						if(c2->reg_label > reg_stack.size() + 1){
+							codeArray.push_back("push" + typeStr +"(" + reg1 + ");");
+							reg_stack.push_back(reg1);
+							reg_stack.push_back(reg2);
+							c2->genCode(NULL, NULL);
+							reg_stack.pop_back();
+							reg_stack.pop_back();
+							codeArray.push_back("load" + typeStr + "(ind(esp,0), " + reg1 + ");");
+							codeArray.push_back("pop"+typeStr+"(1);");
+						}
+						else{
+							reg_stack.push_back(reg2);
+							c2->genCode(NULL, NULL);
+							reg_stack.pop_back();
+						}	
+					}
+					else
+					{
+						reg_stack.push_back(reg1);
+						reg_stack.push_back(reg2);
+						c2->genCode(&c2Tl, &c2Fl);
+						reg_stack.pop_back();
+						reg_stack.pop_back();
 						
-						int trueLabel = labelId;
-						++labelId;
-						int nextLabel = labelId;
-						++labelId;
-						codeArray.push_back("jl(label"+to_string(trueLabel)+");");
-						codeArray.push_back("pushi(0);");
-						codeArray.push_back("j(label"+to_string(nextLabel)+");");
-						codeArray.push_back("label" + to_string(trueLabel) + ":");
-						codeArray.push_back("pushi(1);");
-						codeArray.push_back("label" + to_string(nextLabel) +":");
-					}
-				}
-				else
-				{
-						codeArray.push_back("loadi(ind(esp, 0), eax);");
-						codeArray.push_back("loadi(ind(esp, I), ebx);");
-						codeArray.push_back("cmpi(ebx, eax);");
-						codeArray.push_back("popi(2);");
-										 
-						if(fall)
+						if(c1->reg_label > reg_stack.size() + 1)
 						{
-								falselist->push_back(codeArray.size());
-								codeArray.push_back("jge");
+							codeArray.push_back("push"+typeStr+"(" + reg2 + ");");
+							reg_stack.push_back(reg2);
+							reg_stack.push_back(reg1);
+							c1->genCode(NULL, NULL);
+							reg_stack.pop_back();
+							reg_stack.pop_back();
+							codeArray.push_back("load" + typeStr + "(ind(esp,0), " + reg2 + ");");
+							codeArray.push_back("pop"+typeStr+"(1);");
 						}
 						else
 						{
-								truelist->push_back(codeArray.size());
-								codeArray.push_back("jl");
+							reg_stack.push_back(reg1);
+							c1->genCode(NULL, NULL);
+							reg_stack.pop_back();
 						}
+					}
+					codeArray.push_back("cmp"+typeStr+"(" + reg1 + ", " + reg2 + ");");
+					reg_stack.push_back(reg2);
+					reg_stack.push_back(reg1);
 				}
+			}
+			else
+			{
+				c1->genCode(NULL, NULL);
+				c2->genCode(NULL, NULL);
+			}
+			
+			if(is_cond)
+			{
+		        if(fall)
+		        {
+			        falselist->push_back(codeArray.size());
+			        codeArray.push_back(false_jump);
+		        }
+		        else
+		        {
+			        truelist->push_back(codeArray.size());
+			        codeArray.push_back(true_jump);
+		        }
+			}
+			else if(need_val)
+			{
+				int true_jump_ind = codeArray.size();
+				codeArray.push_back(true_jump);
+				codeArray.push_back("move(0, " + reg_stack.back()+ ");");
+				int skip_true_ind = codeArray.size();
+				codeArray.push_back("j");
+				codeArray.push_back("label" + to_string(labelId) + ":");
+				codeArray[true_jump_ind] += "(label"+to_string(labelId)+");";
+				labelId++;
+				codeArray.push_back("move(1, " + reg_stack.back() + ");");
+				codeArray.push_back("label" + to_string(labelId) + ":");
+				codeArray[skip_true_ind] += "(label" + to_string(labelId) + ");";
+				labelId++;
+			}
 		}
-		break;	
-		
-		case OP_INT_MINUS: // NEED TO DO
+		break;
+			
+		case OP_INT_MINUS:
+		case OP_FLOAT_MINUS:
 		{
-			  c1->genCode(&c1Tl, &c1Fl);
-			  c2->genCode(&c2Tl, &c2Fl);
-            
-				if(!is_cond)
-				{
-					if(need_val)
-					{
-						//assume intrn is a - b
-						codeArray.push_back("loadi(ind(esp, 0), eax);"); // eax contains b
-						codeArray.push_back("loadi(ind(esp, I), ebx);"); // ebx contains a
-						codeArray.push_back("muli(-1, eax);"); // eax contains -b
-						codeArray.push_back("addi(ebx, eax);"); // eax contains a-b
-						codeArray.push_back("popi(2);");
-						codeArray.push_back("pushi(eax);");
-					}
+			string reg1, reg2;
+			string typeStr, c1val, c2val;
+			
+			if(data_type.getPrimitiveType() == TYPE_INT)
+			{
+				typeStr = "i";
+				c1val = to_string(c1->int_val);
+				c2val = to_string(c2->int_val);
+			}
+			else
+			{
+				typeStr = "f";
+				c1val = to_string(c1->float_val);
+				c2val = to_string(c2->float_val);
+			}
+			
+			if(need_val || is_cond)
+			{
+				// Need the value of - on reg top
+				if(c1->is_const){ // Second is not constant
+					// example 3-a
+					c2->genCode(&c2Tl, &c2Fl); // value of a is on reg top
+					codeArray.push_back("mul" + typeStr + "(-1," + reg_stack.back() + ");");
+					codeArray.push_back("add" + typeStr + "(" + c1val + ", " + reg_stack.back() + ");");
 				}
-				else
-				{
-						codeArray.push_back("loadi(ind(esp, 0), eax);");
-						codeArray.push_back("loadi(ind(esp, I), ebx);");
-						codeArray.push_back("muli(-1, eax);"); // eax contains -b
-						codeArray.push_back("addi(ebx, eax);"); // eax contains a-b
-						codeArray.push_back("popi(2);");
-						codeArray.push_back("cmpi(0,eax);");				 
-						if(fall)
+				else if(c2->is_const){ // First is not const
+					// example a - 3
+					c1->genCode(&c1Tl, &c1Fl); // value of a is on reg top
+					codeArray.push_back("add" + typeStr + "(-" + c2val + ", " + reg_stack.back() + ");");
+				}
+				else{
+					// Need to eval both
+					reg1 = reg_stack.back();
+					reg_stack.pop_back();
+					reg2 = reg_stack.back();
+					reg_stack.pop_back();
+					if(c1->reg_label > c2->reg_label){
+						// example a-b
+						reg_stack.push_back(reg2); 
+						reg_stack.push_back(reg1);
+						c1->genCode(&c1Tl, &c1Fl); // reg1 holds a
+						reg_stack.pop_back();
+						reg_stack.pop_back();
+						if(c2->reg_label > reg_stack.size() + 1){
+							codeArray.push_back("push" + typeStr +"(" + reg1 + ");");
+							reg_stack.push_back(reg1);
+							reg_stack.push_back(reg2);
+							c2->genCode(&c2Tl, &c2Fl);
+							reg_stack.pop_back();
+							reg_stack.pop_back();
+							codeArray.push_back("load" + typeStr + "(ind(esp,0), " + reg1 + ");");
+							codeArray.push_back("pop"+typeStr+"(1);");
+						}
+						else{
+							reg_stack.push_back(reg2);
+							c2->genCode(&c2Tl, &c2Fl);
+							reg_stack.pop_back();
+						}	
+					}
+					else
+					{
+						reg_stack.push_back(reg1);
+						reg_stack.push_back(reg2);
+						c2->genCode(&c2Tl, &c2Fl);
+						reg_stack.pop_back();
+						reg_stack.pop_back();
+						
+						if(c1->reg_label > reg_stack.size() + 1)
 						{
-								falselist->push_back(codeArray.size());
-								codeArray.push_back("je");
+							codeArray.push_back("push"+typeStr+"(" + reg2 + ");");
+							reg_stack.push_back(reg2);
+							reg_stack.push_back(reg1);
+							c1->genCode(&c1Tl, &c1Fl);
+							reg_stack.pop_back();
+							reg_stack.pop_back();
+							codeArray.push_back("load" + typeStr + "(ind(esp,0), " + reg2 + ");");
+							codeArray.push_back("pop"+typeStr+"(1);");
 						}
 						else
 						{
-								truelist->push_back(codeArray.size());
-								codeArray.push_back("jne");
+							reg_stack.push_back(reg1);
+							c1->genCode(&c1Tl, &c1Fl);
+							reg_stack.pop_back();
 						}
+					}
+					codeArray.push_back("mul" + typeStr + "(-1," + reg2 + ");");
+					codeArray.push_back("add"+typeStr+"(" + reg2 + ", " + reg1 + ");");
+					reg_stack.push_back(reg2);
+					reg_stack.push_back(reg1);
 				}
+			}
+			else
+			{
+				c1->genCode(&c1Tl, &c1Fl);
+				c2->genCode(&c1Tl, &c1Fl);
+			}
+			
+			if(is_cond)
+			{
+				codeArray.push_back("cmp"+typeStr+"(0," + reg1 + ");");
+		        if(fall)
+		        {
+			        falselist->push_back(codeArray.size());
+			        codeArray.push_back("je");
+		        }
+		        else
+		        {
+			        truelist->push_back(codeArray.size());
+			        codeArray.push_back("jne");
+		        }
+			}
+			
 		}
 		break;
 		
+		case OP_INT_DIV:
+		case OP_FLOAT_DIV:
+		{
+			string reg1, reg2;
+			string opStr, typeStr, c1val, c2val;
+
+			if(data_type.getPrimitiveType() == TYPE_INT)
+			{
+				typeStr = "i";
+				c1val = to_string(c1->int_val);
+				c2val = to_string(c2->int_val);
+			}
+			else
+			{
+				typeStr = "f";
+				c1val = to_string(c1->float_val);
+				c2val = to_string(c2->float_val);
+			}
+			if(need_val || is_cond)
+			{
+				// Need the value of / on reg top
+				if(c1->is_const){ // Second is not constant
+					// example 3/a
+					c2->genCode(&c2Tl, &c2Fl);
+					codeArray.push_back( "div"+ typeStr + "(" + c1val + ", " + reg_stack.back() + ");");
+				}
+				else{
+					// Need to eval both
+					
+					reg1 = reg_stack.back();
+					reg_stack.pop_back();
+					reg2 = reg_stack.back();
+					reg_stack.pop_back();
+					if(c1->reg_label > c2->reg_label){
+						reg_stack.push_back(reg2);
+						reg_stack.push_back(reg1);
+						c1->genCode(&c1Tl, &c1Fl);
+						reg_stack.pop_back();
+						reg_stack.pop_back();
+						if(c2->reg_label > reg_stack.size() + 1){
+							codeArray.push_back("push" + typeStr +"(" + reg1 + ");");
+							reg_stack.push_back(reg1);
+							reg_stack.push_back(reg2);
+							c2->genCode(&c2Tl, &c2Fl);
+							reg_stack.pop_back();
+							reg_stack.pop_back();
+							codeArray.push_back("load" + typeStr + "(ind(esp,0), " + reg1 + ");");
+							codeArray.push_back("pop"+typeStr+"(1);");
+						}
+						else{
+							reg_stack.push_back(reg2);
+							c2->genCode(&c2Tl, &c2Fl);
+							reg_stack.pop_back();
+						}	
+					}
+					else
+					{
+						reg_stack.push_back(reg1);
+						reg_stack.push_back(reg2);
+						c2->genCode(&c2Tl, &c2Fl);
+						reg_stack.pop_back();
+						reg_stack.pop_back();
+						
+						if(c1->reg_label > reg_stack.size() + 1)
+						{
+							codeArray.push_back("push"+typeStr+"(" + reg2 + ");");
+							reg_stack.push_back(reg2);
+							reg_stack.push_back(reg1);
+							c1->genCode(&c1Tl, &c1Fl);
+							reg_stack.pop_back();
+							reg_stack.pop_back();
+							codeArray.push_back("load" + typeStr + "(ind(esp,0), " + reg2 + ");");
+							codeArray.push_back("pop"+typeStr+"(1);");
+						}
+						else
+						{
+							reg_stack.push_back(reg1);
+							c1->genCode(&c1Tl, &c1Fl);
+							reg_stack.pop_back();
+						}
+					}
+					codeArray.push_back("div"+typeStr+"(" + reg1 + ", " + reg2 + ");");
+					reg_stack.push_back(reg2);
+					reg_stack.push_back(reg1);
+				}
+			}
+			else
+			{
+				c1->genCode(&c1Tl, &c1Fl);
+				c2->genCode(&c1Tl, &c1Fl);
+			}
+			
+			if(is_cond)
+			{
+				codeArray.push_back("cmp"+typeStr+"(0," + reg1 + ");");
+		        if(fall)
+		        {
+			        falselist->push_back(codeArray.size());
+			        codeArray.push_back("je");
+		        }
+		        else
+		        {
+			        truelist->push_back(codeArray.size());
+			        codeArray.push_back("jne");
+		        }
+			}	
 		}
+		break;
+		
+	}
+	if(data_type.getPrimitiveType() == TYPE_INT)
+	{
+		reg_info[reg_stack.back()] = "i";
+	}
+	else reg_info[reg_stack.back()] = "f";
 }
 
 
@@ -1606,6 +1996,20 @@ UnaryOp::UnaryOp(ExpAst* exp, OpType _op)
   astnode_type = AST_UNOP;
   op = _op;
   c1=exp;
+  switch(_op)
+  {
+	  case OP_TOINT:
+	  case OP_INT_UMINUS:
+	  case OP_INT_PP:
+	  case OP_NOT:
+	  data_type.setPrimitive(TYPE_INT);
+	  break;
+	  case OP_TOFLT:
+	  case OP_FLOAT_UMINUS:
+	  case OP_FLOAT_PP:
+	  data_type.setPrimitive(TYPE_FLOAT);
+	  break;
+  }
 }
 void UnaryOp::print()
 {
@@ -1617,19 +2021,6 @@ void UnaryOp::print()
   tab_degree--;
 }
 
-void UnaryOp::calcAttributes() // TODO
-{
-	switch(op)
-	{
-		case OP_PP:
-			c1->is_cond = false;
-			c1->fall = false;
-			c1->need_val = true;
-			c1->calcAttributes();
-		break;
-	}
-}
-
 void UnaryOp::genCode(list<int> *truelist, list<int> *falselist) // TODO
 {
 	std::list<int> c1Tl, c1Fl;
@@ -1637,91 +2028,255 @@ void UnaryOp::genCode(list<int> *truelist, list<int> *falselist) // TODO
 	{
 		case OP_PP:
 		{
-			  //~ ValType valtype;
-				//~ int varoffset;
-				//~ bool isParam;
-				//~ ((ArrayRef*)c1)->genLCode(&varoffset, &valtype,&isParam); // getting the address of the l_expression
-//~ 
-//~ 
-				//~ if(valtype == TYPE_INT)
-				//~ {
-					//~ //assume instrn is x++
-					//~ codeArray.push_back("loadi(ind(esp, 0), eax);"); // contains addr of x[i] relative to x
-					//~ codeArray.push_back("popi(1);"); // clean the stack
-					//~ if(!isParam)
-					//~ {
-						//~ codeArray.push_back("addi(ebp, eax);"); // add ebp
-						//~ codeArray.push_back("loadi(ebx, ind(eax, " + to_string(varoffset) + "));");  // value of x is in ebx
-						//~ codeArray.push_back("addi(1,ebx);"); // ebx is x + 1
-						//~ codeArray.push_back("storei(ebx, ind(eax, " + to_string(varoffset) + "));");
-						//~ codeArray.push_back("addi(-1,ebx);");
-					//~ }
-					//~ else
-					//~ {
-						//~ codeArray.push_back("loadi(ind(ebp," +  to_string(varoffset)+ ", ebx);");
-						//~ codeArray.push_back("addi(ebx,eax);");
-						//~ codeArray.push_back("loadi(ind(eax,0),ebx);");
-						//~ codeArray.push_back("addi(ebx,1);");
-						//~ codeArray.push_back("storei(ebx,ind(eax,0));");
-						//~ codeArray.push_back("addi(-1,ebx);");
-					//~ }
-					//~ 
-				//~ }
-				//~ else
-				//~ {
-					//~ //assume instrn is x++
-					//~ codeArray.push_back("loadi(ind(esp, 0), eax);"); // contains addr of x[i] relative to x
-					//~ codeArray.push_back("popi(1);"); // clean the stack
-					//~ if(!isParam)
-					//~ {
-						//~ codeArray.push_back("addi(ebp, eax);"); // add ebp
-						//~ codeArray.push_back("loadf(ebx, ind(eax, " + to_string(varoffset) + "));");  // value of x is in ebx
-						//~ codeArray.push_back("addf(1,ebx);"); // ebx is x + 1
-						//~ codeArray.push_back("storef(ebx, ind(eax, " + to_string(varoffset) + "));");
-						//~ codeArray.push_back("addf(-1,ebx);");
-					//~ }
-					//~ else
-					//~ {
-						//~ codeArray.push_back("loadi(ind(ebp," +  to_string(varoffset)+ ", ebx);");
-						//~ codeArray.push_back("addi(ebx,eax);");
-						//~ codeArray.push_back("loadi(ind(eax,0),ebx);");
-						//~ codeArray.push_back("addf(ebx,1);");
-						//~ codeArray.push_back("storef(ebx,ind(eax,0));");
-						//~ codeArray.push_back("addf(-1,ebx);");		
-					//~ }
-				//~ }
-//~ 
-				//~ if(!is_cond)
-				//~ {
-					//~ if(need_val)
-					//~ {
-						//~ if(valtype == TYPE_INT)
-						//~ {
-							//~ codeArray.push_back("pushi(ebx);");
-						//~ }
-						//~ else
-						//~ {
-							//~ codeArray.push_back("pushf(ebx);");
-						//~ }
-					//~ }
-				//~ }
-				//~ else
-				//~ {
-					//~ codeArray.push_back("cmpi(0,ebx);"); 
-					//~ if(fall)
-					//~ {
-						//~ falselist->push_back(codeArray.size());
-						//~ codeArray.push_back("je");
-					//~ }
-					//~ else
-					//~ {
-						//~ truelist->push_back(codeArray.size());
-						//~ codeArray.push_back("jne");
-					//~ }
-				//~ }
+			string idName = ((ArrayRef*)c1)->getArrayName();
+			VarDeclaration vdecl = currentFuncTable.getVar(idName);
+			int offset = vdecl.offset;
+	        string reg1, reg2;
+	        string typeStr;
+	        
+	        if(data_type.getPrimitiveType() == TYPE_INT) 
+			{
+				 typeStr = "i";
+			}
+			else typeStr = "f";	 
+	        
+	        if(c1->astnode_type == AST_IDENTIFIER)
+	        {
+				codeArray.push_back("load" + typeStr + "(ind(ebp," + to_string(offset) + "), " + reg_stack.back()+");");
+				codeArray.push_back("add" + typeStr + "(1,"+ reg_stack.back() + ");");
+				codeArray.push_back("store" + typeStr + "( "+ reg_stack.back()+",ind(ebp," + to_string(offset) + "));" );
+				if(need_val||is_cond)codeArray.push_back("add" + typeStr + "(-1,"+ reg_stack.back() + ");");
+			}
+			else
+			{
+				reg1 = reg_stack.back();
+				reg_stack.pop_back();
+				reg2 = reg_stack.back();
+				reg_stack.pop_back();
+				
+				reg_stack.push_back(reg1);
+				reg_stack.push_back(reg2);
+				
+				list <int> dims;
+				((Index*)c1)->genOffset(&dims);
+				
+				reg_stack.pop_back();
+				reg_stack.pop_back();
+				reg_stack.push_back(reg2);
+				reg_stack.push_back(reg1);
+				
+				if( vdecl.decl_type == PARAM)
+				{
+					codeArray.push_back("loadi(ind(ebp, " + to_string(offset) + "), " + reg1 + ");");	
+					codeArray.push_back("addi(" + reg1 + ", " + reg2 +");");
+					codeArray.push_back("load" + typeStr + "(ind(" + reg2 + ",0), " + reg1 + ");");
+					codeArray.push_back("add" + typeStr + "(1,"+ reg1 + ");");
+					codeArray.push_back("store" + typeStr + "(" + reg1 + ", ind(" + reg2 + ",0));");
+					if(need_val||is_cond)codeArray.push_back("add" + typeStr + "(-1,"+ reg1 + ");");
+				}
+				else
+				{
+					codeArray.push_back("addi(ebp, "+reg2+")");
+					codeArray.push_back("load" + typeStr + "(ind(" + reg2 + "," + to_string(offset) + "), " + reg1 + ");");
+					codeArray.push_back("add" + typeStr + "(1,"+ reg1 + ");");
+					codeArray.push_back("store" + typeStr + "(" + reg1 + ", ind(" + reg2 + ","+to_string(offset)+"));");
+					if(need_val||is_cond)codeArray.push_back("add" + typeStr + "(-1,"+ reg1 + ");");
+				} 
+				
+			}
+	        
+	        if(!is_cond)
+	        {
+		        if(need_val)
+		        {
+			        // Need not do anything special here
+		        }
+	        }
+	        else
+	        {
+		        codeArray.push_back("cmp" + typeStr + "(0," + reg_stack.back() + ");"); 
+		        if(fall)
+		        {
+			        falselist->push_back(codeArray.size());
+			        codeArray.push_back("je");
+		        }
+		        else
+		        {
+			        truelist->push_back(codeArray.size());
+			        codeArray.push_back("jne");
+		        }
+	        }
 		}
 		break;
+		
+		case OP_INT_UMINUS:
+		case OP_FLOAT_UMINUS:
+		{
+			c1->genCode(NULL, NULL);
+			string typeStr;
+			if(op == OP_INT_UMINUS || op == OP_NOT)
+			{
+				typeStr = "i";
+			}
+			else
+			{
+				typeStr = "f";
+			}
+			
+			if(need_val)
+			{
+				codeArray.push_back("mul" + typeStr + "(-1, " + reg_stack.back() + ");");
+			}
+			if(is_cond)
+			{
+				codeArray.push_back("cmp" + typeStr + "(0," + reg_stack.back() + ");"); 
+		        if(fall)
+		        {
+			        falselist->push_back(codeArray.size());
+			        codeArray.push_back("je");
+		        }
+		        else
+		        {
+			        truelist->push_back(codeArray.size());
+			        codeArray.push_back("jne");
+		        }
+			}
+		}
+		break;
+		
+		case OP_TOINT:
+		case OP_TOFLT:
+		{
+			c1->genCode(NULL, NULL);
+			if(is_cond || need_val)
+			{
+				if(op == OP_TOINT)
+				{
+					codeArray.push_back("floatToint(" + reg_stack.back() + ");");
+				}
+				else
+				{
+					codeArray.push_back("intTofloat(" + reg_stack.back() + ");");
+				}
+			}
+			if(is_cond)
+			{
+				codeArray.push_back("cmp" + to_string(((op == OP_TOINT)? 'i' : 'f')) + "(0," + reg_stack.back() + ");"); 
+		        if(fall)
+		        {
+			        falselist->push_back(codeArray.size());
+			        codeArray.push_back("je");
+		        }
+		        else
+		        {
+			        truelist->push_back(codeArray.size());
+			        codeArray.push_back("jne");
+		        }
+			}
+		}
+		
+		break;
+		case OP_NOT:
+		{
+			
+			list<int> tl, fl;
+			c1->genCode(&tl, &fl);
+			if(is_cond)
+			{
+				*truelist = fl;
+				*falselist = tl;
+			}
+			else if(need_val)
+			{
+				codeArray.push_back("move(0, " + reg_stack.back() + ");");
+				int j_over_false_ind = codeArray.size();
+				codeArray.push_back("j");
+				codeArray.push_back("label" + to_string(labelId) + ":");
+				backPatch(fl, labelId);
+				labelId++;
+				codeArray.push_back("move(1, " + reg_stack.back() + ");");
+				codeArray.push_back("label" + to_string(labelId) + ":");
+				codeArray[j_over_false_ind] += "(label" + to_string(labelId) + ");";
+				labelId++;
+			}
+		}
+		break;
+	}
+	if(data_type.getPrimitiveType() == TYPE_INT)
+	{
+		reg_info[reg_stack.back()] = "i";
+	}
+	else reg_info[reg_stack.back()] = "f";
+}
+
+void UnaryOp::pruneAST()
+{
+	if(c1->is_const)
+	{
+		ExpAst* tmp = c1;
+		ExpAst* newc1;
+		if(c1->data_type.getPrimitiveType() == TYPE_FLOAT)
+		{
+			newc1 = new FloatConst(c1->float_val);
+		}
+		else
+		{
+			newc1 = new IntConst(c1->int_val);
+		}
+		newc1->is_cond = c1->is_cond;
+		newc1->reg_label = c1->reg_label;
+		newc1->fall = c1->fall;
+		newc1->need_val = c1->need_val;
+		newc1->dir_const = c1->dir_const;
+		newc1->is_const = c1->is_const;
+		c1 = newc1;
+	}
+	else
+	{
+		c1->pruneAST();
+	}
+}
+		
+
+void UnaryOp::calcAttributes()
+{
 	
+	c1->is_cond = (op == OP_NOT);
+	c1->fall = false;
+	if(op == OP_NOT)
+	{
+		if(is_cond)
+		c1->fall = !fall;
+		else
+		c1->fall = true;
+	}
+	c1->need_val = is_cond || need_val;
+	c1->dir_const = true;
+	c1->calcAttributes();
+	if(c1->is_const)
+	{
+		is_const = true;
+		switch(op)
+		{
+			case OP_INT_PP:
+			case OP_FLOAT_PP:
+			cerr<<"ERROR in calc attributes of UnaryOp" << endl;
+			break;
+			case OP_INT_UMINUS:
+			int_val = - (c1->int_val);
+			break;
+			case OP_FLOAT_UMINUS:
+			float_val = - (c1->float_val);
+			break;
+			case OP_TOINT:
+			int_val = c1->float_val;
+			break;
+			case OP_TOFLT:
+			float_val = c1->int_val;
+			break;
+			case OP_NOT:
+			int_val = ! c1->int_val;
+		}
 	}
 }
 
@@ -1729,15 +2284,25 @@ void UnaryOp::calcLabel() // TODO
 {
 	switch(op)
 	{
-		case OP_PP:
-		if(c1->astnode_type == AST_IDENTIFIER)
+		case OP_INT_PP:
+		case OP_FLOAT_PP:
 		{
-			reg_label = 1;
+			if(c1->astnode_type == AST_IDENTIFIER)
+			{
+				reg_label = 1;
+			}
+			else
+			{
+				reg_label = c1->reg_label;
+			}
 		}
-		else
-		{
-			reg_label = max(2, c1->reg_label);
-		}
+		break;
+		case OP_INT_UMINUS:
+		case OP_FLOAT_UMINUS:
+		case OP_TOINT:
+		case OP_TOFLT:
+		case OP_NOT:
+		reg_label = c1->reg_label;
 		break;
 	}
 }
@@ -1757,6 +2322,7 @@ FunCall::FunCall(ExpAst* _exp_ast)
 {
   astnode_type = AST_FUNCALL;
   if( _exp_ast) list_exp_ast.push_back(_exp_ast);
+  
 }
 
 void FunCall::setName(string fname)
@@ -1796,7 +2362,43 @@ void FunCall::insert(ExpAst* e)
 
 void FunCall::calcLabel()
 {
-	cerr << "NEED TO DEFINE calcLabel in Funcall" << endl;
+	if(need_val || is_cond) reg_label = 1;
+	else reg_label = 0;
+	for(auto it = list_exp_ast.begin(); it != list_exp_ast.end(); ++it)
+	{
+		(*it)->calcLabel();
+	}
+}
+
+void FunCall::pruneAST()
+{
+	for(auto it = list_exp_ast.begin(); it != list_exp_ast.end(); ++it)
+	{
+		if((*it)->is_const)
+		{
+			ExpAst* tmp = (*it);
+			ExpAst* newc1;
+			if((*it)->data_type.getPrimitiveType() == TYPE_FLOAT)
+			{
+				newc1 = new FloatConst((*it)->float_val);
+			}
+			else
+			{
+				newc1 = new IntConst((*it)->int_val);
+			}
+			newc1->is_cond = (*it)->is_cond;
+			newc1->reg_label = (*it)->reg_label;
+			newc1->fall = (*it)->fall;
+			newc1->need_val = (*it)->need_val;
+			newc1->dir_const = (*it)->dir_const;
+			newc1->is_const = (*it)->is_const;
+			(*it) = newc1;
+		}
+		else
+		{
+			(*it)->pruneAST();
+		}
+	}
 }
 
 void FunCall::calcAttributes()
@@ -1806,57 +2408,192 @@ void FunCall::calcAttributes()
 		(*it)->fall = false;
 		(*it)->is_cond = false;
 		(*it)->need_val = true;
+		(*it)->dir_const = true;
 		(*it)->calcAttributes();
 	}
+	is_const = false;
 }
 
 void FunCall::genCode(list<int>* tl, list<int>* fl)
 {
 	
-	if(data_type.getPrimitiveType() == TYPE_INT)
+	if(func_name == "printf")
 	{
-		codeArray.push_back("pushi(0);");
-	}
-	else if(data_type.getPrimitiveType() == TYPE_FLOAT)
-	{
-		codeArray.push_back("pushf(0.0);");
-	}
-	
-	
+		// Parse the string here
 		
-	// First gen code for params.
-	for(auto it = list_exp_ast.rbegin(); it != list_exp_ast.rend(); ++it)
-	{
-		(*it)->genCode(NULL, NULL);
-	}
-	FunctionSignature fsig(func_name, getArgTypeList());
-	codeArray.push_back(uniq_fname + "();");
-	
-	for(auto it = list_exp_ast.begin(); it != list_exp_ast.end(); ++it)
-	{
-		if((*it)->data_type.isPrimitive())
+		string formatStr = ((StringConst*)list_exp_ast.front())->val;
+		formatStr.erase(formatStr.begin());
+		formatStr.pop_back();
+		auto it = list_exp_ast.begin(); 
+		++it; // skipping over the format string
+		vector <string> strTokens;
+		string tmpStr;
+		bool escape = false;
+		for(int i = 0; i < formatStr.size(); ++i)
 		{
-			if((*it)->data_type.getPrimitiveType() == TYPE_INT)
+			if(escape)
+			{
+				if(formatStr[i] == '%')
+				{
+					tmpStr.push_back('%');
+				}
+				else if(formatStr[i] == 'd')
+				{
+					codeArray.push_back("print_string(\"" + tmpStr + "\");");
+					tmpStr = "";
+					// Gen code for printing int
+					if((*it)->is_const)
+					{
+						codeArray.push_back("print_int(" + to_string((*it)->int_val) + ");");
+					}
+					else
+					{
+						(*it)->genCode(NULL, NULL);
+						codeArray.push_back("print_int(" + reg_stack.back() + ");");
+					}
+					it++;
+				}
+				else if(formatStr[i] == 'f')
+				{
+					codeArray.push_back("print_string(\"" + tmpStr + "\");");
+					tmpStr = "";
+					// Gen code for printing float
+					if((*it)->is_const)
+					{
+						codeArray.push_back("print_float(" + to_string((*it)->float_val) + ");");
+					}
+					else
+					{
+						(*it)->genCode(NULL, NULL);
+						codeArray.push_back("print_float(" + reg_stack.back() + ");");
+					}
+					it++;
+				}
+				escape = false;
+			}
+			else
+			{
+				if(formatStr[i] == '%')
+				{
+					escape = true;
+				}
+				else
+				{
+					tmpStr.push_back(formatStr[i]);
+				}
+			}
+		}
+		
+		if( tmpStr.size() != 0) codeArray.push_back("print_string(\""+ tmpStr + "\");");
+	}
+	else
+	{
+		string reg1;
+		if(need_val)
+		{
+			reg1 = reg_stack.back();
+		}
+		
+		// NEED TO SAVE ACTIVE REGISTERS
+		
+		vector <string> saveOrder;
+		map<string,string> valMap;
+		valMap = reg_info;
+		for(auto it = reg_info.begin(); it != reg_info.end(); ++it)
+		{
+			bool matchFound = false;
+			for(auto it2 = reg_stack.begin(); it2 != reg_stack.end(); ++it2)
+			{
+				if(it->first == (*it2))
+				{
+					matchFound = true;
+					break;
+				}
+			}
+			if(!matchFound)
+			{
+				saveOrder.push_back(it->first);
+				codeArray.push_back("push" + it->second + "(" + it->first + ");");
+				reg_stack.push_back(it->first);
+			}
+		}
+		
+		
+		// Space for return value
+		if(data_type.getPrimitiveType() == TYPE_INT)
+		{
+			codeArray.push_back("pushi(0);");
+		}
+		else if(data_type.getPrimitiveType() == TYPE_FLOAT)
+		{
+			codeArray.push_back("pushf(0.0);");
+		}
+		
+		
+			
+		// First gen code for params.
+		for(auto it = list_exp_ast.rbegin(); it != list_exp_ast.rend(); ++it)
+		{
+			if((*it)->is_const)
+			{
+				if((*it)->data_type.getPrimitiveType() == TYPE_INT)
+				{
+					codeArray.push_back("pushi(" + to_string((*it)->int_val) + ");");
+				}
+				else
+				{
+					codeArray.push_back("pushf(" + to_string((*it)->float_val) + ");");
+				}
+			}
+			else
+			{
+				(*it)->genCode(NULL, NULL);
+				if((*it)->data_type.getPrimitiveType() == TYPE_INT)
+				{
+					codeArray.push_back("pushi(" + reg_stack.back() + ");");
+				}
+				else
+				{
+					codeArray.push_back("pushf(" + reg_stack.back() + ");");
+				}
+			}
+		}
+		FunctionSignature fsig(func_name, getArgTypeList());
+		codeArray.push_back(uniq_fname + "();");
+		
+		for(auto it = list_exp_ast.begin(); it != list_exp_ast.end(); ++it)
+		{
+			if((*it)->data_type.isPrimitive())
+			{
+				if((*it)->data_type.getPrimitiveType() == TYPE_INT)
+				{
+					codeArray.push_back("popi(1);");
+				}
+				else if((*it)->data_type.getPrimitiveType() == TYPE_FLOAT)
+				{
+					codeArray.push_back("popf(1);");
+				}
+			}
+			else
 			{
 				codeArray.push_back("popi(1);");
 			}
-			else if((*it)->data_type.getPrimitiveType() == TYPE_FLOAT)
+		}
+		
+		
+		
+		if(is_cond || need_val)
+		{
+			if(data_type.getPrimitiveType() == TYPE_INT)
 			{
+				if(need_val) codeArray.push_back("loadi(ind(esp, 0), " + reg1 + ");");
+				codeArray.push_back("popi(1);");
+			}
+			else if(data_type.getPrimitiveType() == TYPE_FLOAT)
+			{
+				if(need_val) codeArray.push_back("loadf(ind(esp, 0), " + reg1 + ");");
 				codeArray.push_back("popf(1);");
 			}
-		}
-		else
-		{
-			codeArray.push_back("popi(1);");
-		}
-	}
-	
-	
-	if(!is_cond)
-	{
-		if(need_val)
-		{
-			
 		}
 		else
 		{
@@ -1869,33 +2606,47 @@ void FunCall::genCode(list<int>* tl, list<int>* fl)
 				codeArray.push_back("popf(1);");
 			}
 		}
-	}
-	else
-	{
+		
+		// Restore old register values
+		
+		for(auto it = saveOrder.rbegin(); it != saveOrder.rend(); ++it)
+		{
+			codeArray.push_back("load" + valMap[*it] + "(ind(esp,0), " + (*it) + ");");
+			codeArray.push_back("pop" + valMap[*it] + "(1);");
+			reg_stack.pop_back();
+		}
+		
+		
+		
+		if(is_cond)
+		{
+			if(data_type.getPrimitiveType() == TYPE_INT)
+			{
+				codeArray.push_back("cmpi(0,"+reg1+");"); 
+			}
+			else if(data_type.getPrimitiveType() == TYPE_FLOAT)
+			{
+				codeArray.push_back("cmpf(0," + reg1 + ");"); 
+			}
+			if(fall)
+			{
+				fl->push_back(codeArray.size());
+				codeArray.push_back("je");
+			}
+			else
+			{
+				tl->push_back(codeArray.size());
+				codeArray.push_back("jne");
+			}
+		}
+		
+		// Update val type
 		if(data_type.getPrimitiveType() == TYPE_INT)
 		{
-			codeArray.push_back("loadi(esp, eax);");
-			codeArray.push_back("popi(1);");
-			codeArray.push_back("cmpi(0,eax);"); 
+			reg_info[reg_stack.back()] = "i";
 		}
-		else if(data_type.getPrimitiveType() == TYPE_FLOAT)
-		{
-			codeArray.push_back("loadf(esp, eax);");
-			codeArray.push_back("popf(1);");
-			codeArray.push_back("cmpf(0,eax);"); 
-		}
-		if(fall)
-		{
-			fl->push_back(codeArray.size());
-			codeArray.push_back("je");
-		}
-		else
-		{
-			tl->push_back(codeArray.size());
-			codeArray.push_back("jne");
-		}
+		else reg_info[reg_stack.back()] = "f";
 	}
-		
 }
 
 /* *********************************************************************
@@ -1922,6 +2673,10 @@ void Identifier::print()
   tab_degree--;
 }
 
+void Identifier::pruneAST()
+{
+	return;
+}
 
 void Identifier::genCode(list<int>* tl, list<int>* fl)
 {
@@ -1935,7 +2690,7 @@ void Identifier::genCode(list<int>* tl, list<int>* fl)
 		
 		if(is_cond)
 		{
-			string reg = reg_stack.top();
+			string reg = reg_stack.back();
 			codeArray.push_back("loadi(ind(ebp,"+to_string(idOffset)+")," + reg + ");");
             codeArray.push_back("cmpi(0," + reg + ");");
             if(fall)
@@ -1953,16 +2708,25 @@ void Identifier::genCode(list<int>* tl, list<int>* fl)
 		{
 			if(need_val)
 			{
-				string reg = reg_stack.top();
-				codeArray.push_back("loadi(ind(ebp,"+to_string(idOffset)+")," + reg + ");");
+				string reg = reg_stack.back();
+				if(curVarDecl.data_type.array_dims.size() == 0)
+				{
+					codeArray.push_back("loadi(ind(ebp,"+to_string(idOffset)+")," + reg + ");");
+				}
+				else
+				{
+					codeArray.push_back("move(ebp, " + reg + ");");
+					codeArray.push_back("addi(" + to_string(idOffset) + ", " + reg + ");");
+				}
 			}
 		}
+		
 	}
 	else
 	{
 		if(is_cond)
 		{
-			string reg = reg_stack.top();
+			string reg = reg_stack.back();
 			codeArray.push_back("loadf(ind(ebp,"+to_string(idOffset)+")," + reg + ");");
             codeArray.push_back("cmpf(0," + reg + ");");
             if(fall)
@@ -1980,12 +2744,26 @@ void Identifier::genCode(list<int>* tl, list<int>* fl)
 		{
 			if(need_val)
 			{
-				string reg = reg_stack.top();
-				codeArray.push_back("loadf(ind(ebp,"+to_string(idOffset)+")," + reg + ");");
+				string reg = reg_stack.back();
+				if(curVarDecl.data_type.array_dims.size() == 0)
+				{
+					codeArray.push_back("loadf(ind(ebp,"+to_string(idOffset)+")," + reg + ");");
+				}
+				else
+				{
+					codeArray.push_back("move(ebp, " + reg + ");");
+					codeArray.push_back("addi(" + to_string(idOffset) + ", " + reg + ");");
+				}
 			}
 		}
 		
 	}
+	
+	if(idValType == TYPE_INT)
+	{
+		reg_info[reg_stack.back()] = "i";
+	}
+	else reg_info[reg_stack.back()] = "f";
 }
 
 std::string Identifier::getArrayName()
@@ -2056,13 +2834,13 @@ void Index::genOffset(list<int>* dimensions)
 			if(c2->is_const)
 			{
 				codeArray.push_back("move(" + typeSize + "*" + to_string(multFactor)
-							+ "*" +to_string(c2->int_val) + ", " + reg_stack.top() + ");");
+							+ "*" +to_string(c2->int_val) + ", " + reg_stack.back() + ");");
 			}
 			else
 			{
 				c2->genCode(NULL, NULL); // Get val
 				codeArray.push_back("muli(" + typeSize + "*" + to_string(multFactor)
-								+ ", " + reg_stack.top() + ");");
+								+ ", " + reg_stack.back() + ");");
 			}
 			
 		}
@@ -2091,60 +2869,60 @@ void Index::genOffset(list<int>* dimensions)
 				}
 				
 				codeArray.push_back("addi(" + typeSize + "*" + to_string(multFactor)
-							+ "*" +to_string(c2->int_val) + ", " + reg_stack.top() + ");");
+							+ "*" +to_string(c2->int_val) + ", " + reg_stack.back() + ");");
 			}
 			else
 			{
-				reg1 = reg_stack.top();
-				reg_stack.pop();
-				reg2 = reg_stack.top();
-				reg_stack.pop();
+				reg1 = reg_stack.back();
+				reg_stack.pop_back();
+				reg2 = reg_stack.back();
+				reg_stack.pop_back();
 				if(c1->reg_label > c2->reg_label){
-					reg_stack.push(reg2);
-					reg_stack.push(reg1);
+					reg_stack.push_back(reg2);
+					reg_stack.push_back(reg1);
 					((Index*)c1)->genOffset(dimensions);
-					reg_stack.pop();
-					reg_stack.pop();
+					reg_stack.pop_back();
+					reg_stack.pop_back();
 					if(c2->reg_label > reg_stack.size() + 1){
 						codeArray.push_back("pushi(" + reg1 + ");");
-						reg_stack.push(reg1);
-						reg_stack.push(reg2);
+						reg_stack.push_back(reg1);
+						reg_stack.push_back(reg2);
 						c2->genCode(NULL, NULL);
-						reg_stack.pop();
-						reg_stack.pop();
+						reg_stack.pop_back();
+						reg_stack.pop_back();
 						codeArray.push_back("loadi(ind(esp,0), " + reg1 + ");");
 						codeArray.push_back("popi(1);");
 					}
 					else{
-						reg_stack.push(reg2);
+						reg_stack.push_back(reg2);
 						c2->genCode(NULL, NULL);
-						reg_stack.pop();
+						reg_stack.pop_back();
 					}	
 				}
 				else
 				{
-					reg_stack.push(reg1);
-					reg_stack.push(reg2);
+					reg_stack.push_back(reg1);
+					reg_stack.push_back(reg2);
 					c2->genCode(NULL, NULL);
-					reg_stack.pop();
-					reg_stack.pop();
+					reg_stack.pop_back();
+					reg_stack.pop_back();
 					
 					if(c1->reg_label > reg_stack.size() + 1)
 					{
 						codeArray.push_back("pushi(" + reg2 + ");");
-						reg_stack.push(reg2);
-						reg_stack.push(reg1);
+						reg_stack.push_back(reg2);
+						reg_stack.push_back(reg1);
 						((Index*)c1)->genOffset(dimensions);
-						reg_stack.pop();
-						reg_stack.pop();
+						reg_stack.pop_back();
+						reg_stack.pop_back();
 						codeArray.push_back("loadi(ind(esp,0), " + reg2 + ");");
 						codeArray.push_back("popi(1);");
 					}
 					else
 					{
-						reg_stack.push(reg1);
+						reg_stack.push_back(reg1);
 						((Index*)c1)->genOffset(dimensions);
-						reg_stack.pop();
+						reg_stack.pop_back();
 					}
 				}
 				int multFactor = 1;
@@ -2167,8 +2945,8 @@ void Index::genOffset(list<int>* dimensions)
 				codeArray.push_back("muli(" + typeSize + "*" + to_string(multFactor)
 									+ ", " + reg2 + ");");
 				codeArray.push_back("addi(" + reg2 + ", " + reg1 + ");");
-				reg_stack.push(reg2);
-				reg_stack.push(reg1);
+				reg_stack.push_back(reg2);
+				reg_stack.push_back(reg1);
 			}
 		}
 	}
@@ -2181,6 +2959,8 @@ void Index::genOffset(list<int>* dimensions)
 		}	
 		c2->genCode(NULL, NULL);
 	}
+	
+	reg_info[reg_stack.back()] = "i";
 }
 
 
@@ -2199,36 +2979,46 @@ void Index::genCode(list<int>* tl, list<int>* fl)
 		if(curVarDecl.decl_type == PARAM) // NEED AN EXTRA REG
 		{
 			
-			string reg1 = reg_stack.top(); // Has the offset
-			reg_stack.pop();
-			string reg2 = reg_stack.top(); // Can be used for loading
-			reg_stack.pop();
+			string reg1 = reg_stack.back(); // Has the offset
+			reg_stack.pop_back();
+			string reg2 = reg_stack.back(); // Can be used for loading
+			reg_stack.pop_back();
 			codeArray.push_back("loadi(ind(ebp, " + to_string(curVarDecl.offset )
 							+ "), " + reg2 + ");");
 			codeArray.push_back("addi(" + reg2 + ", " + reg1 + ");");
-			if(dt.getPrimitiveType() == TYPE_INT)
+			if(dims.size() == 0)
 			{
-				codeArray.push_back("loadi(ind(" + reg1 + ", 0), " + reg1 + ");");
+				if(dt.getPrimitiveType() == TYPE_INT)
+				{
+					codeArray.push_back("loadi(ind(" + reg1 + ", 0), " + reg1 + ");");
+				}
+				else
+				{
+					codeArray.push_back("loadf(ind(" + reg1 + ", 0), " + reg1 + ");");
+				}
 			}
-			else
-			{
-				codeArray.push_back("loadf(ind(" + reg1 + ", 0), " + reg1 + ");");
-			}
-			reg_stack.push(reg2);
-			reg_stack.push(reg1);
+			reg_stack.push_back(reg2);
+			reg_stack.push_back(reg1);
 		}
 		else 
 		{
-			codeArray.push_back("addi(ebp, " + reg_stack.top() + ");");
-			if(dt.getPrimitiveType() == TYPE_INT)
+			codeArray.push_back("addi(ebp, " + reg_stack.back() + ");");
+			if(dims.size() == 0)	
 			{
-				codeArray.push_back("loadi(ind(" + reg_stack.top() + "," 
-							+ to_string(curVarDecl.offset) + "), " + reg_stack.top() + ");");
+				if(dt.getPrimitiveType() == TYPE_INT)
+				{
+					codeArray.push_back("loadi(ind(" + reg_stack.back() + "," 
+								+ to_string(curVarDecl.offset) + "), " + reg_stack.back() + ");");
+				}
+				else
+				{
+					codeArray.push_back("loadf(ind(" + reg_stack.back() + "," 
+								+ to_string(curVarDecl.offset) + "), " + reg_stack.back() + ");");
+				}
 			}
 			else
 			{
-				codeArray.push_back("loadf(ind(" + reg_stack.top() + "," 
-							+ to_string(curVarDecl.offset) + "), " + reg_stack.top() + ");");
+				codeArray.push_back("addi(" + to_string(curVarDecl.offset) + ", " + reg_stack.back() + ");");
 			}
 		}
 	}
@@ -2239,7 +3029,7 @@ void Index::genCode(list<int>* tl, list<int>* fl)
 	}
 	if(is_cond)
 	{
-		codeArray.push_back("cmpi(0," + reg_stack.top() + ");"); 
+		codeArray.push_back("cmpi(0," + reg_stack.back() + ");"); 
 		if(fall)
 		{
 			fl->push_back(codeArray.size());
@@ -2251,9 +3041,42 @@ void Index::genCode(list<int>* tl, list<int>* fl)
 			codeArray.push_back("jne");
 		}
 	}
+	
+	if(data_type.getPrimitiveType() == TYPE_INT)
+	{
+		reg_info[reg_stack.back()] = "i";
+	}
+	else reg_info[reg_stack.back()] = "f";	
 }
 
-
+void Index::pruneAST()
+{
+	c1->pruneAST();
+	if(c2->is_const)
+	{
+		ExpAst* tmp = c2;
+		ExpAst* newc2;
+		if(c2->data_type.getPrimitiveType() == TYPE_FLOAT)
+		{
+			newc2 = new FloatConst(c2->float_val);
+		}
+		else
+		{
+			newc2 = new IntConst(c2->int_val);
+		}
+		newc2->is_cond = c2->is_cond;
+		newc2->reg_label = c2->reg_label;
+		newc2->need_val = c2->need_val;
+		newc2->fall = c2->fall;
+		newc2->dir_const = c2->dir_const;
+		newc2->is_const = c2->is_const;
+		c2 = newc2;
+	}
+	else
+	{
+		c2->pruneAST();
+	}
+}
 
 
 Index::Index(ArrayRef* arrRef , ExpAst* expAst)
@@ -2349,6 +3172,11 @@ void ArrayRef::calcAttributes()
 void ArrayRef::genCode(list<int>* tl, list<int>*fl)
 {
 	cerr << "ArrayRef: NEED TO OVERRIDE genCode(list<int>*, list<int>*)" << endl;
+}
+
+void ArrayRef::pruneAST()
+{
+	cerr << "ArrayRef: NEED TO OVERRIDE pruneAST()" << endl;
 }
 
 /* *********************************************************************

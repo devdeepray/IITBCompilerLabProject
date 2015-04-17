@@ -72,13 +72,13 @@ type_specifier  : TOK_VOID_KW
 {
     _g_varType.reset();
     _g_varType.setPrimitive(TYPE_INT);
-    _g_width = 4;
+    _g_width = sizeof(int);
 }
 | TOK_FLOAT_KW
 {
     _g_varType.reset();
     _g_varType.setPrimitive(TYPE_FLOAT);
-    _g_width = 4;
+    _g_width = sizeof(float);
 }
 ;
 fun_declarator  : TOK_IDENTIFIER '(' parameter_list ')'
@@ -86,6 +86,7 @@ fun_declarator  : TOK_IDENTIFIER '(' parameter_list ')'
     
     // Set the name. Params already set
     _g_funcTable.setName($1);
+    if($1 == "main") _g_funcTable.uniq_fname = $1;
     _g_offset = -4; 
     
     if( _g_globalSymTable.existsSignature(_g_funcTable.getSignature()) )
@@ -107,6 +108,7 @@ fun_declarator  : TOK_IDENTIFIER '(' parameter_list ')'
     
     // Set the name of the function. 
     _g_funcTable.setName($1);
+    if($1 == "main") _g_funcTable.uniq_fname = $1;
     _g_offset = -4; 
     
     if( _g_globalSymTable.existsSignature(_g_funcTable.getSignature()) )
@@ -215,6 +217,8 @@ compound_statement  : '{' '}'
     codeArray.push_back("void " + _g_funcTable.uniq_fname + "(){");
     codeArray.push_back("pushi(ebp);"); // storing the callers ebp
     codeArray.push_back("move(esp,ebp);");
+    
+    
     init_reg_stack();
 	($2)->genCode(&nextlist);
 	codeArray.push_back("label" + to_string(labelId) + ":");
@@ -251,6 +255,9 @@ compound_statement  : '{' '}'
     codeArray.push_back("void " + _g_funcTable.uniq_fname + "(){");
     codeArray.push_back("pushi(ebp);"); // storing the callers ebp
     codeArray.push_back("move(esp,ebp);");
+    
+    codeArray.push_back("addi(" + to_string(_g_funcTable.var_offset_map.begin()->first) + ",esp);");
+    
     init_reg_stack();
 	($3)->genCode(&nextlist);
 	codeArray.push_back("label" + to_string(labelId) + ":");
@@ -475,6 +482,10 @@ unary_expression  : postfix_expression
     }
     (res)->validAST() = ($2)->validAST() && comp;
     (res)->dataType() = comp? ($2)->dataType() : DataType(TYPE_WEAK);
+    if($1 == OP_NOT)
+    {
+		(res)->dataType().setPrimitive( comp? TYPE_INT :TYPE_WEAK);
+	}
     if(!comp)
     {
         // Wrong assignment type mismatch   
@@ -512,59 +523,66 @@ postfix_expression  : primary_expression
 | TOK_IDENTIFIER '(' expression_list ')'
 {
     ((FunCall*)($3))->setName($1);
-    ($3)->dataType().setPrimitive( TYPE_WEAK );
-
-    FunctionSignature fsig($1, ((FunCall*)($3))->getArgTypeList());
-    if(($3)->validAST() && _g_globalSymTable.existsSignature(fsig))
-    {
-        ($3)->validAST() = true;
-        ($3)->dataType() = _g_globalSymTable.getFuncTable(fsig).getReturnType();
-        ((FunCall*)($3))->uniq_fname = _g_globalSymTable.getFuncTable(fsig).uniq_fname;
-    }
-    else if(($3)->validAST())
-    {
-	int wmcount;
-	FunctionSignature tmpsig = _g_globalSymTable.getCompatibleSignature(fsig, &wmcount);
-	if(wmcount == 0)
-	{
-	    ($3)->validAST() = false;
-	    cat::parse::fdecerror::badfcall(_g_lineCount, fsig);
-	}
-	else if(wmcount > 1)
-	{
-	    ($3)->validAST() = false;
-	    cat::parse::fdecerror::ambiguousfcall(_g_lineCount, fsig);
-	}
-	else
-	{
-	    ($3)->validAST() = true;
-	    ((FunCall*)($3))->uniq_fname = _g_globalSymTable.getFuncTable(tmpsig).uniq_fname;
-	    auto it1 = tmpsig.arg_types.begin();
-	    auto it2 = ((FunCall*)$3)->list_exp_ast.begin();
-	    for(; it1 != tmpsig.arg_types.end(); ++it1, ++it2)
-	    {
-		if((*it2)->dataType().isPrimitive()
-		    && (*it2)->dataType().getPrimitiveType() != it1->getPrimitiveType())
-		{
-		    if(it1->getPrimitiveType() == TYPE_FLOAT)
-		    {
-			ExpAst* tmp = new UnaryOp((*it2), OP_TOFLT);
-			tmp->validAST() = (*it2)->validAST();
-			(*it2) = tmp;
-		    }
-		    else
-		    {
-			
-			ExpAst* tmp = new UnaryOp((*it2), OP_TOINT);
-			tmp->validAST() = (*it2)->validAST();
-			(*it2) = tmp;
-		    }
-		}
-	    }
-	}
-        
-    }
     
+    if(($1) == "printf")
+    {
+		($3)->validAST() = true;
+    }
+    else
+    {
+		($3)->dataType().setPrimitive( TYPE_WEAK );
+
+		FunctionSignature fsig($1, ((FunCall*)($3))->getArgTypeList());
+		if(($3)->validAST() && _g_globalSymTable.existsSignature(fsig))
+		{
+			($3)->validAST() = true;
+			($3)->dataType() = _g_globalSymTable.getFuncTable(fsig).getReturnType();
+			((FunCall*)($3))->uniq_fname = _g_globalSymTable.getFuncTable(fsig).uniq_fname;
+		}
+		else if(($3)->validAST())
+		{
+			int wmcount;
+			FunctionSignature tmpsig = _g_globalSymTable.getCompatibleSignature(fsig, &wmcount);
+			if(wmcount == 0)
+			{
+				($3)->validAST() = false;
+				cat::parse::fdecerror::badfcall(_g_lineCount, fsig);
+			}
+			else if(wmcount > 1)
+			{
+				($3)->validAST() = false;
+				cat::parse::fdecerror::ambiguousfcall(_g_lineCount, fsig);
+			}
+			else
+			{
+				($3)->validAST() = true;
+				((FunCall*)($3))->uniq_fname = _g_globalSymTable.getFuncTable(tmpsig).uniq_fname;
+				($3)->dataType() = _g_globalSymTable.getFuncTable(tmpsig).getReturnType();
+				auto it1 = tmpsig.arg_types.begin();
+				auto it2 = ((FunCall*)$3)->list_exp_ast.begin();
+				for(; it1 != tmpsig.arg_types.end(); ++it1, ++it2)
+				{
+					if((*it2)->dataType().isPrimitive()
+						&& (*it2)->dataType().getPrimitiveType() != it1->getPrimitiveType())
+					{
+						if(it1->getPrimitiveType() == TYPE_FLOAT)
+						{
+						ExpAst* tmp = new UnaryOp((*it2), OP_TOFLT);
+						tmp->validAST() = (*it2)->validAST();
+						(*it2) = tmp;
+						}
+						else
+						{
+						
+						ExpAst* tmp = new UnaryOp((*it2), OP_TOINT);
+						tmp->validAST() = (*it2)->validAST();
+						(*it2) = tmp;
+						}
+					}
+				}
+			}
+		}
+	}
     $$ = $3;
       
 }
@@ -594,7 +612,7 @@ primary_expression  : l_expression
 }
 | l_expression '=' expression // added this production
 {
-    ($$) = createBinOpAst($1, $3, OP_ASSIGN, OP_ASSIGN, OP_ASSIGN, _g_lineCount);
+    ($$) = createAssignmentAst($1, $3, _g_lineCount);
 }
 | TOK_INT_CONST
 {
@@ -744,7 +762,7 @@ declarator_list  : declarator
             v.setDeclType(LOCAL);
             v.setName(_g_currentId);
             v.setSize(_g_size);
-            v.setOffset(_g_offset);
+            v.setOffset(_g_offset- _g_size + _g_width);
             v.setDataType(_g_varType);
             _g_funcTable.addLocal(v);
            _g_offset -= _g_size;
@@ -771,7 +789,7 @@ declarator_list  : declarator
         v.setDeclType(LOCAL);
         v.setName(_g_currentId);
         v.setSize(_g_size);
-        v.setOffset(_g_offset);
+        v.setOffset(_g_offset - _g_size + _g_width);
         v.setDataType(_g_varType);
         _g_funcTable.addLocal(v);
        	_g_offset -= _g_size;

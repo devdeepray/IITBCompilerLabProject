@@ -102,7 +102,7 @@ bool unaryOpCompatible(OpType op, DataType val)
   }
   else if(op == OP_NOT)
   {
-    if(val.getPrimitiveType() == TYPE_INT) return true;
+    if(val.getPrimitiveType() == TYPE_INT || val.getPrimitiveType() == TYPE_FLOAT) return true;
     else return false;
   }
   return false;

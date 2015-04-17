@@ -12,19 +12,19 @@ ExpAst* createBinOpAst(ExpAst* lexp, ExpAst* rexp, OpType genop, OpType intop, O
     if(tmp.getPrimitiveType() == TYPE_FLOAT)
     {
 
-    if((lexp)->dataType().getPrimitiveType() == TYPE_INT)
-    {
-      tmp1 = new UnaryOp(lexp, OP_TOFLT);
-      tmp1->validAST() = lexp->validAST();
-    }
+		if((lexp)->dataType().getPrimitiveType() == TYPE_INT)
+		{
+		  tmp1 = new UnaryOp(lexp, OP_TOFLT);
+		  tmp1->validAST() = lexp->validAST();
+		}
 
-    if(rexp->dataType().getPrimitiveType() == TYPE_INT)
-    {
-      tmp2 = new UnaryOp(rexp, OP_TOFLT);
-      tmp2->validAST() = rexp->validAST();
-    }
+		if(rexp->dataType().getPrimitiveType() == TYPE_INT)
+		{
+		  tmp2 = new UnaryOp(rexp, OP_TOFLT);
+		  tmp2->validAST() = rexp->validAST();
+		}
 
-    res = new BinaryOp(tmp1, tmp2, fltop);
+		res = new BinaryOp(tmp1, tmp2, fltop);
     }
     else
     {
@@ -33,7 +33,23 @@ ExpAst* createBinOpAst(ExpAst* lexp, ExpAst* rexp, OpType genop, OpType intop, O
 
     res->validAST() = lexp->validAST() && rexp->validAST() && comp;
     res->dataType() = tmp;
-
+	switch(genop)
+	{
+		case OP_LT: 
+		
+		case OP_GT:
+		
+		case OP_LE:
+	
+		case OP_GE:	
+		
+		case OP_EQ:
+		case OP_AND:
+		case OP_OR:
+		res->data_type = TYPE_INT;
+		break;
+		
+	}
     if(!comp)
     {
         // Wrong type mismatch
@@ -41,3 +57,32 @@ ExpAst* createBinOpAst(ExpAst* lexp, ExpAst* rexp, OpType genop, OpType intop, O
     }
     return res;
 }
+
+ExpAst* createAssignmentAst(ExpAst* lexp, ExpAst* rexp, int lineCount)
+{
+	bool comp = binOpTypeCompatible(lexp->dataType(), rexp->dataType(), OP_ASSIGN);
+	DataType tmp = lexp->dataType();
+	ExpAst* rtmp = rexp;
+	if(tmp.getPrimitiveType() != rtmp->dataType().getPrimitiveType())
+	{
+		if(tmp.getPrimitiveType() == TYPE_INT)
+		{
+			rtmp = new UnaryOp(rexp, OP_TOINT);
+		}
+		else
+		{
+			rtmp = new UnaryOp(rexp, OP_TOFLT);
+		}
+		rtmp->validAST() = rexp->validAST();
+	}
+	ExpAst* res = new BinaryOp(lexp, rtmp, OP_ASSIGN);
+	res->validAST() = lexp->validAST() && rexp->validAST() && comp;
+	
+	res->data_type = tmp;
+	if(!comp)
+	{
+		cat::parse::stmterror::incompboptype(lineCount, lexp->dataType(), rexp->dataType(), OP_ASSIGN);
+	}
+	return res;
+}
+	

@@ -26,6 +26,8 @@ identifier [_a-zA-Z][_a-zA-Z0-9]*
                                     Parser::d_val__ = std::string(matched());
                                     return Parser::TOK_STR_CONST;
                                 }
+                                
+\/\/[^\n]* {}
 
 void {cat::token( "VOID" ); return Parser::TOK_VOID_KW;}
 

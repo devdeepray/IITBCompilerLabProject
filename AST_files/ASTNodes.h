@@ -8,13 +8,15 @@
 #include "../Util/catter.h"
 #include "TypeChecks.h"
 #include <stack>
+#include <map>
 using namespace std;
 
 extern int tab_degree;
 extern vector<string> codeArray;
 extern int labelId;
 extern FunctionTable currentFuncTable;
-extern stack<string> reg_stack;
+extern vector<string> reg_stack;
+extern map<string, string> reg_info;
 
 void indent_print(std::string s);
 void backPatch(list<int>, int);
@@ -200,6 +202,7 @@ public:
    virtual void genCode(list<int>* tl, list<int>* fl); 
    virtual void calcLabel(); 
    virtual void calcAttributes();
+   virtual void pruneAST();
 };
 
 
@@ -213,6 +216,7 @@ public:
   void genCode(list<int> *truelist, list<int> *falselist);
   void calcLabel();
   void calcAttributes();
+  void pruneAST();
 };
 
 class FunCall : public ExpAst
@@ -229,6 +233,7 @@ public:
   void calcLabel();
   void calcAttributes();
   void genCode(list<int>*, list<int>*);
+  void pruneAST();
 };
 
 
@@ -239,6 +244,9 @@ public:
   std::string val;
   StringConst(std::string _val);
   void print();
+  void calcLabel();
+  void calcAttributes();
+  void pruneAST();
 };
 
 
@@ -256,6 +264,7 @@ public:
   void genCode(list<int>* tl, list<int>* fl);
   void calcLabel();
   void calcAttributes();
+  void pruneAST();
   
 };
 
@@ -272,6 +281,7 @@ public:
   
   void calcLabel();
   void calcAttributes();
+  void pruneAST();
 };
 
 
