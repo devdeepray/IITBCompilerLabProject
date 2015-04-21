@@ -2089,7 +2089,7 @@ void UnaryOp::genCode(list<int> *truelist, list<int> *falselist) // TODO
 				}
 				else
 				{
-					codeArray.push_back("addi(ebp, "+reg2+")");
+					codeArray.push_back("addi(ebp, "+reg2+");");
 					codeArray.push_back("load" + typeStr + "(ind(" + reg2 + "," + to_string(offset) + "), " + reg1 + ");");
 					codeArray.push_back("add" + typeStr + "(1,"+ reg1 + ");");
 					codeArray.push_back("store" + typeStr + "(" + reg1 + ", ind(" + reg2 + ","+to_string(offset)+"));");
@@ -2264,6 +2264,7 @@ void UnaryOp::calcAttributes()
 		c1->fall = true;
 	}
 	c1->need_val = is_cond || need_val;
+	if(op==OP_PP) c1->need_val = true; /* ADDED THIS LINE VISHAL*/
 	c1->dir_const = true;
 	c1->calcAttributes();
 	if(c1->is_const)

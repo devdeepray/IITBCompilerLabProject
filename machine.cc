@@ -363,7 +363,7 @@ private:
 };
 
 class CMachine: public CMachineBase {
-#include "./op.asm"
+#include "./cgTest/listIncrement.asm"
 };
 
 int main() {
