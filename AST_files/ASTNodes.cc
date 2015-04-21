@@ -952,6 +952,25 @@ void BinaryOp::calcAttributes()
 					int_val = c1->int_val && c2->int_val;
 				}
 			}
+			else if(c1->is_const)
+			{
+				if(op == OP_OR)
+				{
+					if(c1->int_val != 0)
+					{
+						is_const = true;
+						int_val = 1;
+					}
+				}
+				else
+				{
+					if(c1->int_val == 0)
+					{
+						is_const = true;
+						int_val = 0;
+					}
+				}
+			}
 			break;
 		case OP_INT_PLUS:
 		case OP_FLOAT_PLUS:

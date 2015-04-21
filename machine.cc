@@ -363,7 +363,7 @@ private:
 };
 
 class CMachine: public CMachineBase {
-#include "./cgTest/revList.asm"
+#include "op.asm"
 };
 
 int main() {
