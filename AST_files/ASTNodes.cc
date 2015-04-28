@@ -174,6 +174,10 @@ void Empty::print()
   tab_degree--;
 }
 
+void Empty::genCode(list <int> *nextList)
+{
+	; 
+}	
 /* *********************************************************************
  * END
  * Empty ast node
@@ -2283,7 +2287,7 @@ void UnaryOp::calcAttributes()
 		c1->fall = true;
 	}
 	c1->need_val = is_cond || need_val;
-	if(op==OP_PP) c1->need_val = true; /* ADDED THIS LINE VISHAL*/
+	if(op==OP_PP) c1->need_val = true; 
 	c1->dir_const = true;
 	c1->calcAttributes();
 	if(c1->is_const)

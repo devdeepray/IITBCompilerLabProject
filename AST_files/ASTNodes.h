@@ -82,6 +82,7 @@ class Empty : public StmtAst
 public:
   Empty();
   void print();
+  void genCode(list <int> *nextList);
 };
 
 
