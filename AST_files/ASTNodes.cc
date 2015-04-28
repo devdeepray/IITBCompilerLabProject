@@ -324,7 +324,14 @@ void Return::genCode(list<int>* nextList)
 		int offset = currentFuncTable.var_offset_map.rbegin()->first;
 		string vName = currentFuncTable.var_offset_map[offset];
 		int size = currentFuncTable.var_name_map[vName].size;
-		returnValueAdd = offset + size;
+		if(currentFuncTable.var_name_map[vName].decl_type == PARAM)
+		{
+			returnValueAdd = offset + HW_ADDR_SIZE;
+		}
+		else
+		{
+			returnValueAdd = offset + size;
+		}
 	}
 	ValType returnType = 
 				currentFuncTable.getReturnType().getPrimitiveType();
@@ -2752,8 +2759,15 @@ void Identifier::genCode(list<int>* tl, list<int>* fl)
 				}
 				else
 				{
-					codeArray.push_back("move(ebp, " + reg + ");");
-					codeArray.push_back("addi(" + to_string(idOffset) + ", " + reg + ");");
+					if(curVarDecl.decl_type == PARAM)
+					{
+						codeArray.push_back("loadi(ind(ebp," + to_string(idOffset) + "), " + reg + ");");
+					}
+					else
+					{
+						codeArray.push_back("move(ebp, " + reg + ");");
+						codeArray.push_back("addi(" + to_string(idOffset) + ", " + reg + ");");
+					}
 				}
 			}
 		}
@@ -2788,8 +2802,15 @@ void Identifier::genCode(list<int>* tl, list<int>* fl)
 				}
 				else
 				{
-					codeArray.push_back("move(ebp, " + reg + ");");
-					codeArray.push_back("addi(" + to_string(idOffset) + ", " + reg + ");");
+					if(curVarDecl.decl_type == PARAM)
+					{
+						codeArray.push_back("loadi(ind(ebp," + to_string(idOffset) + "), " + reg + ");");
+					}
+					else
+					{
+						codeArray.push_back("move(ebp, " + reg + ");");
+						codeArray.push_back("addi(" + to_string(idOffset) + ", " + reg + ");");
+					}
 				}
 			}
 		}
