@@ -507,7 +507,9 @@ postfix_expression  : primary_expression
     
     FunctionSignature fsig($1, list<DataType>());
     
-    if(_g_globalSymTable.existsSignature(fsig))
+    
+
+    if(!_g_funcTable.existsSymbol($1) && _g_globalSymTable.existsSignature(fsig))
     {
         // Valid function call  
         tmp->validAST() = true;
@@ -533,7 +535,7 @@ postfix_expression  : primary_expression
 		($3)->dataType().setPrimitive( TYPE_WEAK );
 
 		FunctionSignature fsig($1, ((FunCall*)($3))->getArgTypeList());
-		if(($3)->validAST() && _g_globalSymTable.existsSignature(fsig))
+		if(!_g_funcTable.existsSymbol($1) && ($3)->validAST() && _g_globalSymTable.existsSignature(fsig))
 		{
 			($3)->validAST() = true;
 			($3)->dataType() = _g_globalSymTable.getFuncTable(fsig).getReturnType();
@@ -543,7 +545,7 @@ postfix_expression  : primary_expression
 		{
 			int wmcount;
 			FunctionSignature tmpsig = _g_globalSymTable.getCompatibleSignature(fsig, &wmcount);
-			if(wmcount == 0)
+			if(_g_funcTable.existsSymbol($1) || wmcount == 0)
 			{
 				($3)->validAST() = false;
 				cat::parse::fdecerror::badfcall(_g_lineCount, fsig);
