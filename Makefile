@@ -3,7 +3,7 @@ all: clean
 	make build;
 
 build:	lex.cc parse.cc main.cc Scanner.h Scannerbase.h Scanner.ih Parser.h Parserbase.h Parser.ih
-	g++ -std=c++0x lex.cc parse.cc main.cc AST_files/*.cc;
+	g++ -std=c++0x lex.cc parse.cc main.cc AST_files/*.cc -o gompiler;
 	
 
 lex.cc: lex.l Scanner.ih 
@@ -24,11 +24,12 @@ graph:
 clean:
 	rm -f Scanner*
 	rm -f Parser*
-	rm -f a.out
+	rm -f gompiler
 	rm -f lex.cc
 	rm -f parse.cc
 	rm -f graph.gv
 	rm -f graph.ps
+	rm -f machine
 
 Parser.ih: parse.y
 Parser.h:  parse.y
