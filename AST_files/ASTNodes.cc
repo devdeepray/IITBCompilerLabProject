@@ -216,6 +216,8 @@ void Block::insert(StmtAst* c)
 }
 void Block::genCode(list <int> *nextList)
 {
+	
+	//cerr <<  "GENNING CODE FOR BLOCK" << endl;
 	list<int> newNextList;
 	for(auto it = clist.begin(); it != clist.end();)
 	{	
@@ -258,6 +260,7 @@ void ExpStmt::print()
 }
 void ExpStmt::genCode(list <int> *nextList)
 {   
+	//cerr <<  "GENNING CODE FOR EXPSTMT" << endl;
 	//~ init_reg_stack();
     // Calc code generation attributes
     c1->fall = false;
@@ -2326,6 +2329,7 @@ void UnaryOp::calcAttributes()
 
 void UnaryOp::calcLabel() // TODO
 {
+	c1->calcLabel();
 	switch(op)
 	{
 		case OP_INT_PP:
