@@ -335,6 +335,7 @@ protected:
 	}
 public:
 	void execute() {
+		pushi(0);
 		this->main();
 	}
 
@@ -362,7 +363,7 @@ private:
 	}
 };
 
-class CMachine: public CMachineBase {
+class CMachine: public CMachineBase {	
 #include "op.asm"
 };
 
